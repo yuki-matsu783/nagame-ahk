@@ -1,6 +1,6 @@
 #Requires AutoHotkey v2.0
 
-; 設計: docs/external-command-server.md
+; 設計: docs/spec/external-command-server.md
 ; TCPループバックソケットの接続待受・送受信のみを担当する汎用レイヤー。
 ; メッセージ(コマンド)の意味を知らず、改行区切りの1行(文字列)を渡す/受け取るだけの役割に徹する。
 ; JSONのパースやコマンドディスパッチは core/ExternalCommandServer.ahk が担当する。

@@ -1,6 +1,6 @@
 #Requires AutoHotkey v2.0
 
-; 設計: docs/activity-status.md
+; 設計: docs/spec/activity-status.md
 ; マウス・キーボード操作の有無（アクティブ / 非アクティブ）をカーソル付近にツールチップ表示する機能。
 ; A_TimeIdlePhysical（直近の物理入力からの経過時間）が Settings.IdleThresholdMs 以上であれば
 ; 「非アクティブ」と判定する。物理入力のみを見るため Send 等による合成入力には反応しない。

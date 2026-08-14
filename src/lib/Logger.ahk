@@ -1,6 +1,6 @@
 #Requires AutoHotkey v2.0
 
-; 設計: docs/logger.md
+; 設計: docs/spec/logger.md
 ; ログ出力用のユーティリティ。core/ や features/ から共通で利用する。
 ; Settings.LogLevel で設定したレベル以上のログのみ、コンソール・ファイルの両方に出力する。
 class Logger {

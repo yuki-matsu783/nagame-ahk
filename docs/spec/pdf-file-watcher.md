@@ -2,7 +2,7 @@
 
 ## 背景・目的
 
-[docs/office-file-watcher.md](office-file-watcher.md) で実装したWord/Excel/PowerPoint/Visioのファイル
+[docs/spec/office-file-watcher.md](office-file-watcher.md) で実装したWord/Excel/PowerPoint/Visioのファイル
 情報表示を、PDFファイルにも同じ体験で対応してほしいという要望を受けて追加する。
 デスクトップ専用のPDFリーダーでファイルが開かれた際に、そのファイル名・保存先パスと、ファイルを開いている
 プロセスの情報をすぐに確認できるようにする。
@@ -11,8 +11,8 @@
 
 ### 検出方法
 
-- `docs/office-file-watcher.md` の実装過程で `SetWinEventHook` によるウィンドウ検出・hwnd重複排除ロジックを
-  `lib/WindowOpenWatcher.ahk` に共通化した（詳細・移行理由は[docs/office-file-watcher.md](office-file-watcher.md)
+- `docs/spec/office-file-watcher.md` の実装過程で `SetWinEventHook` によるウィンドウ検出・hwnd重複排除ロジックを
+  `lib/WindowOpenWatcher.ahk` に共通化した（詳細・移行理由は[docs/spec/office-file-watcher.md](office-file-watcher.md)
   の「検出方法」節を参照）。`PdfFileWatcher`はこの共通基盤を、対象プロセス名を`Settings.PdfProcessNames`に
   差し替えて利用する。検出の仕組み自体（`EVENT_OBJECT_SHOW`監視、通知済みhwndでの重複排除等）はOffice側と同一。
 
@@ -83,14 +83,14 @@ Office版と同様、`WinGetProcessName(hwnd)` / `WinGetPID(hwnd)` / `WinGetProc
 ## 影響範囲
 
 - 追加: `src/features/PdfFileWatcher.ahk`
-- 追加（Office側と共通化のためのリファクタ。詳細は[docs/office-file-watcher.md](office-file-watcher.md)参照）:
+- 追加（Office側と共通化のためのリファクタ。詳細は[docs/spec/office-file-watcher.md](office-file-watcher.md)参照）:
   `src/lib/WindowOpenWatcher.ahk`、`src/lib/FileOpenNotifier.ahk`
 - 変更: `src/config/Settings.ahk`（`PdfProcessNames` / `PdfWatchAutoStart` / `PdfWatchTrayTipDurationMs` 追加）
 - 変更: `src/core/App.ahk`（起動時に `PdfFileWatcher.Start()` 呼び出し）
 - 変更: `src/core/TrayMenu.ahk`（メニュー項目「PDF監視」・チェック同期メソッド追加）
 - 変更: `src/main.ahk`（`#Include`追加。lib 2ファイル、features 1ファイル）
 - 変更: `src/features/OfficeFileWatcher.ahk`（共通ロジックを`lib/`側に委譲するリファクタ。詳細は
-  [docs/office-file-watcher.md](office-file-watcher.md)参照）
+  [docs/spec/office-file-watcher.md](office-file-watcher.md)参照）
 
 ## 設定項目
 
@@ -117,5 +117,5 @@ Office版と同様、`WinGetProcessName(hwnd)` / `WinGetPID(hwnd)` / `WinGetProc
   タブ共有プロセスであり、「新規ウィンドウの表示=PDFファイルが開かれた」という前提が成立しにくく
   誤検知が多くなること、コマンドラインからも個別のPDFパスを特定できないことが理由。将来的に対応する
   場合は別途設計が必要。
-- TrayTipの表示・上書きに関する懸念（[docs/office-file-watcher.md](office-file-watcher.md)の該当節参照）は
+- TrayTipの表示・上書きに関する懸念（[docs/spec/office-file-watcher.md](office-file-watcher.md)の該当節参照）は
   Office版と共通。

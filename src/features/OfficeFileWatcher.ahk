@@ -1,6 +1,6 @@
 #Requires AutoHotkey v2.0
 
-; 設計: docs/office-file-watcher.md
+; 設計: docs/spec/office-file-watcher.md
 ; Word/Excel/PowerPoint/Visioでファイルが開かれたことを検知し、ファイル情報・プロセス情報を
 ; JSON化してTrayTipに表示する機能。ウィンドウ検出(SetWinEventHook)はlib/WindowOpenWatcher.ahk、
 ; JSON整形・TrayTip表示はlib/FileOpenNotifier.ahkに委譲し、ここではOffice/Visio固有の
@@ -99,7 +99,7 @@ class OfficeFileWatcher {
     }
 
     ; AccessibleObjectFromWindow(OBJID_NATIVEOM)経由でhwndから直接オートメーションオブジェクトを
-    ; 取得し、アプリ種別ごとにドキュメントのFullNameを取得する(docs/office-file-watcher.md参照)。
+    ; 取得し、アプリ種別ごとにドキュメントのFullNameを取得する(docs/spec/office-file-watcher.md参照)。
     ; Documents/Windowsコレクションを列挙して.Hwndが一致するものを探す方式は、複数ウィンドウ・
     ; 複数インスタンスがある場合に対応を誤りうるため採用しない。
     static _ResolveFullPath(hwnd, processName) {

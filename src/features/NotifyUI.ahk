@@ -1,6 +1,6 @@
 #Requires AutoHotkey v2.0
 
-; 設計: docs/external-command-server.md
+; 設計: docs/spec/external-command-server.md
 ; 外部コマンドサーバーの通知・簡易UI系コマンドの実処理。
 ; ShowToast/ShowMessageBoxは同期(即時応答)、ShowInputDialog/ShowChoiceDialogは
 ; ユーザー操作待ちのため非同期(respondコールバックをダイアログのボタン押下時に呼ぶ)。
@@ -22,7 +22,7 @@ class NotifyUI {
     static ShowMessageBox(params) {
         title := params.Get("title", "")
         message := params["message"]
-        ; MsgBoxはモーダルでスレッドをブロックする(docs/external-command-server.md の懸念点を参照)
+        ; MsgBoxはモーダルでスレッドをブロックする(docs/spec/external-command-server.md の懸念点を参照)
         MsgBox(message, title)
         return Map()
     }

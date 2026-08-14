@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-    ExternalCommandServer(docs/external-command-server.md)の結合スモークテスト。
+    ExternalCommandServer(docs/spec/external-command-server.md)の結合スモークテスト。
 
 .DESCRIPTION
     src/main.ahk を実際に起動し、TCPクライアントとして接続して Auth および代表的なコマンドを

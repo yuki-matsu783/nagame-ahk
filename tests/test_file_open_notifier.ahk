@@ -1,7 +1,7 @@
 #Requires AutoHotkey v2.0
 #SingleInstance Force
 
-; 設計: docs/office-file-watcher.md(TrayTip表示内容), docs/pdf-file-watcher.md
+; 設計: docs/spec/office-file-watcher.md(TrayTip表示内容), docs/spec/pdf-file-watcher.md
 ; lib/FileOpenNotifier.ahk のうち、TrayTipの実表示を使わずに検証できるJSON整形ロジックの単体テスト。
 ; GUIを開かず、アサーション結果を標準出力してExitApp()する。
 ; 実行例: AutoHotkey64.exe tests\test_file_open_notifier.ahk

@@ -1,7 +1,7 @@
 #Requires AutoHotkey v2.0
 #SingleInstance Force
 
-; 設計: docs/office-file-watcher.md(検出方法), docs/pdf-file-watcher.md
+; 設計: docs/spec/office-file-watcher.md(検出方法), docs/spec/pdf-file-watcher.md
 ; lib/WindowOpenWatcher.ahk のうち、実ウィンドウ・SetWinEventHookを使わずに検証できる
 ; 対象プロセス判定ロジック・複数インスタンスの独立性の単体テスト。
 ; GUIを開かず、アサーション結果を標準出力してExitApp()する。

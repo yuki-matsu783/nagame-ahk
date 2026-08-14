@@ -1,6 +1,6 @@
 #Requires AutoHotkey v2.0
 
-; 設計: docs/external-command-server.md
+; 設計: docs/spec/external-command-server.md
 ; 外部コマンドサーバーのクリップボード系コマンド(GetClipboard/PasteFormatted等)の実処理。
 ; 履歴はメモリ上にのみ保持し、永続化はしない(再起動で消える。設計ドキュメント参照)。
 ; 例外はcore/ExternalCommandServer.ahkの側で一括してエラー応答に変換される

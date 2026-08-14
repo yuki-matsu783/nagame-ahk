@@ -14,7 +14,7 @@ Word / Excel / PowerPoint / Visio でファイルが開かれた際に、その�
 - `SetWinEventHook`（user32.dll）によるイベント駆動検出とする。ポーリング方式（`SetTimer`で定期的に
   `WinGetList()`を取得して差分を見る）も検討したが、検出の即時性・CPU負荷の両面で `SetWinEventHook` を
   採用する。
-- [docs/pdf-file-watcher.md](pdf-file-watcher.md) でPDFファイルにも同じ検出方式を使う機能を追加する際に、
+- [docs/spec/pdf-file-watcher.md](pdf-file-watcher.md) でPDFファイルにも同じ検出方式を使う機能を追加する際に、
   この節で説明する検出ロジック（フックの設置/解除、対象プロセス名でのフィルタ、通知済みhwndの重複排除）は
   `src/lib/WindowOpenWatcher.ahk` に汎用クラスとして切り出した（`src/lib/TcpServer.ahk`と
   `src/core/ExternalCommandServer.ahk`の役割分担と同じ考え方）。`OfficeFileWatcher`は
@@ -39,7 +39,7 @@ Word / Excel / PowerPoint / Visio でファイルが開かれた際に、その�
   コールバックはフック設置元スレッド（AHKのメインスレッド）のメッセージキュー経由で呼ばれるため、
   コールバック内でCOM呼び出しなど時間のかかる処理を直接行っても安全（別スレッドへの割り込みではない）。
 - コールバックは`DllCall`に渡すため`CallbackCreate()`で作成する。`SetTimer`の既存パターン
-  （[docs/activity-status.md](activity-status.md)）と同様、GC対策と`UnhookWinEvent`時の一貫性のため、
+  （[docs/spec/activity-status.md](activity-status.md)）と同様、GC対策と`UnhookWinEvent`時の一貫性のため、
   作成したコールバックはインスタンスプロパティとして1つ保持し使い回す。
 - 監視終了時（`Stop()`）は `UnhookWinEvent` でフックを解除する。
 
@@ -101,7 +101,7 @@ Word / Excel / PowerPoint / Visio でファイルが開かれた際に、その�
 ## 影響範囲
 
 - 追加: `src/lib/WindowOpenWatcher.ahk`（`SetWinEventHook`の設置・解除、対象プロセス名でのフィルタ、
-  hwnd重複排除を行う汎用クラス。PDF監視（[docs/pdf-file-watcher.md](pdf-file-watcher.md)）と共用）
+  hwnd重複排除を行う汎用クラス。PDF監視（[docs/spec/pdf-file-watcher.md](pdf-file-watcher.md)）と共用）
 - 追加: `src/lib/FileOpenNotifier.ahk`（検出結果のJSON整形・TrayTip表示・自動消去を行う汎用クラス。
   こちらもPDF監視と共用）
 - 追加: `src/features/OfficeFileWatcher.ahk`（`WindowOpenWatcher`のインスタンスを保持し、

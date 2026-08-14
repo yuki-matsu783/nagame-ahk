@@ -1,6 +1,6 @@
 #Requires AutoHotkey v2.0
 
-; 設計: docs/office-file-watcher.md(TrayTip表示内容), docs/pdf-file-watcher.md
+; 設計: docs/spec/office-file-watcher.md(TrayTip表示内容), docs/spec/pdf-file-watcher.md
 ; ウィンドウ検出結果(ファイル情報・プロセス情報)をJSON文字列に整形し、TrayTipで表示する汎用処理。
 ; features/OfficeFileWatcher.ahk・features/PdfFileWatcher.ahkから共通で利用する
 ; (lib/TcpServer.ahkとcore/ExternalCommandServer.ahkの役割分担と同じ考え方)。

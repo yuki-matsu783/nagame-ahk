@@ -1,10 +1,10 @@
 #Requires AutoHotkey v2.0
 
-; 設計: docs/external-command-server.md
+; 設計: docs/spec/external-command-server.md
 ; JSONのエンコード/デコードを行う最小限の自作実装。
 ; プロトコルに必要な範囲(object/array/string/number/true/false/null)のみをサポートする。
 ;
-; 型に関する制約(実装時の判断。詳細は docs/external-command-server.md の「JSONエンコード/デコード」参照):
+; 型に関する制約(実装時の判断。詳細は docs/spec/external-command-server.md の「JSONエンコード/デコード」参照):
 ; - AHKには真偽値専用の型が無いため、デコード結果の true/false はそれぞれ整数 1/0 を返す
 ;   (if文での真偽判定にはそのまま使える)。エンコード時に明示的にJSONのtrue/falseを出力したい場合は
 ;   Json.Bool(value) でラップしてから渡すこと。

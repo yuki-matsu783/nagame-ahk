@@ -1,6 +1,6 @@
 #Requires AutoHotkey v2.0
 
-; 設計: docs/external-command-server.md(DescribeWindowのみ)
+; 設計: docs/spec/external-command-server.md(DescribeWindowのみ)
 ; ウィンドウ操作系の汎用処理。features/ 間で使い回す部品を置く。
 class WindowUtils {
     ; 指定タイトルのウィンドウがあればアクティブ化し、無ければ起動する

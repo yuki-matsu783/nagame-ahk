@@ -1,6 +1,6 @@
 #Requires AutoHotkey v2.0
 
-; 設計: docs/pdf-file-watcher.md
+; 設計: docs/spec/pdf-file-watcher.md
 ; デスクトップ用PDFリーダー(Adobe Acrobat/Reader, SumatraPDF, Foxit Reader)でファイルが
 ; 開かれたことを検知し、ファイル情報・プロセス情報をJSON化してTrayTipに表示する機能。
 ; ウィンドウ検出(SetWinEventHook)はlib/WindowOpenWatcher.ahk、JSON整形・TrayTip表示は
@@ -64,7 +64,7 @@ class PdfFileWatcher {
             fullPath := PdfFileWatcher._ResolveFullPath(pid)
         } catch as e {
             ; WMI経由でのコマンドライン取得はプロセスの状態(保護モード等)に依存し失敗しうるため、
-            ; ここで捕捉してタイトルのみのフォールバック表示に切り替える(docs/pdf-file-watcher.md参照)
+            ; ここで捕捉してタイトルのみのフォールバック表示に切り替える(docs/spec/pdf-file-watcher.md参照)
             Logger.Error("ファイルパスの取得に失敗しました: " e.Message)
             Logger.Debug("hwnd=" hwnd " process=" processName " pid=" pid " windowTitle=" windowTitle)
         }
@@ -86,7 +86,7 @@ class PdfFileWatcher {
     }
 
     ; プロセスの起動コマンドラインをWMI経由で取得し、そこから.pdfパスを抽出する
-    ; (docs/pdf-file-watcher.mdの「ファイル情報の取得」参照)。
+    ; (docs/spec/pdf-file-watcher.mdの「ファイル情報の取得」参照)。
     ; 既に起動済みのプロセスに2つ目以降のファイルを開いた場合はコマンドラインが最初のファイルの
     ; ままになるため取得できない(既知の制約)。抽出できても実在しなければ空文字列を返す。
     static _ResolveFullPath(pid) {

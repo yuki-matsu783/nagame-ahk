@@ -8,11 +8,11 @@
 | ファイル | 対象 | 副作用 | 実行方法 |
 |---|---|---|---|
 | `test_json.ahk` | `src/lib/Json.ahk`（エンコード/デコード） | なし。GUIを開かずアサーション結果を標準出力してExitApp() | `AutoHotkey64.exe tests\test_json.ahk` |
-| `test_external_command_server.ps1` | `docs/external-command-server.md` の実装一式（TCPサーバー・認証・コマンドディスパッチ） | あり。`src/main.ahk` を実際に起動し、クリップボードを書き換え、トースト通知を表示する。実行中の `AutoHotkey64.exe` プロセスを名前で終了させる | `powershell -File tests\test_external_command_server.ps1` |
+| `test_external_command_server.ps1` | `docs/spec/external-command-server.md` の実装一式（TCPサーバー・認証・コマンドディスパッチ） | あり。`src/main.ahk` を実際に起動し、クリップボードを書き換え、トースト通知を表示する。実行中の `AutoHotkey64.exe` プロセスを名前で終了させる | `powershell -File tests\test_external_command_server.ps1` |
 | `test_window_open_watcher.ahk` | `src/lib/WindowOpenWatcher.ahk`のうち、対象プロセス判定・複数インスタンスの独立性・通知済みhwnd管理など実ウィンドウ/実フック無しで検証できるロジック（`OfficeFileWatcher`/`PdfFileWatcher`共通の検出基盤） | なし。GUIを開かずアサーション結果を標準出力してExitApp() | `AutoHotkey64.exe tests\test_window_open_watcher.ahk` |
 | `test_file_open_notifier.ahk` | `src/lib/FileOpenNotifier.ahk`のうち、検出結果のJSON整形ロジック（`OfficeFileWatcher`/`PdfFileWatcher`共通の表示基盤） | なし。GUIを開かずアサーション結果を標準出力してExitApp() | `AutoHotkey64.exe tests\test_file_open_notifier.ahk` |
-| `test_office_file_watcher.ahk` | `src/features/OfficeFileWatcher.ahk`（`docs/office-file-watcher.md`）のうち、種類名マッピング・ファイル名抽出・`WindowOpenWatcher`への委譲設定など実ウィンドウ/COM無しで検証できるロジック | なし。GUIを開かずアサーション結果を標準出力してExitApp() | `AutoHotkey64.exe tests\test_office_file_watcher.ahk` |
-| `test_pdf_file_watcher.ahk` | `src/features/PdfFileWatcher.ahk`（`docs/pdf-file-watcher.md`）のうち、コマンドラインからの`.pdf`パス抽出・ファイル名抽出・`WindowOpenWatcher`への委譲設定など実ウィンドウ/WMI無しで検証できるロジック | なし。GUIを開かずアサーション結果を標準出力してExitApp() | `AutoHotkey64.exe tests\test_pdf_file_watcher.ahk` |
+| `test_office_file_watcher.ahk` | `src/features/OfficeFileWatcher.ahk`（`docs/spec/office-file-watcher.md`）のうち、種類名マッピング・ファイル名抽出・`WindowOpenWatcher`への委譲設定など実ウィンドウ/COM無しで検証できるロジック | なし。GUIを開かずアサーション結果を標準出力してExitApp() | `AutoHotkey64.exe tests\test_office_file_watcher.ahk` |
+| `test_pdf_file_watcher.ahk` | `src/features/PdfFileWatcher.ahk`（`docs/spec/pdf-file-watcher.md`）のうち、コマンドラインからの`.pdf`パス抽出・ファイル名抽出・`WindowOpenWatcher`への委譲設定など実ウィンドウ/WMI無しで検証できるロジック | なし。GUIを開かずアサーション結果を標準出力してExitApp() | `AutoHotkey64.exe tests\test_pdf_file_watcher.ahk` |
 
 ## 実行結果の見方
 
@@ -67,7 +67,7 @@ Adobe Acrobat/Reader・SumatraPDF・Foxit Readerのいずれかがインスト�
 4. `nagame-ahk.log`（リポジトリ直下）にエラーが出ていないことを確認する
    （WMIでのコマンドライン取得・パス抽出に失敗した場合は`ERROR`ログとともに`pathResolved:false`の
    フォールバック表示になる）。
-5. 既に起動中の同じリーダーで2つ目以降のPDFを開いた場合、`docs/pdf-file-watcher.md`に記載の既知の
+5. 既に起動中の同じリーダーで2つ目以降のPDFを開いた場合、`docs/spec/pdf-file-watcher.md`に記載の既知の
    制約通り`pathResolved:false`のフォールバック表示になることを確認する。
 6. ウィンドウを閉じたあと、トレイメニュー「PDF監視」のON/OFF切り替えが正常に動作することを確認する。
 7. Officeのファイルを開いてもPDF監視側のTrayTipが誤って表示されない（逆も同様）ことを確認する。

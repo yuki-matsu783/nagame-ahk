@@ -1,6 +1,6 @@
 #Requires AutoHotkey v2.0
 
-; 設計: docs/external-command-server.md
+; 設計: docs/spec/external-command-server.md
 ; TcpServer(lib)が受信した1行(JSON文字列)を解析し、コマンドをfeatures/配下へディスパッチして
 ; 結果をJSONで返す。core/Hotkeys.ahk と対になる「外部トリガーの集約窓口」の位置づけ。
 ;

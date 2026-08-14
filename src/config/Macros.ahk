@@ -1,6 +1,6 @@
 #Requires AutoHotkey v2.0
 
-; 設計: docs/external-command-server.md
+; 設計: docs/spec/external-command-server.md
 ; features/InputControl.ahk の PlayMacro コマンドから参照するマクロ定義。
 ; 名前ごとにキー操作のステップ列(Array)を持つ。
 ;

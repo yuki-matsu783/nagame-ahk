@@ -1,7 +1,7 @@
 #Requires AutoHotkey v2.0
 #SingleInstance Force
 
-; 設計: docs/office-file-watcher.md
+; 設計: docs/spec/office-file-watcher.md
 ; features/OfficeFileWatcher.ahk のうち、実ウィンドウ・COM・SetWinEventHookを使わずに検証できる
 ; 純粋なロジック(種類名マッピング/ファイル名抽出/WindowOpenWatcherへの委譲設定)の単体テスト。
 ; GUIを開かず、アサーション結果を標準出力してExitApp()する。

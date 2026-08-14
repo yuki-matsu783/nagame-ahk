@@ -1,6 +1,6 @@
 #Requires AutoHotkey v2.0
 
-; 設計: docs/office-file-watcher.md(検出方法), docs/pdf-file-watcher.md
+; 設計: docs/spec/office-file-watcher.md(検出方法), docs/spec/pdf-file-watcher.md
 ; SetWinEventHookで新規ウィンドウの表示(EVENT_OBJECT_SHOW)を検出し、指定したプロセス名に一致する
 ; ウィンドウをコールバックに通知する汎用クラス。features/OfficeFileWatcher.ahk・features/PdfFileWatcher.ahk
 ; から、監視対象プロセス名とファイル情報の収集ロジックだけを差し替えて利用する
@@ -9,7 +9,7 @@
 ; SetWinEventHookのコールバックにはコンテキスト引数が無く、Office監視・PDF監視を独立したフックとして
 ; 同時に動かすにはフックごとに別々の状態(対象プロセス名・通知済みhwnd集合・フックハンドル)が要るため、
 ; 本プロジェクトで唯一インスタンス化可能なクラスとして実装する(他のクラスは全てstaticのみで運用している
-; 点からの意図的な逸脱。理由の詳細はdocs/office-file-watcher.mdの「検出方法」節を参照)。
+; 点からの意図的な逸脱。理由の詳細はdocs/spec/office-file-watcher.mdの「検出方法」節を参照)。
 ; 呼び出し側は1つの監視対象につき1インスタンスを生成して使う。
 class WindowOpenWatcher {
     ; ---- WinEvent(user32)関連の定数 ----

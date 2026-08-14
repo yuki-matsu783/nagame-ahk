@@ -1,6 +1,6 @@
 #Requires AutoHotkey v2.0
 
-; 設計: docs/external-command-server.md
+; 設計: docs/spec/external-command-server.md
 ; 外部コマンドサーバーの入力操作系コマンド(SendKeys/MouseClick/PlayMacro等)の実処理。
 ; 例外はcore/ExternalCommandServer.ahkの側で一括してエラー応答に変換される
 ; (詳細はcore/ExternalCommandServer.ahk冒頭のコメント参照)。

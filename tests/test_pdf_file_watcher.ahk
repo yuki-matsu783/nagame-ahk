@@ -1,7 +1,7 @@
 #Requires AutoHotkey v2.0
 #SingleInstance Force
 
-; 設計: docs/pdf-file-watcher.md
+; 設計: docs/spec/pdf-file-watcher.md
 ; features/PdfFileWatcher.ahk のうち、実ウィンドウ・WMI・SetWinEventHookを使わずに検証できる
 ; 純粋なロジック(コマンドラインからの.pdfパス抽出/ファイル名抽出/WindowOpenWatcherへの委譲設定)の
 ; 単体テスト。GUIを開かず、アサーション結果を標準出力してExitApp()する。
