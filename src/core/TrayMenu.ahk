@@ -6,6 +6,8 @@ class TrayMenu {
         A_TrayMenu.Delete()
         A_TrayMenu.Add("操作状態表示", (*) => TrayMenu.ToggleActivityStatus())
         A_TrayMenu.Add("外部コマンド受付", (*) => TrayMenu.ToggleExternalCommandServer())
+        A_TrayMenu.Add("Office監視", (*) => TrayMenu.ToggleOfficeWatch())
+        A_TrayMenu.Add("PDF監視", (*) => TrayMenu.TogglePdfWatch())
         A_TrayMenu.Add()
         A_TrayMenu.Add("再読み込み", (*) => Reload())
         A_TrayMenu.Add("終了", (*) => ExitApp())
@@ -55,5 +57,35 @@ class TrayMenu {
     static _UpdateExternalCommandTip() {
         status := !ExternalCommandServer.Enabled ? "停止中" : (ExternalCommandServer.IsConnected() ? "接続中" : "待受中")
         A_IconTip := Settings.AppName " v" Settings.Version " / 外部コマンド: " status
+    }
+
+    ; 「Office監視」メニューのチェック状態を OfficeFileWatcher.Enabled に同期する
+    static SyncOfficeWatchCheck() {
+        if OfficeFileWatcher.Enabled {
+            A_TrayMenu.Check("Office監視")
+        } else {
+            A_TrayMenu.Uncheck("Office監視")
+        }
+    }
+
+    ; OfficeFileWatcherの切り替えとメニューのチェック状態同期をまとめて行う
+    static ToggleOfficeWatch(*) {
+        OfficeFileWatcher.Toggle()
+        TrayMenu.SyncOfficeWatchCheck()
+    }
+
+    ; 「PDF監視」メニューのチェック状態を PdfFileWatcher.Enabled に同期する
+    static SyncPdfWatchCheck() {
+        if PdfFileWatcher.Enabled {
+            A_TrayMenu.Check("PDF監視")
+        } else {
+            A_TrayMenu.Uncheck("PDF監視")
+        }
+    }
+
+    ; PdfFileWatcherの切り替えとメニューのチェック状態同期をまとめて行う
+    static TogglePdfWatch(*) {
+        PdfFileWatcher.Toggle()
+        TrayMenu.SyncPdfWatchCheck()
     }
 }

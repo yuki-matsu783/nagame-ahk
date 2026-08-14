@@ -9,6 +9,8 @@
 #Include lib\Json.ahk
 #Include lib\WindowUtils.ahk
 #Include lib\TcpServer.ahk
+#Include lib\WindowOpenWatcher.ahk
+#Include lib\FileOpenNotifier.ahk
 #Include core\TrayMenu.ahk
 #Include core\Hotkeys.ahk
 #Include core\App.ahk
@@ -18,5 +20,7 @@
 #Include features\InputControl.ahk
 #Include features\ClipboardControl.ahk
 #Include features\NotifyUI.ahk
+#Include features\OfficeFileWatcher.ahk
+#Include features\PdfFileWatcher.ahk
 
 App.Start()

@@ -29,4 +29,18 @@ class Settings {
     static AuthToken := "ahk-rira"
     ; ClipboardControl: クリップボード履歴の最大保持件数
     static ClipboardHistoryMax := 50
+
+    ; OfficeFileWatcher: 監視対象のOfficeプロセス名(docs/office-file-watcher.md参照)
+    static OfficeProcessNames := Array("WINWORD.EXE", "EXCEL.EXE", "POWERPNT.EXE", "VISIO.EXE")
+    ; OfficeFileWatcher: アプリ起動時に自動的に監視を開始するか
+    static OfficeWatchAutoStart := true
+    ; OfficeFileWatcher: 検出結果のTrayTip(JSON表示)を明示的に消すまでの時間(ms)
+    static OfficeWatchTrayTipDurationMs := 5000
+
+    ; PdfFileWatcher: 監視対象のPDFリーダーのプロセス名(docs/pdf-file-watcher.md参照)
+    static PdfProcessNames := Array("AcroRd32.exe", "Acrobat.exe", "SumatraPDF.exe", "FoxitPDFReader.exe", "FoxitReader.exe")
+    ; PdfFileWatcher: アプリ起動時に自動的に監視を開始するか
+    static PdfWatchAutoStart := true
+    ; PdfFileWatcher: 検出結果のTrayTip(JSON表示)を明示的に消すまでの時間(ms)
+    static PdfWatchTrayTipDurationMs := 5000
 }
