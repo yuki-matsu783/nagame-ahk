@@ -7,6 +7,13 @@ class App {
         Hotkeys.Register()
         ActivityStatus.Start()
         TrayMenu.SyncActivityStatusCheck()
+
+        ClipboardControl.StartWatching()
+        if Settings.ExternalCommandAutoStart {
+            ExternalCommandServer.Start()
+        }
+        TrayMenu.SyncExternalCommandCheck()
+
         Logger.Info(Settings.AppName " を起動しました")
     }
 }

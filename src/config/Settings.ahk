@@ -14,4 +14,19 @@ class Settings {
     static IdleThresholdMs := 3000
     ; ActivityStatus: 状態判定・ツールチップ更新の間隔(ms)
     static ActivityCheckIntervalMs := 200
+
+    ; ExternalCommandServer: リッスンするアドレス(ループバック固定。docs/external-command-server.md 参照)
+    static ServerHost := "127.0.0.1"
+    ; ExternalCommandServer: リッスンするポート番号
+    static ServerPort := 39321
+    ; ExternalCommandServer: accept/recv/sendの可否確認のポーリング間隔(ms)
+    static ServerPollIntervalMs := 50
+    ; ExternalCommandServer: 読み書きバッファサイズ(byte)
+    static ServerBufferSize := 4096
+    ; ExternalCommandServer: アプリ起動時にサーバーを自動起動するか
+    static ExternalCommandAutoStart := true
+    ; ExternalCommandServer: 接続直後の認証で要求する共有トークン
+    static AuthToken := "ahk-rira"
+    ; ClipboardControl: クリップボード履歴の最大保持件数
+    static ClipboardHistoryMax := 50
 }
