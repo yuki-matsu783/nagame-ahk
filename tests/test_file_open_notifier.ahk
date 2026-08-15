@@ -12,19 +12,10 @@
 #Include ..\src\lib\Logger.ahk
 #Include ..\src\lib\Json.ahk
 #Include ..\src\lib\FileOpenNotifier.ahk
+#Include lib\Assert.ahk
 
 failures := 0
 passed := 0
-
-Assert(actual, expected, label) {
-    global failures, passed
-    if actual == expected {
-        passed++
-    } else {
-        failures++
-        FileAppend("FAIL: " label " expected=[" expected "] actual=[" actual "]`n", "*")
-    }
-}
 
 ; ---- BuildJson: パス取得成功時(Officeを例に) ----
 infoResolved := Map(

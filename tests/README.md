@@ -15,10 +15,24 @@
 | `test_pdf_file_watcher.ahk` | `src/features/PdfFileWatcher.ahk`（`docs/spec/pdf-file-watcher.md`）のうち、コマンドラインからの`.pdf`パス抽出・ファイル名抽出・`WindowOpenWatcher`への委譲設定など実ウィンドウ/WMI無しで検証できるロジック | なし。GUIを開かずアサーション結果を標準出力してExitApp() | `AutoHotkey64.exe tests\test_pdf_file_watcher.ahk` |
 | `test_recent_docs_watcher.ahk` | `src/features/RecentDocsWatcher.ahk`（`docs/spec/recent-docs-watcher.md`）のうち、`MRUListEx`/エントリの16進バイナリからの最新スロット・ファイル名抽出、JSON整形など実レジストリ/COM無しで検証できるロジック | なし。GUIを開かずアサーション結果を標準出力してExitApp() | `AutoHotkey64.exe tests\test_recent_docs_watcher.ahk` |
 
+## 実行環境（AutoHotkey64.exeの場所）
+
+上表の実行方法は `AutoHotkey64.exe` がPATHに通っている前提で書いているが、既定のインストーラでは
+PATHに追加されない。PATHが通っていない場合はフルパスで実行する。
+
+```
+"C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe" tests\test_json.ahk
+```
+
+インストール先が異なる場合は `C:\Program Files\AutoHotkey\` 以下を探す（v1/v2共存環境では
+`AutoHotkey\v2\` 配下がv2用の実行ファイル）。
+
 ## 実行結果の見方
 
 いずれも最後に `passed=<成功数> failures=<失敗数>` を出力し、失敗が1件でもあれば終了コード1を返す。
 個別の失敗は `FAIL: <ラベル> expected=[...] actual=[...]` 形式で出力される。
+各テストスクリプト共通の `Assert(actual, expected, label)` は `tests/lib/Assert.ahk` に切り出して
+あり、各テストファイルはこれを `#Include` して使う（新規テストを追加する際も同様にする）。
 
 ## 対象外(手動確認が必要)
 

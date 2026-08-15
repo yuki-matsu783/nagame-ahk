@@ -21,19 +21,10 @@
 #Include ..\src\lib\WindowOpenWatcher.ahk
 #Include ..\src\lib\FileOpenNotifier.ahk
 #Include ..\src\features\PdfFileWatcher.ahk
+#Include lib\Assert.ahk
 
 failures := 0
 passed := 0
-
-Assert(actual, expected, label) {
-    global failures, passed
-    if actual == expected {
-        passed++
-    } else {
-        failures++
-        FileAppend("FAIL: " label " expected=[" expected "] actual=[" actual "]`n", "*")
-    }
-}
 
 ; ---- WindowOpenWatcherへの委譲設定 ----
 Assert(Type(PdfFileWatcher._watcher), "WindowOpenWatcher", "PdfFileWatcherはWindowOpenWatcherのインスタンスを保持する")
