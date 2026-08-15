@@ -168,3 +168,62 @@ issue #15（https://github.com/yuki-matsu783/nagame-ahk/issues/15）は、AIが1
   その時点までの使用量を反映したコメントをPR #17へ投稿することを実地確認する。
 - 現セッションのtranscript（`gitBranch`混在済み）で`Sync-UsageState`を手動実行し、
   `feature-15-mr`分のみが集計され、`feature-12-...`/`main`分の数値が含まれないことを確認する。
+
+---
+
+# 追加計画（同issue #15内、2026-08-16 3回目）: Stop hookの削除とターン数算出の一本化
+
+## Context
+
+ユーザー指摘: 「`.claude\hooks\stop-usage-record.ps1`とかはもう利用していないのなら消してしまって
+ほしい」。
+
+調査の結果、`Stop` hookが担っていた役割は「`sinceLastPush.turns`（ターン数）を+1する」ことのみで、
+トークン・ツール呼び出し集計自体は既に`post-push-usage-report.ps1`が投稿直前に自分で
+`Sync-UsageState`を呼んで最新化する設計（前回の追加計画）に変わっている。加えて、この
+`Stop`依存のターン数カウントは、**トークン集計で直したのと同じ穴**（そのターンの`Stop`がまだ
+発火していない状態でpushすると過少カウントされる）を抱えたまま残っていた。実際、直近の自動投稿
+コメントは実データ（トークン数・ツール実行回数）があるにもかかわらず「対象ターン数: 0」と
+表示されていた（本来の意味とズレた不正確な値）。
+
+`Stop`を残す積極的な理由が無くなったため、削除しPostToolUse（git push検知）1本の構成へ単純化する。
+
+## 決定
+
+**`turns`（ターン数）も、トークン・ツール呼び出しと同じ方法（transcriptとの差分）で算出するよう
+`Sync-UsageState`を変更し、`Stop` hookを廃止する。**
+
+- `Sync-UsageState`内で、`gitBranch`フィルタ後の**assistantエントリ件数**を数え、セッションの
+  前回記録値（`sessions[$SessionId].lastAssistantCount`、新規追加）との差分を`sinceLastPush.turns`
+  へ加算する（tokens/toolCallsと全く同じ「差分を加算」パターン）。`-IncrementTurn`スイッチは廃止する
+  （常にtranscriptから直接算出するため、呼び出し元に関わらず一貫した値になる）。
+- **注意**: 1ユーザーターンの中で複数回のツール呼び出しが発生すると、assistantメッセージ自体は
+  複数生成されうる（tool_use→tool_result→assistantの応答ループのため）。そのため本来の
+  「会話ターン数」とは厳密には一致せず、「assistant応答回数」に近い値になる。この違いは
+  懸念点として明記し、レポート上のラベルも「対象ターン数」から**「assistant応答回数」**に変更する
+  （実態と表現を一致させる）。
+
+## 変更するファイル
+
+1. **`.claude/hooks/lib/UsageTracking.ps1`**: `Sync-UsageState`内でassistantエントリ件数を集計し
+   `sinceLastPush.turns`への差分加算に組み込む。`-IncrementTurn`パラメータを削除。
+2. **`.claude/hooks/stop-usage-record.ps1`**: 削除。
+3. **`.claude/hooks/post-push-usage-report.ps1`**: `Sync-UsageState`呼び出しから
+   `-IncrementTurn`指定が無くなる点のみ（既に指定していないため実質変更なし）。レポート本文の
+   ラベル「対象ターン数」→「assistant応答回数」に変更。
+4. **`.claude/settings.json`**: `hooks.Stop`エントリを削除。
+5. **既に（未コミットの）今回のセッションで書いたspec/DDR**（`dev-tools/docs/spec/issue-mr-workflow.md`、
+   `dev-tools/docs/ddr/0006-...`）: `Stop`の役割に関する記述を、上記の新設計に合わせて修正する
+   （まだコミット前のため、修正版をそのまま設計反映として書く。訂正コミットは不要）。
+
+## 対象外
+
+- 「本来の会話ターン数」を厳密に算出する対応（Stopに依存せず正確なターン境界を知る手段が無いため、
+  「assistant応答回数」という近似値で妥協する）。
+
+## 検証方法
+
+- `Sync-UsageState`を実transcriptで手動実行し、`turns`（新ラベルではassistant応答回数）が
+  0にならず、tokens/toolCallsと同様に妥当な値になることを確認する。
+- `.claude/settings.json`から`hooks.Stop`を削除した状態で、実際に何らかの作業→`git push`を行い、
+  `post-push-usage-report.ps1`単体でレポートが正しく投稿されることを実地確認する。

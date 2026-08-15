@@ -89,3 +89,24 @@
   が実際に発火し、PR #17へ自動コメント（comment id 5303251381）が投稿された。直前のcommit作業分
   （Bash 5回・Edit 4回等）の実データのみが反映されており、リセットが正しく機能していることも確認できた
   （このコメントは実際の作業ログとして意味があるため削除せず残した）。
+
+## 追加対応: Stop hookの廃止（同日3回目）
+
+ユーザー指摘: 「`.claude\hooks\stop-usage-record.ps1`とかはもう利用していないのなら消してしまって
+ほしい」。
+
+- 調査の結果、`Stop`が担っていた役割（`sinceLastPush.turns`を+1するだけ）は、`post-push-usage-report.ps1`
+  が既に自前でtranscriptを最新化する設計に変わった後は不要と判断。加えて`Stop`依存のターン数カウントは
+  「そのターンのStopが未発火のままpushすると過少カウントされる」という、トークン集計で直したのと
+  同じ不具合を抱えていた（実際に「対象ターン数: 0」という、実データはあるのに0と出る投稿を確認済み）。
+- `Sync-UsageState`内で、`gitBranch`フィルタ後のassistantエントリ件数を数え、セッションの前回記録値
+  （`sessions[$SessionId].lastAssistantCount`、新規追加）との差分を`sinceLastPush.turns`へ加算する
+  よう変更（tokens/toolCallsと全く同じ「差分を加算」パターンに統一）。`-IncrementTurn`スイッチは廃止。
+- `.claude/hooks/stop-usage-record.ps1`を削除、`.claude/settings.json`の`hooks.Stop`設定も削除。
+- レポート本文のラベルを「対象ターン数」→「assistant応答回数」に変更（厳密な会話ターン数とは
+  ズレうる指標であることを表現に反映）。
+- 未コミットだった`dev-tools/docs/spec/issue-mr-workflow.md`・`dev-tools/docs/ddr/0006-...`も、
+  この設計変更を反映した内容に書き直してから設計反映のコミットに含めた（訂正コミットは不要だった）。
+- **実機検証**: 状態ファイルを削除した状態から、実セッションの`session_id`/`transcript_path`で
+  `post-push-usage-report.ps1`を実行し、「assistant応答回数: 359」等、0にならず妥当な値が算出される
+  ことを確認した（テスト投稿は確認後に削除）。

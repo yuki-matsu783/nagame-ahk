@@ -46,6 +46,11 @@ dev-tools/src/vcs/
 └── SKILL.md                        # ステップ実行のオーケストレーション手順書
 .claude/agents/
 └── issue-mr-resume.md              # 途中引き継ぎ用の状態調査サブエージェント（resumeから起動）
+.claude/hooks/
+├── session-start.ps1                # セッション開始時のissue/MR状態自動注入（SessionStart hook）
+├── post-push-usage-report.ps1       # git push検知時のトークン使用量集計＋MR自動コメント投稿（PostToolUse hook）
+└── lib/
+    └── UsageTracking.ps1             # 集計ロジック（Sync-UsageState）
 ```
 
 - **`Provider.ps1`**: `git remote get-url origin` のホスト名（`github.com` / `gitlab.*`）でプロバイダを判定し、
@@ -70,6 +75,7 @@ dev-tools/src/vcs/
 | `Get-MrUnresolvedComments -MrNumber <n> [-IncludeResolved]` | レビューコメント／スレッドを取得しテキストへ整形（スレッドID・ファイルパス・行番号・diffを含む）。既定では未解決のスレッドのみを返し、対応済み（解決済み）スレッドは機械的に除外する。`-IncludeResolved` 指定時は解決済みも含めた全件を返す | `gh api graphql` (review threads) | `glab api` (discussions) |
 | `Add-MrThreadReply -MrNumber <n> -ThreadId <id> -ReplyBody <text>` | 指定スレッドに対応内容を返信する（スレッドの解決＝resolvedはレビュアー側の操作のため本関数では行わない） | `gh api graphql`（reply mutation） | `glab api`（note追加） |
 | `Set-MrDescription -MrNumber <n> -BodyFile <path>` | PR/MRのdescriptionを指定ファイル内容で上書き | `gh pr edit --body-file` | `glab mr update --description` |
+| `Add-MrComment -MrNumber <n> -BodyFile <path>` | PR/MRへ新規コメントを1件投稿（スレッド返信・レビューではない通常コメント） | `gh pr comment --body-file` | `glab mr note --message` |
 | `Sync-Branch` | 現在のブランチをfetch、必要ならcheckout（新しいセッションでの再開用） | `git fetch` + `git checkout` | 同左 |
 | `Test-IssueSections -Body <text>` | issue本文に「目的／現状／期待する動作／受け入れ条件」の4見出しが揃っているか確認し、欠けている見出し名の配列を返す（プロバイダ非依存） | — | — |
 | `Get-IssueNumberFromBranch [-Branch <name>]` | ブランチ名を `branchPrefixTemplate` に照らしてissue番号を抽出する（省略時は現在のブランチ）。マッチしなければ `$null`（プロバイダ非依存） | — | — |
@@ -166,6 +172,56 @@ resume・clear時に毎回、現在ブランチのissue/MR状態をコンテキ�
   `gh`未認証・API失敗等、情報収集に失敗した場合もセッション開始をブロックせず、短い失敗メッセージ
   のみを返す（best-effort。詳細な原因調査は人間が手動で行う）。
 
+### Draft PR作成失敗時の自動リトライ
+
+`New-DraftMergeRequest` は `New-IssueBranch` 直後（baseとの差分がまだ無い状態）で呼ぶと
+`gh pr create` / `glab mr create` が失敗する既知の制約があった。`$LASTEXITCODE -ne 0` を検知した
+場合、共通処理 `Add-EmptyCommitForDraftMr`（空コミット+push）を実行してから1回だけ自動リトライする
+（それでも失敗すれば例外を投げる）。詳細・却下案は
+[0005-DraftPR作成失敗時は空コミットで自動リトライする.md](../ddr/0005-DraftPR作成失敗時は空コミットで自動リトライする.md)
+参照。
+
+### セッション使用量レポート（PostToolUse hook, git push検知）
+
+issue #15「作業にかかったトークンなどの情報をMRのコメントに記載する」への対応として、
+Claude Codeのセッション使用量（モデル別トークン数・ツール実行回数・assistant応答回数）をMRへ
+自動投稿する。
+
+- **投稿トリガー**: `git push` 成功時に、前回投稿からの差分をMRへ新規コメントとして投稿する
+  （毎ターン投稿やコメントのupsertではない）。
+- **記録範囲**: モデル別トークン数（input/output/cache write/cache read）＋ツール実行回数＋
+  assistant応答回数。推定コスト(USD)・ファイルdiff・プロンプト本文・サブエージェント詳細往復は対象外。
+- **コンポーネント**:
+  - `.claude/hooks/lib/UsageTracking.ps1`（共有ライブラリ）: `Sync-UsageState -RepoRoot -Branch
+    -SessionId -TranscriptPath` が集計本体。`transcript_path` のJSONLを1行ずつパースし、
+    `entry.gitBranch -eq $Branch` のエントリのみを対象に、`message.usage`（モデル別トークン数）、
+    `message.content[].type=="tool_use"`（ツール名別呼び出し回数）、該当エントリ件数
+    （assistant応答回数）を集計する。前回このセッションで記録した累計との**差分**を、ブランチ単位の
+    状態ファイル（`.claude/usage-state/<branch>.json`、gitignore対象）の `sinceLastPush` へ
+    加算する（トークン・ツール回数・応答回数のいずれも同じ「差分を加算」方式）。
+  - `.claude/hooks/post-push-usage-report.ps1`（`PostToolUse` hook）: `.claude/settings.json` の
+    matcher `Bash|PowerShell` と `if: "Bash(git push*)"` / `if: "PowerShell(git push*)"` により
+    `git push` を含むコマンド実行後のみ発火する（マッチしなければプロセス起動自体が行われず、
+    通常のBash/PowerShell利用への性能影響は無い）。投稿要否判定の前に自分で `Sync-UsageState` を
+    呼んで状態を最新化してから投稿する（ターンの途中でのpushでも記録漏れが起きないようにするため）。
+    `sinceLastPush` が全て0なら投稿しない。`Get-MrForBranch` でMRが無ければ投稿しない。
+    投稿成功後のみ `sinceLastPush` をリセットする（失敗時は次回pushへ繰り越す。git push自体は
+    ブロックしない）。
+  - `.claude/settings.json`: `hooks.PostToolUse` を追加。
+  - `.gitignore`: `/.claude/usage-state/` を追加。
+- **`Stop` hookは使わない**: 当初は `Stop`（1ターン完了時に発火）でも同じ集計処理を呼び、
+  ターン数カウント専用の役割を持たせていたが、(1) `post-push-usage-report.ps1` 自身が呼ぶだけで
+  十分、(2) `Stop`依存のカウントは「そのターンのStopがまだ発火していない状態でのpush」で
+  過少カウントになる、ことが分かったため廃止した。代わりに「assistant応答回数」を
+  トークン・ツール回数と同じtranscript差分方式で算出する。
+- **投稿内容の位置づけ**: コメント本文冒頭に「このコメントはClaude Codeによる自動投稿です。
+  レビューの合否判定には使用しないでください。」と明記する（`Add-MrComment` は通常コメントであり
+  レビューではないため、そもそも承認状態に影響しない。issue #15の受け入れ条件に対応）。
+- **設計判断の詳細・却下案**（`transcript` JSONL自前パースの採用理由、`gitBranch` フィルタの理由、
+  `Stop` hookを廃止した経緯）は
+  [0006-セッション使用量レポートはtranscript自前パースで実装する.md](../ddr/0006-セッション使用量レポートはtranscript自前パースで実装する.md)
+  参照。
+
 ### ブランチ命名
 
 `<branchPrefixTemplate>`（既定 `feature-{issue}-{slug}`）に従い、issue番号をそのまま連番として使う
@@ -261,6 +317,22 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
 - `.claude/skills/issue-mr-flow/SKILL.md`（「詳細ルールへのポインタ」に
   `.claude/rules/powershell-encoding.md` を追加）
 
+新規（追加分・issue #15 Draft PR自動リトライ＋セッション使用量レポート）:
+- `.claude/hooks/lib/UsageTracking.ps1`（集計ロジック）
+- `.claude/hooks/post-push-usage-report.ps1`（PostToolUse hook）
+- `dev-tools/docs/ddr/0005-DraftPR作成失敗時は空コミットで自動リトライする.md`
+- `dev-tools/docs/ddr/0006-セッション使用量レポートはtranscript自前パースで実装する.md`
+
+変更（追加分・issue #15 Draft PR自動リトライ＋セッション使用量レポート）:
+- `dev-tools/src/vcs/Provider.ps1`（`Add-EmptyCommitForDraftMr`, `Add-MrComment` を追加）
+- `dev-tools/src/vcs/Github.ps1` / `Gitlab.ps1`（`New-DraftMergeRequest` 実装に失敗時リトライを追加、
+  `GitHub-AddMrComment` / `GitLab-AddMrComment` を追加）
+- `.claude/settings.json`（`hooks.PostToolUse` を追加）
+- `.gitignore`（`/.claude/usage-state/` を追加）
+- `.claude/rules/directory-structure.md`（`.claude/hooks/` `.claude/hooks/lib/` をツリーに追加、
+  hookスクリプトのBOM要件を配置の指針に追記）
+- `.claude/rules/powershell-encoding.md`（新規`.ps1`作成時のBOM変換・構文検証コマンド例を追記）
+
 ## 設定項目
 
 `.mrworkflow.json`（nagame-ahk向けの初期値）
@@ -321,6 +393,19 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
   `-Encoding`パラメータ定義と衝突し警告が出たため、対象コマンドレットを個別に指定した。
   `Provider.ps1`をdot-sourceしない独立スクリプト（`.claude/hooks/session-start.ps1`等）向けの
   注意事項のみ、`.claude/rules/powershell-encoding.md` に残した。
+- **`New-DraftMergeRequest` はbaseとの差分（コミット）が無いブランチでは失敗する→空コミットで
+  自動リトライする**: `New-IssueBranch`直後はbaseとの差分がまだ無いため`gh pr create` /
+  `glab mr create`が失敗する（issue #5対応時に実機確認、当初は手動回避のみでissue #15対応まで
+  未解消だった）。`$LASTEXITCODE`で失敗を検知し、空コミット+pushで1回だけ自動リトライする方式で
+  解消した。背景・却下案は
+  [0005-DraftPR作成失敗時は空コミットで自動リトライする.md](../ddr/0005-DraftPR作成失敗時は空コミットで自動リトライする.md)
+  参照。
+- **セッション使用量のトークン集計方式**: transcript JSONLの自前パース以外に確実な取得手段が
+  無いことを確認した上で採用した。非公開フォーマットへの依存リスクは、失敗の握りつぶし・
+  「目安」である旨の明記で吸収する。`entry.gitBranch`でのフィルタにより、複数ブランチを跨いだ
+  セッションでの他ブランチ分混入を防ぐ。詳細・却下案は
+  [0006-セッション使用量レポートはtranscript自前パースで実装する.md](../ddr/0006-セッション使用量レポートはtranscript自前パースで実装する.md)
+  参照。
 
 ## 未決定事項・懸念点
 
@@ -342,10 +427,6 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
   plan/worklogファイルを推定するヒューリスティックであり、複数issueを1ブランチで扱う等の
   変則的な運用では正しく機能しない可能性がある。本プロジェクトの通常運用（1ブランチ1issue）を
   前提とする。
-- **`New-DraftMergeRequest` はbaseとの差分（コミット）が無いブランチでは失敗する**: `New-IssueBranch`
-  直後はbaseとの差分がまだ無いため、`gh pr create` / `glab mr create` が失敗する（issue #5対応時に
-  実機確認。空コミットを挟むことで回避した）。`New-IssueBranch`側で空コミットを含める等の対応は
-  今回のスコープ外としたため、次にissueを起票する際は同じ回避策が必要になる。
 - **`GitHub-GetIssue` は `gh` 失敗時に分かりにくい例外を出す**: `gh issue view` が失敗した場合の
   `$LASTEXITCODE` チェックが無く、`ConvertFrom-Json` に空入力が渡って `$issue` が `$null` のまま
   `ConvertTo-Slug -Text $issue.title` が呼ばれ、`ParameterBindingValidationException`
@@ -356,3 +437,16 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
 - **SessionStart hookの実機（新規Claude Codeセッション）での動作確認が未実施**: 疑似stdin JSONを
   使った単体テストでは期待通りの挙動を確認したが、実際のセッション開始時にコンテキストへ反映される
   ことは本対応内では未確認。次回以降のセッション開始時に確認する。
+- **transcript JSONLの非公開フォーマット依存**: セッション使用量レポート機能は、Claude Code非公開の
+  内部フォーマットである`transcript_path`のJSONLを自前パースしている。将来のバージョンで形式が
+  変わった場合、集計が0件になる（ベストエフォート設計のため実害はセッション使用量が記録されなく
+  なるのみ）。詳細は
+  [0006-セッション使用量レポートはtranscript自前パースで実装する.md](../ddr/0006-セッション使用量レポートはtranscript自前パースで実装する.md)
+  参照。
+- **セッション（transcriptファイル）を跨いだ集計は未対応**: `/resume`等で新しいtranscriptファイルに
+  切り替わった場合、旧セッション分の使用量との合算は行わない（新しい`session_id`として
+  ゼロから集計が始まる）。
+- **状態ファイル書き込みの排他制御が無い**: 複数のClaude Codeセッションが同一ブランチに対して
+  同時にhookを発火させた場合、`.claude/usage-state/<branch>.json`への読み書きにロックが無いため、
+  一方の更新が失われる可能性がある（レースコンディション）。単一開発者が同一作業ディレクトリで
+  複数セッションを同時実行する運用は想定しにくいため許容している。

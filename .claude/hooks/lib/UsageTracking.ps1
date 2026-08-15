@@ -1,10 +1,16 @@
 ﻿<#
-    stop-usage-record.ps1 / post-push-usage-report.ps1 共有ロジック。
+    post-push-usage-report.ps1（PostToolUse, git push検知）が使う共有ロジック。
     設計: plans/groovy-zooming-balloon.md（issue #15、追加計画セクション）。実装完了後は
     dev-tools/docs/spec/issue-mr-workflow.md へ反映する。
 
-    単体でdot-sourceせず、両hookスクリプトから `. (Join-Path $PSScriptRoot "lib\UsageTracking.ps1")`
-    の形でdot-sourceして使う。
+    単体でdot-sourceせず、`. (Join-Path $PSScriptRoot "lib\UsageTracking.ps1")` の形でdot-sourceして
+    使う。
+
+    注意: 当初は `Stop` hook（1ターン完了時に発火）でもこの関数を呼び、ターン数カウント専用に
+    使っていたが、(1) push検知フック自身が投稿直前に呼ぶだけで十分（Stopの発火有無に依存しない）、
+    (2) ターン数もトークン同様にtranscriptとの差分（assistantエントリ件数の差分）で算出できる、
+    ことが分かったため `Stop` hookを廃止し、本ライブラリはこの `post-push-usage-report.ps1` からのみ
+    呼ばれる構成にした。
 
     注意: transcript_path が指すJSONLの形式はClaude Code非公開の内部フォーマットであり、
     将来のバージョンで変更されうる（公式ドキュメントに明記）。他に取得手段が無いためベストエフォートで
@@ -38,17 +44,17 @@ function Get-ZeroTokenBucket {
 
 # 指定ブランチ・セッションのtranscriptを集計し、状態ファイル（.claude/usage-state/<branch>.json）の
 # sinceLastPush へ「前回このセッションで記録した累計との差分」を加算して保存する。更新後の状態を
-# hashtableで返す。呼び出し元（Stop/PostToolUse双方）が同じロジックを共有できるようにするための関数。
+# hashtableで返す。呼び出し元は post-push-usage-report.ps1（PostToolUse, git push検知）。
 #
-# -IncrementTurn 指定時のみ sinceLastPush.turns を+1する（1ターン完了を表すのはStopの時だけであり、
-# PostToolUse側でのpush時同期では加算しない）。
+# トークン数・ツール実行回数・assistant応答回数（turns）のいずれも同じ「今回のtranscript集計値と
+# 前回記録値との差分をsinceLastPushへ加算する」方式で扱う（詳細:
+# dev-tools/docs/ddr/0006-セッション使用量レポートはtranscript自前パースで実装する.md）。
 function Sync-UsageState {
     param(
         [Parameter(Mandatory)][string]$RepoRoot,
         [Parameter(Mandatory)][string]$Branch,
         [Parameter(Mandatory)][string]$SessionId,
-        [Parameter(Mandatory)][string]$TranscriptPath,
-        [switch]$IncrementTurn
+        [Parameter(Mandatory)][string]$TranscriptPath
     )
 
     if (-not (Test-Path $TranscriptPath)) { return $null }
@@ -57,6 +63,7 @@ function Sync-UsageState {
     # 実行時点のgitBranchが記録されているエントリのみを対象にする（他ブランチ分の混入防止）。
     $currentTokens = @{}
     $currentTools = @{}
+    $currentAssistantCount = 0
 
     foreach ($line in (Get-Content -Path $TranscriptPath)) {
         if (-not $line) { continue }
@@ -64,6 +71,11 @@ function Sync-UsageState {
         try { $entry = $line | ConvertFrom-Json } catch { continue }
         if (-not $entry -or $entry.type -ne 'assistant' -or -not $entry.message) { continue }
         if ($entry.gitBranch -ne $Branch) { continue }
+
+        # assistantエントリ件数（tool_use往復を含むためユーザーから見た「1ターン」より多くなりうる。
+        # 呼び出し元は「assistant応答回数」として扱う。turns算出をStopの発火有無に依存させないための
+        # 代替指標。詳細: dev-tools/docs/ddr/0006-セッション使用量レポートはtranscript自前パースで実装する.md
+        $currentAssistantCount += 1
 
         $msg = $entry.message
         if ($msg.usage) {
@@ -102,10 +114,14 @@ function Sync-UsageState {
         $state['sinceLastPush'] = @{ tokensByModel = @{}; toolCalls = @{}; turns = 0 }
     }
     if (-not $state.sessions.ContainsKey($SessionId)) {
-        $state.sessions[$SessionId] = @{ lastTokens = @{}; lastTools = @{} }
+        $state.sessions[$SessionId] = @{ lastTokens = @{}; lastTools = @{}; lastAssistantCount = 0 }
+    }
+    if (-not $state.sessions[$SessionId].ContainsKey('lastAssistantCount')) {
+        $state.sessions[$SessionId]['lastAssistantCount'] = 0
     }
     $prevTokens = $state.sessions[$SessionId].lastTokens
     $prevTools = $state.sessions[$SessionId].lastTools
+    $prevAssistantCount = [int]$state.sessions[$SessionId].lastAssistantCount
 
     # --- 前回このセッションで記録した累計との差分を sinceLastPush へ加算 ---
     foreach ($model in $currentTokens.Keys) {
@@ -126,11 +142,12 @@ function Sync-UsageState {
         $state.sinceLastPush.toolCalls[$tool] = [int]$state.sinceLastPush.toolCalls[$tool] + $delta
     }
 
-    if ($IncrementTurn) {
-        $state.sinceLastPush.turns = [int]$state.sinceLastPush.turns + 1
-    }
+    $turnsDelta = [Math]::Max(0, $currentAssistantCount - $prevAssistantCount)
+    $state.sinceLastPush.turns = [int]$state.sinceLastPush.turns + $turnsDelta
+
     $state.sessions[$SessionId].lastTokens = $currentTokens
     $state.sessions[$SessionId].lastTools = $currentTools
+    $state.sessions[$SessionId].lastAssistantCount = $currentAssistantCount
     $state.branch = $Branch
 
     $state | ConvertTo-Json -Depth 10 | Set-Content -Path $stateFile

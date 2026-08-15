@@ -14,28 +14,28 @@ AIセッション間・AI⇔人間の状況引継ぎメモ。常に「このブ�
   - `dev-tools/src/vcs/Provider.ps1`/`Github.ps1`/`Gitlab.ps1`: `New-DraftMergeRequest`が
     base差分無しブランチで失敗した場合に空コミット→1回リトライする自動化（`Add-EmptyCommitForDraftMr`）。
     `Add-MrComment`（MRへ新規コメント投稿）を追加。
-  - `.claude/hooks/lib/UsageTracking.ps1`（新規・共有ライブラリ）: `Sync-UsageState`が集計本体。
+  - `.claude/hooks/lib/UsageTracking.ps1`（共有ライブラリ）: `Sync-UsageState`が集計本体。
     `entry.gitBranch -eq $Branch` でフィルタして集計する（複数ブランチを跨いだ際の他ブランチ分混入
-    バグを修正済み。実データで452,144トークン分の混入を確認・解消した）。
-  - `.claude/hooks/stop-usage-record.ps1`（Stop hook）: `Sync-UsageState -IncrementTurn`を呼ぶだけに
-    簡素化。ターン数カウントの役割のみ残した。
-  - `.claude/hooks/post-push-usage-report.ps1`（PostToolUse hook, git push検知）: 投稿前に自分でも
-    `Sync-UsageState`を呼んで最新化してから投稿・リセットする（Stop未発火のターン中の初回pushでも
-    記録漏れが起きないよう修正済み。実機検証済み：「対象ターン数0」でも実データが反映されることを確認）。
-  - `.claude/settings.json`にStop/PostToolUseのhook登録を追加。
+    バグを修正済み。実データで452,144トークン分の混入を確認・解消した）。トークン数・ツール実行回数・
+    assistant応答回数（旧称「ターン数」）のいずれも「transcriptとの差分をsinceLastPushへ加算」する
+    同じ方式で算出する。
+  - `.claude/hooks/post-push-usage-report.ps1`（PostToolUse hook, git push検知）**のみ**で完結する
+    構成にした。投稿前に自分で`Sync-UsageState`を呼んで最新化してから投稿・リセットする。
+  - **`Stop` hook（`stop-usage-record.ps1`）は廃止・削除済み**。当初はターン数カウント専用に
+    残していたが、その仕組み自体が「Stop未発火のpushで過少カウントされる」という、トークン集計で
+    直したのと同じ不具合を抱えていたため（実際に「対象ターン数: 0」という不整合な投稿を確認した）、
+    PostToolUse側のtranscript差分方式に統合し、Stop hookごと削除した。`.claude/settings.json`の
+    `hooks.Stop`設定も削除済み。
+  - `.claude/settings.json`にPostToolUseのhook登録のみ追加（Stopは登録しない）。
 
 ## 次回やること
 
-- **hookの実地E2E確認は完了済み**（2026-08-16、3回実施、うち1回は手動実行なしの本番動作）。
-  1回目: ターン終了→`Stop` hookが状態ファイルへ実データを蓄積→空コミットでのgit push→`PostToolUse` hook
-  が実際に発火しPR #17へ自動投稿されることを確認。2回目: `gitBranch`混入バグ修正後、状態ファイルを
-  削除した状態から実セッションの`session_id`で`post-push-usage-report.ps1`を実行し、Stop未発火
-  （ターン途中）でも実データが反映されることを確認（1・2回目のテスト投稿は確認後に削除済み）。
-  3回目: 修正一式をcommit・pushした際、**手動実行を挟まず**hookが自然発火し、PR #17へ実データの
-  コメント（comment id 5303251381）が投稿された。これは削除せず作業ログとして残している。
-- issue-mr-flowの残りステップを継続: MRレビュー→設計反映（`dev-tools/docs/spec/issue-mr-workflow.md`へ
-  「Draft PR空コミット自動リトライ」「セッション使用量レポート」の節を追加、`docs/ddr/`へtranscript
-  パース方式を採用した経緯・gitBranchフィルタの理由を記録）→ plans/worklog削除→Draft解除。
+- **hookの実地E2E確認は完了済み**（2026-08-16、複数回実施、うち1回は手動実行を挟まない本番動作）。
+  最終構成（PostToolUseのみ、Stopなし）でのドライラン確認で、assistant応答回数が0にならず
+  正しく計算されることを確認済み（テスト投稿は削除済み）。**次回のcommit・pushで、Stop無しの
+  最終構成でも本番動作として正しく発火するか、念のため再確認する**（settings.jsonの変更は
+  同一セッション内で即時反映されることは既に確認済みのため、大きな懸念は無い）。
+- issue-mr-flowの残りステップを継続: 上記commit・push→MRレビュー→plans/worklog削除→Draft解除。
 
 ## 判断が分かれるポイント
 

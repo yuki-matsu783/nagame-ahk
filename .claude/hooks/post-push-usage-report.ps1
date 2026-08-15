@@ -9,11 +9,16 @@
     通常のBash/PowerShell利用への性能影響は無い）。if フィルタはベストエフォートのため、
     本スクリプト側でも念のため command 文字列を正規表現で再チェックする。
 
-    投稿前に、自分自身でも .claude/hooks/lib/UsageTracking.ps1 の Sync-UsageState を
-    （`-IncrementTurn` 無しで）呼んで状態を最新化する。Stop は1ターン完了時にしか発火しないため、
-    ターンの途中（＝そのターンのStopがまだ発火していない状態）でgit pushが実行されるケース
+    投稿前に、自分自身で .claude/hooks/lib/UsageTracking.ps1 の Sync-UsageState を呼んで
+    状態を最新化する（トークン数・ツール実行回数・assistant応答回数のいずれも、このタイミングで
+    transcriptとの差分を計算する）。これにより、当該ターンの途中でgit pushが実行されるケース
     （例: 最初のpushがブランチ作成・調査・実装と同じターン内で行われる場合）でも、その時点までに
-    transcriptへ書き出し済みの内容を漏れなく反映するための措置。
+    transcriptへ書き出し済みの内容を漏れなく反映できる。
+
+    当初は `Stop` hook（1ターン完了時に発火）でも同じ関数を呼び、ターン数カウント専用に使っていたが、
+    (1) このスクリプト自身が呼ぶだけで十分、(2) `Stop`依存のカウントは上記と同じ「発火前のpushでは
+    未反映」という穴を抱えていた、ため`Stop` hookを廃止した（詳細:
+    dev-tools/docs/ddr/0006-セッション使用量レポートはtranscript自前パースで実装する.md）。
 
     `sinceLastPush` を読み、MRへ新規コメントとして投稿する（レビューではない通常コメントのため、
     レビュー合否判定には影響しない）。投稿に成功したら `sinceLastPush` をリセットする。失敗時は
@@ -37,7 +42,7 @@ try {
 
 if (-not $hookInput) { exit 0 }
 
-# サブエージェント内実行では何もしない（SessionStart/Stop hookと同じガード。並行書き込みによる
+# サブエージェント内実行では何もしない（SessionStart hookと同じガード。並行書き込みによる
 # 状態ファイル競合を避ける意味もある）
 if ($hookInput.PSObject.Properties.Name -contains "agent_id" -and $hookInput.agent_id) {
     exit 0
@@ -65,7 +70,7 @@ try {
     $repoRoot = Get-RepoRoot
 
     # 投稿判定の前に、その時点までtranscriptへ書き出し済みの内容を状態へ反映する
-    # （Stopが未発火のターン中でも、初回pushなどで記録漏れが起きないようにするための同期）
+    # （ターンの途中でのpushでも、初回pushなどで記録漏れが起きないようにするための同期）
     $state = $null
     if ($sessionId -and $transcriptPath) {
         $state = Sync-UsageState -RepoRoot $repoRoot -Branch $branch -SessionId $sessionId -TranscriptPath $transcriptPath
@@ -95,12 +100,12 @@ try {
 
     # --- コメント本文の組み立て ---
     $lines = @()
-    $lines += "## 🤖 セッション使用量レポート（自動投稿・前回pushからの差分）"
+    $lines += "## セッション使用量レポート（自動投稿・前回pushからの差分）"
     $lines += ""
     $lines += "> このコメントはClaude Codeによる自動投稿です。**レビューの合否判定には使用しないでください。**"
     $lines += ""
     $lines += "- ブランチ: $branch"
-    $lines += "- 対象ターン数: $([int]$usage.turns)"
+    $lines += "- assistant応答回数: $([int]$usage.turns)"
     $lines += ""
     $lines += "| モデル | Input | Output | Cache Write | Cache Read |"
     $lines += "|---|---:|---:|---:|---:|"
@@ -115,7 +120,7 @@ try {
         $lines += ""
     }
     $lines += "---"
-    $lines += "Claude Codeより: 自動投稿（stop-usage-record.ps1 / post-push-usage-report.ps1 による集計。"
+    $lines += "Claude Codeより: 自動投稿（post-push-usage-report.ps1 による集計。"
     $lines += "transcriptの非公開フォーマットに依存したベストエフォートの集計のため、目安として扱ってください）"
 
     $tmpFile = [System.IO.Path]::GetTempFileName()
