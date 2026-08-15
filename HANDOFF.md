@@ -47,16 +47,23 @@ AIセッション間・AI⇔人間の状況引継ぎメモ。常に「このブ�
   （`.claude/skills/issue-mr-flow/SKILL.md`、`dev-tools/docs/spec/issue-mr-workflow.md`、
   `.claude/agents/issue-mr-resume.md` の3ファイル）。経緯は
   `worklog/20260815_whimsical-munching-shore.md` 参照。
+- 上記コミット後、あらためて `resume` を実行して現在地確認をしたところ、PR #4に新たな未解決
+  コメントが1件見つかった: `PRRT_kwDOT4Y-5s6ZgH95`（`SKILL.md:47`、全体フロー旧行18）。
+  「commit,pushをエージェント、レビュー・コメントを人間、レビュー内容取得＋AIアセット修正を
+  サブコマンドに分解すること」という指摘で、8/9・14/15と同じパターンに揃えるため、
+  旧16〜18（3行）を新16〜20（5行）に分割し、以降を21〜23へ繰り下げた
+  （`.claude/skills/issue-mr-flow/SKILL.md`、`dev-tools/docs/spec/issue-mr-workflow.md`）。
+  経緯は `worklog/20260815_quiet-drifting-lantern.md` 参照。
 
 ## 次回やること
 
 - 人間のレビュー・合意を受ける。合意まで9〜15の実装ループを繰り返す（完了合図後は必ず
   `Get-MrUnresolvedComments` / `/issue-mr-flow comments all` で unresolved が残っていないか
   再確認してから次に進む。ADR 0003参照）。
-- 合意後、全体フロー19〜20: `plans/` `worklog/` のこのブランチ固有ファイル
+- 合意後、全体フロー21〜22: `plans/` `worklog/` のこのブランチ固有ファイル
   （`misty-foraging-torvalds` / `toasty-orbiting-finch` / `pr4-review-followup2` /
-  `planmode-safety-rule` / `whimsical-munching-shore` の各plan・worklog）を削除し、
-  本HANDOFF.mdを次タスクへリセットする。
+  `planmode-safety-rule` / `whimsical-munching-shore` / `quiet-drifting-lantern` の各plan・worklog）
+  を削除し、本HANDOFF.mdを次タスクへリセットする。
   その後commit, push。このタイミングで、署名方式採用の経緯（worklog参照）を
   `dev-tools/docs/spec/issue-mr-workflow.md` の決定事項・必要ならADRへ反映する。
 - 最後に人間がPR #4をsquash mergeする。
