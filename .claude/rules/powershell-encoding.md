@@ -35,3 +35,17 @@ Windows PowerShell 5.1（`powershell.exe`。本プロジェクトの実行環境
   新規作成した際、BOM無しUTF-8で保存され`[Draft]`のような無関係な箇所でパースエラーになった）。
   これはランタイムの設定では防げない、ファイル保存時の性質のため、新規`.ps1`作成時は既存の
   `dev-tools/src/build.ps1`と同じくBOM付きUTF-8で保存する。
+  **AIエージェント向け注記**: Writeツールで新規`.ps1`を作成した場合は既定でBOM無しになるため、
+  作成直後に必ず以下で変換し、構文検証まで行う（issue #15対応でこの手順を怠り、同じ事故を1セッション内で
+  3回再発させた実例あり。ルールの存在を知っているだけでは防げず、新規`.ps1`作成のたびに機械的に
+  実行することが必要）。
+
+  ```powershell
+  $path = "対象ファイルパス"
+  $content = [System.IO.File]::ReadAllText($path)
+  [System.IO.File]::WriteAllText($path, $content, (New-Object System.Text.UTF8Encoding($true)))
+  # 構文検証もあわせて行う
+  $errors = $null
+  [System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$null, [ref]$errors) | Out-Null
+  if ($errors.Count -gt 0) { $errors | Format-List } else { "構文OK" }
+  ```
