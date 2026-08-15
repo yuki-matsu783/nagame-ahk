@@ -30,6 +30,14 @@ plan: `plans/immutable-painting-kitten.md`
 
 - 特になし。
 
+## レビュー対応（1回目）
+
+- PRレビューで「TEMPLATEはやっぱりfrontmatter不要で良いや」との指摘。対象を確認したところ
+  `.github/ISSUE_TEMPLATE/task.md`のみを指す（`worklog/TEMPLATE.md`は従来通りtitle/type/
+  description/tagsを追加する）とのことだったため、planを以下の通り修正した。
+  - `.github/ISSUE_TEMPLATE/task.md`を「type/description/tagsのみ追加」から「完全に対象外」へ変更。
+  - `type`割り当て表の`template`から同ファイルを除外し、対象ファイル数を39→38に修正。
+
 ## 次の一歩
 
 - plan承認後、39ファイルへのfrontmatter追加・マージ、および新規ルール

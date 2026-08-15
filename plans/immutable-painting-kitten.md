@@ -17,7 +17,7 @@ issue #7「各markdownドキュメントにopen knowledge formatのyaml-frontmat
 | ファイル | 扱い | 理由 |
 |---|---|---|
 | `.gitlab/issue_templates/task.md` | **対象外**（frontmatter追加しない） | GitLabはissueテンプレートのfrontmatterを特別扱いしないため、追加すると issue作成のたびに本文へYAMLがそのまま挿入されてしまう |
-| `.github/ISSUE_TEMPLATE/task.md` | `type`/`description`/`tags`の3キーのみ追加（`title`は追加しない） | 既存のGitHub仕様`title:`（issue作成時の初期タイトル欄、現状空文字）と同名衝突するため |
+| `.github/ISSUE_TEMPLATE/task.md` | **対象外**（frontmatter追加しない。レビューで方針変更） | 既存のGitHub仕様`title:`との衝突を避けるため当初は`type`/`description`/`tags`のみ追加する案だったが、レビューでissueテンプレートにはOKF frontmatterそのものが不要と判断し、完全に対象外とした |
 | `.claude/agents/ahk-code-reviewer.md`, `.claude/agents/issue-mr-resume.md` | `title`/`type`/`tags`を追加（`description`は追加しない） | 既存の`description`はClaude Codeがサブエージェント選択に使う実キーのため、重複させず流用する |
 | `.claude/skills/ahk-implement/SKILL.md`, `.claude/skills/issue-mr-flow/SKILL.md` | 同上（`title`/`type`/`tags`のみ追加） | 同上（skill選択に使う`description`を保持） |
 
@@ -37,7 +37,7 @@ tags: [<kebab-caseのキーワード, 2〜4個>]
 既存frontmatterを持つファイル（agent/skill/github issue template）は、既存キーの下に
 `title`（該当する場合）/`type`/`tags`を追記する形にする。
 
-## typeの値割り当て（全39ファイル。対象外の1ファイルを除く）
+## typeの値割り当て（全38ファイル。対象外の2ファイルを除く）
 
 | type | 対象 | 件数 |
 |---|---|---|
@@ -45,7 +45,7 @@ tags: [<kebab-caseのキーワード, 2〜4個>]
 | `rule` | `.claude/rules/*.md`（7）, `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` | 10 |
 | `agent` | `.claude/agents/*.md` | 2 |
 | `skill` | `.claude/skills/*/SKILL.md` | 2 |
-| `template` | `.github/ISSUE_TEMPLATE/task.md`, `worklog/TEMPLATE.md` | 2 |
+| `template` | `worklog/TEMPLATE.md` | 1 |
 | `guide` | `README.md`, `DEVELOPERS.md`, `docs/README.md`, `dev-tools/docs/README.md`, `tests/README.md` | 5 |
 | `handoff` | `HANDOFF.md` | 1 |
 | `spec` | `docs/spec/*.md`（6）, `dev-tools/docs/spec/*.md`（3） | 9 |
@@ -57,7 +57,7 @@ tags: [<kebab-caseのキーワード, 2〜4個>]
 
 ## 実施内容
 
-1. 上記39ファイルそれぞれに、Editツールでfrontmatterを追加/マージする。
+1. 上記38ファイルそれぞれに、Editツールでfrontmatterを追加/マージする。
 2. 新しい規約として `.claude/rules/markdown-frontmatter.md` を新規作成し、以下を記載する
    （`directory-structure.md`は配置ルール、本ファイルはfrontmatterの中身のルールを扱う）。
    - キー定義（title/type/description/tags）とtypeの値一覧（上表）
@@ -70,7 +70,8 @@ tags: [<kebab-caseのキーワード, 2〜4個>]
 
 ## 対象外
 
-- `.gitlab/issue_templates/task.md`へのfrontmatter追加
+- `.gitlab/issue_templates/task.md`、`.github/ISSUE_TEMPLATE/task.md`へのfrontmatter追加
+  （両方ともissueテンプレートは対象外。前者はGitLab仕様上の本文混入、後者はレビューでの方針変更）
 - frontmatterを解釈・検証する自動ツール／lintの実装（本issueはドキュメントへの付与のみが範囲）
 - 既存frontmatter（agent/skillの`name`/`description`、GitHub issueテンプレートの
   `name`/`about`/`title`/`labels`/`assignees`）の値変更
@@ -79,7 +80,6 @@ tags: [<kebab-caseのキーワード, 2〜4個>]
 
 - 変更した各ファイルについて、`---`で始まり2つ目の`---`で閉じる単一のYAMLブロックになっているか
   目視確認する（`grep -c '^---$' <file>`が2であることを機械的に確認する簡易チェックをbashで回す）。
-- `.claude/agents/*.md` / `.claude/skills/*/SKILL.md` / `.github/ISSUE_TEMPLATE/task.md`は、
-  既存キー（`name`/`description`/`tools`/`model`/`about`/`labels`/`assignees`）の値が変更前と
-  完全一致することをdiffで確認する（新キーの追記のみになっているか）。
-- `git diff --stat`で対象ファイル数が想定（39ファイル + 新規ルール1ファイル）と一致することを確認する。
+- `.claude/agents/*.md` / `.claude/skills/*/SKILL.md`は、既存キー（`name`/`description`/`tools`/
+  `model`）の値が変更前と完全一致することをdiffで確認する（新キーの追記のみになっているか）。
+- `git diff --stat`で対象ファイル数が想定（38ファイル + 新規ルール1ファイル）と一致することを確認する。
