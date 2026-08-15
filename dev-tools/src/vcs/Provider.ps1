@@ -43,7 +43,7 @@ $script:DefaultWorkflowConfig = @{
     plansDir             = "plans"
     worklogDir           = "worklog"
     specDirs             = @("docs/spec", "dev-tools/docs/spec")
-    adrDirs              = @("docs/adr", "dev-tools/docs/adr")
+    ddrDirs              = @("docs/ddr", "dev-tools/docs/ddr")
 }
 
 # issue本文に標準として求める見出し（dev-tools/docs/spec/issue-mr-workflow.md

@@ -63,7 +63,7 @@ Ahk2Exe.exe が標準の場所（`%ProgramFiles%\AutoHotkey\Compiler\Ahk2Exe.exe
 （既定 `%ProgramFiles%\AutoHotkey\v2\AutoHotkey64.exe`）が標準の場所に無い場合は
 `AHK_V2_EXE_PATH` で指定する（v1/v2が共存する環境ではAhk2Exeの既定baseがv1になっていることがあり、
 `build.ps1` は `/base` でv2本体を明示指定してビルドする。経緯は
-[docs/adr/0001-ahk2exeビルドの環境依存対応.md](docs/adr/0001-ahk2exeビルドの環境依存対応.md)参照）。
+[dev-tools/docs/ddr/0001-ahk2exeビルドの環境依存対応.md](dev-tools/docs/ddr/0001-ahk2exeビルドの環境依存対応.md)参照）。
 
 ## リリース時の手順
 

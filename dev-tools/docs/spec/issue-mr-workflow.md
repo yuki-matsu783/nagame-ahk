@@ -8,7 +8,7 @@ AIエージェント（Claude Code）がissueを起点に開発を進める際�
 - ブランチ・MR（Pull Request / Merge Request）の作成
 - plan〜レビュー往復（人間のコメント取得→plan修正）の繰り返し
 - 作業内容に応じたMR descriptionの更新
-- 設計反映（`plans/` `worklog/` の内容を `docs/spec/` `docs/adr/` へ反映）後のクリーンアップ
+- 設計反映（`plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映）後のクリーンアップ
 
 これをGitHub・GitLabどちらのリポジトリでも同じ手順で回せるように、ステップ単位で呼び出す
 Claude Codeスキルと、その裏側でGitHub/GitLabの差異を吸収するスクリプト群を整備する。
@@ -20,7 +20,7 @@ MRとのやり取りだけを自動化する薄い層」として設計したが
 そちらを**唯一の実装フロー定義**とした。今後はごく小さな変更を除くあらゆるタスクをissue起点で
 進める前提とする。`docs-workflow.md` / `git-workflow.md` はドキュメントの置き場所・ライフサイクルや
 ブランチ命名規則といった参照情報のみを残す。詳細は
-[dev-tools/docs/adr/0002-issue-mr-flowへの実装フロー統合.md](../adr/0002-issue-mr-flowへの実装フロー統合.md) 参照。
+[dev-tools/docs/ddr/0002-issue-mr-flowへの実装フロー統合.md](../ddr/0002-issue-mr-flowへの実装フロー統合.md) 参照。
 
 ## 仕様
 
@@ -81,7 +81,7 @@ dev-tools/src/vcs/
 issue起票からマージまでの詳細な手順（担当・順序）は
 [.claude/skills/issue-mr-flow/SKILL.md](../../../.claude/skills/issue-mr-flow/SKILL.md)（唯一の実装フロー定義）
 に一本化した。本specとの内容重複・ドリフトを避けるため、ここでは表を持たない
-（詳細は[0002-issue-mr-flowへの実装フロー統合.md](../adr/0002-issue-mr-flowへの実装フロー統合.md)参照）。
+（詳細は[0002-issue-mr-flowへの実装フロー統合.md](../ddr/0002-issue-mr-flowへの実装フロー統合.md)参照）。
 
 `/issue-mr-flow` のサブコマンドは `start` `comments` `reply` `describe` `sync` `resume` の6つに絞り、
 設計ドキュメント作成・plan作成・実装・設計反映・AIアセット改善そのものは
@@ -220,7 +220,7 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
 - `AGENTS.md`（issue-mr-flow/SKILL.mdへのポインタを追加）
 
 新規（追加分）:
-- `dev-tools/docs/adr/0002-issue-mr-flowへの実装フロー統合.md`
+- `dev-tools/docs/ddr/0002-issue-mr-flowへの実装フロー統合.md`
 
 変更（追加分）:
 - `dev-tools/src/vcs/Provider.ps1`（`Add-MrThreadReply` 追加、`Get-MrUnresolvedComments` に
@@ -230,7 +230,7 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
   「レビュー完了合図の確認」節を追加）
 
 新規（設計反映時）:
-- `dev-tools/docs/adr/0003-レビュースレッド解決は自動化しない.md`
+- `dev-tools/docs/ddr/0003-レビュースレッド解決は自動化しない.md`
 
 新規（追加分・途中引き継ぎ対応）:
 - `.claude/agents/issue-mr-resume.md`（状態調査サブエージェント）
@@ -272,7 +272,7 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
   "plansDir": "plans",
   "worklogDir": "worklog",
   "specDirs": ["docs/spec", "dev-tools/docs/spec"],
-  "adrDirs": ["docs/adr", "dev-tools/docs/adr"]
+  "ddrDirs": ["docs/ddr", "dev-tools/docs/ddr"]
 }
 ```
 
@@ -290,13 +290,13 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
   （レビュアー側の操作という位置づけ）。かわりに、人間からの完了合図を受けた際は
   `Get-MrUnresolvedComments -IncludeResolved` で再確認してから次のステップへ進む運用にした。
   背景・却下案は
-  [dev-tools/docs/adr/0003-レビュースレッド解決は自動化しない.md](../adr/0003-レビュースレッド解決は自動化しない.md)
+  [dev-tools/docs/ddr/0003-レビュースレッド解決は自動化しない.md](../ddr/0003-レビュースレッド解決は自動化しない.md)
   参照。
 - **AI返信のアイデンティティ表示**: `Add-MrThreadReply` の投稿者アカウントはAI/人間で分離できない
   （`gh`/`glab` CLIは人間の認証情報を使うため）。かわりに返信本文の先頭に `Claude Codeより:` の
   署名行を必ず付ける運用ルールを `reply` サブコマンド手順に追加した。botアカウントによる
   投稿者分離は規模超過のため見送り。背景・却下案は
-  [dev-tools/docs/adr/0004-AI返信は署名で識別しbotアカウント分離は見送る.md](../adr/0004-AI返信は署名で識別しbotアカウント分離は見送る.md)
+  [dev-tools/docs/ddr/0004-AI返信は署名で識別しbotアカウント分離は見送る.md](../ddr/0004-AI返信は署名で識別しbotアカウント分離は見送る.md)
   参照。
 - **SessionStart hookの実装言語はPowerShell**: Bashスクリプトへの置き換え（`gh`/`git`/`jq`が
   UTF-8をそのまま扱えるため、Windows PowerShell 5.1特有のコードページ問題を根本的に回避できる）も
