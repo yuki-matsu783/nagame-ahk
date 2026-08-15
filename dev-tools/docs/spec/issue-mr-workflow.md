@@ -78,9 +78,9 @@ issue起票からマージまでの詳細な手順（担当・順序）は
 に一本化した。本specとの内容重複・ドリフトを避けるため、ここでは表を持たない
 （詳細は[0002-issue-mr-flowへの実装フロー統合.md](../adr/0002-issue-mr-flowへの実装フロー統合.md)参照）。
 
-`/issue-mr-flow` のサブコマンドは `start` `comments` `describe` `sync` の4つに絞り、設計ドキュメント作成・
-plan作成・実装・設計反映・AIアセット改善そのものは `.claude/skills/issue-mr-flow/SKILL.md` の該当ステップ
-（スキル `ahk-implement` を含む）に委ねる。
+`/issue-mr-flow` のサブコマンドは `start` `comments` `reply` `describe` `sync` の5つに絞り、
+設計ドキュメント作成・plan作成・実装・設計反映・AIアセット改善そのものは
+`.claude/skills/issue-mr-flow/SKILL.md` の該当ステップ（スキル `ahk-implement` を含む）に委ねる。
 
 ### レビューコメントへの返信
 
@@ -93,6 +93,11 @@ plan作成・実装・設計反映・AIアセット改善そのものは `.claud
   機械的に除外される）。再確認等で解決済みも含めた全件が必要な場合は `-IncludeResolved` を指定する。
 - `/issue-mr-flow` 側では、`comments` サブコマンドに `all` 引数を追加して `-IncludeResolved` を
   指定できるようにし、対応完了時に呼ぶ `reply <threadId> <対応内容>` サブコマンドを新設する。
+- **完了合図の確認**: 人間から「レビューOK」等の完了合図を受けても、それだけを根拠に次のステップへ
+  進まない。`comments all`（`-IncludeResolved`）で全スレッドを再取得し、`unresolved` が残っていれば
+  人間に再確認を取ってから次に進む（`reply` は返信のみで解決は行わないため、返信済みでも
+  `unresolved` のまま残ることがある）。詳細は `.claude/skills/issue-mr-flow/SKILL.md` の
+  「レビュー完了合図の確認」節を参照。
 
 ### ブランチ命名
 

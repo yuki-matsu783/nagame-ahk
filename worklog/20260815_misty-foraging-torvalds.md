@@ -145,3 +145,28 @@ plan: `plans/misty-foraging-torvalds.md`「レビューコメントへの返信�
 - GitLab側（`GitLab-AddMrThreadReply` / `-IncludeResolved`）は `glab` 未インストールのため未検証のまま。
 
 ---
+
+## Phase 5: レビュー完了合図の確認プロセス
+
+対象: 「レビューOK」等の完了合図を受けたときに、実際に全スレッドが解決済みか再確認するプロセスの追加
+（ごく小さなプロセス変更のため、新規plan作成は省略。docs-workflow.mdの手順5の省略規定を適用）。
+
+### 試したこと・うまくいったこと
+
+- ユーザーから「レビューはオッケー」との返信を受けた直後、その場で
+  `Get-MrUnresolvedComments -MrNumber 4` / `-IncludeResolved` を実行し確認したところ、
+  PR #4の3スレッドはいずれも `unresolved` のままだった（`reply` で返信はしたが、GitHub上で
+  「Resolve conversation」はレビュアーがまだ押していないため）。ユーザーの新しい指示
+  （完了合図を受けたら再確認する）の妥当性がその場で実証された。
+- `.claude/skills/issue-mr-flow/SKILL.md` に「レビュー完了合図の確認」節を追加し、
+  全体フロー9・14・17（レビューループの合意判定）で、人間の完了合図だけでなく
+  `comments all` での再確認を必須にするプロセスを明記した。
+- `dev-tools/docs/spec/issue-mr-workflow.md`「レビューコメントへの返信」節にも同内容を追記し、
+  サブコマンド一覧の記述漏れ（`reply` が数に含まれていなかった）も合わせて修正した。
+
+### 次の一歩
+
+- 実装完了。commit/push待ち。
+- 本件（PR #4の3スレッド）は実際にunresolvedのままなので、ユーザーに確認を取る。
+
+---
