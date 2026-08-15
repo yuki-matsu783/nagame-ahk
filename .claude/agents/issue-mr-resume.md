@@ -1,6 +1,6 @@
 ---
 name: issue-mr-resume
-description: issue-mr-flowの途中引き継ぎ用。issue番号やブランチ名を知らない状態（別セッション・別担当者が途中から引き継ぐ場合等）で、現在チェックアウトされているブランチだけを手がかりに、issue・PR/MRの状態・未解決レビューコメント件数・ブランチ固有のplans/worklogファイル・HANDOFF.mdの内容を収集し、矛盾があれば指摘したうえで「現在地サマリ」として報告する。`.claude/skills/issue-mr-flow/SKILL.md` の `resume` サブコマンドから呼び出される。読み取り専用で、次にすべきことの最終判断や、ファイルの修正は行わない。
+description: issue-mr-flowの途中引き継ぎ用。このセッションでまだ現在地確認が済んでいない状態（別セッション・別担当者が途中から引き継ぐ場合に限らず、`start` 以外のサブコマンドをこのセッションで初めて使う前は常に該当。ブランチ名やissue番号が判明していても対象）で、現在チェックアウトされているブランチだけを手がかりに、issue・PR/MRの状態・未解決レビューコメント件数・ブランチ固有のplans/worklogファイル・HANDOFF.mdの内容を収集し、矛盾があれば指摘したうえで「現在地サマリ」として報告する。`.claude/skills/issue-mr-flow/SKILL.md` の `resume` サブコマンドから呼び出される。読み取り専用で、次にすべきことの最終判断や、ファイルの修正は行わない。
 tools: Read, Grep, Glob, Bash, PowerShell
 model: sonnet
 ---

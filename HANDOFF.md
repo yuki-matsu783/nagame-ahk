@@ -38,6 +38,15 @@ AIセッション間・AI⇔人間の状況引継ぎメモ。常に「このブ�
   （古い計画テキストを3回連続で誤送信）の再発防止ルールを
   `.claude/rules/plan-mode-safety.md` に追加し、`CLAUDE.md` からインポートした。
   経緯となぜなぜ分析は `worklog/20260815_planmode-safety-rule.md` 参照。
+- 続けて別セッションで「レビューコメント対応」を依頼された際、`resume`（現在地確認）を飛ばして
+  いきなり `comments` 相当の手順を実行してしまう事故が発生（ユーザー指摘で発覚）。原因は
+  `resume` の発動条件が「issue番号やブランチ名を**知らない状態**で」という情報の既知・未知ベース
+  の書き方だったため、`git branch --show-current` で機械的に取得できるブランチ名を根拠に
+  「知っている＝省略可」と誤読してしまったこと。全体フロー17として、発動条件を
+  「このセッションで現在地確認済みかどうか」という機械的な基準に書き換えた
+  （`.claude/skills/issue-mr-flow/SKILL.md`、`dev-tools/docs/spec/issue-mr-workflow.md`、
+  `.claude/agents/issue-mr-resume.md` の3ファイル）。経緯は
+  `worklog/20260815_whimsical-munching-shore.md` 参照。
 
 ## 次回やること
 
@@ -46,7 +55,8 @@ AIセッション間・AI⇔人間の状況引継ぎメモ。常に「このブ�
   再確認してから次に進む。ADR 0003参照）。
 - 合意後、全体フロー19〜20: `plans/` `worklog/` のこのブランチ固有ファイル
   （`misty-foraging-torvalds` / `toasty-orbiting-finch` / `pr4-review-followup2` /
-  `planmode-safety-rule` の各plan・worklog）を削除し、本HANDOFF.mdを次タスクへリセットする。
+  `planmode-safety-rule` / `whimsical-munching-shore` の各plan・worklog）を削除し、
+  本HANDOFF.mdを次タスクへリセットする。
   その後commit, push。このタイミングで、署名方式採用の経緯（worklog参照）を
   `dev-tools/docs/spec/issue-mr-workflow.md` の決定事項・必要ならADRへ反映する。
 - 最後に人間がPR #4をsquash mergeする。
