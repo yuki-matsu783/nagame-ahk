@@ -100,10 +100,27 @@ function New-DraftMergeRequest {
 }
 
 function Get-MrUnresolvedComments {
-    param([Parameter(Mandatory)][int]$MrNumber)
+    param(
+        [Parameter(Mandatory)][int]$MrNumber,
+        [switch]$IncludeResolved
+    )
     switch (Get-Provider) {
-        'github' { GitHub-GetMrUnresolvedComments -MrNumber $MrNumber }
-        'gitlab' { GitLab-GetMrUnresolvedComments -MrNumber $MrNumber }
+        'github' { GitHub-GetMrUnresolvedComments -MrNumber $MrNumber -IncludeResolved:$IncludeResolved }
+        'gitlab' { GitLab-GetMrUnresolvedComments -MrNumber $MrNumber -IncludeResolved:$IncludeResolved }
+    }
+}
+
+# 指定したレビュースレッドに対応内容を返信する（スレッドの解決＝resolvedはレビュアー側の操作のため
+# 行わない）。ThreadId は Get-MrUnresolvedComments の出力に含まれる threadId=... を使う。
+function Add-MrThreadReply {
+    param(
+        [Parameter(Mandatory)][int]$MrNumber,
+        [Parameter(Mandatory)][string]$ThreadId,
+        [Parameter(Mandatory)][string]$ReplyBody
+    )
+    switch (Get-Provider) {
+        'github' { GitHub-AddMrThreadReply -MrNumber $MrNumber -ThreadId $ThreadId -ReplyBody $ReplyBody }
+        'gitlab' { GitLab-AddMrThreadReply -MrNumber $MrNumber -ThreadId $ThreadId -ReplyBody $ReplyBody }
     }
 }
 

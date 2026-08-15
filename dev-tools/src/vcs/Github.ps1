@@ -35,10 +35,14 @@ function GitHub-NewDraftMergeRequest {
     [int](gh pr view $Branch --json number --jq ".number")
 }
 
-# 未解決（isResolved: false）のレビュースレッド＋通常のissueコメントをまとめて返す。
-# resolved/unresolvedの概念を持たない通常コメントは常に含める。
+# レビュースレッド＋通常のissueコメントをまとめて返す。既定では未解決（isResolved: false）の
+# スレッドのみを対象とし、対応済み（解決済み）は機械的に除外する。-IncludeResolved 指定時は
+# 解決済みスレッドも含めた全件を返す。resolved/unresolvedの概念を持たない通常コメントは常に含める。
 function GitHub-GetMrUnresolvedComments {
-    param([Parameter(Mandatory)][int]$MrNumber)
+    param(
+        [Parameter(Mandatory)][int]$MrNumber,
+        [switch]$IncludeResolved
+    )
 
     # gh api graphqlの{owner}/{repo}プレースホルダはクエリ文字列中には展開されず、
     # -F フィールドの値としてのみ機能する（`gh api graphql --help` のGraphQL例を参照）。
@@ -49,6 +53,7 @@ query($owner: String!, $repo: String!, $number: Int!) {
     pullRequest(number: $number) {
       reviewThreads(first: 100) {
         nodes {
+          id
           isResolved
           path
           line
@@ -66,10 +71,11 @@ query($owner: String!, $repo: String!, $number: Int!) {
 
     $lines = @()
     foreach ($thread in $pr.reviewThreads.nodes) {
-        if ($thread.isResolved) { continue }
+        if ($thread.isResolved -and -not $IncludeResolved) { continue }
+        $status = if ($thread.isResolved) { "resolved" } else { "unresolved" }
         $location = if ($thread.path) { "$($thread.path):$($thread.line)" } else { "(場所不明)" }
         foreach ($comment in $thread.comments.nodes) {
-            $entry = "[review $location] $($comment.author.login): $($comment.body)"
+            $entry = "[review $status threadId=$($thread.id) $location] $($comment.author.login): $($comment.body)"
             if ($comment.diffHunk) {
                 $entry += "`n--- diff ---`n$($comment.diffHunk)"
             }
@@ -81,6 +87,27 @@ query($owner: String!, $repo: String!, $number: Int!) {
     }
 
     $lines -join "`n`n"
+}
+
+# 指定したレビュースレッドに対応内容を返信する。スレッドの解決（resolved）はレビュアー側の
+# 操作のためここでは行わない。$MrNumber はプロバイダ間のインターフェース統一のため受け取るが、
+# GitHub実装ではスレッドIDがグローバルに一意なため未使用。
+function GitHub-AddMrThreadReply {
+    param(
+        [Parameter(Mandatory)][int]$MrNumber,
+        [Parameter(Mandatory)][string]$ThreadId,
+        [Parameter(Mandatory)][string]$ReplyBody
+    )
+
+    $mutation = @'
+mutation($threadId: ID!, $body: String!) {
+  addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: $threadId, body: $body}) {
+    comment { id }
+  }
+}
+'@
+
+    gh api graphql -F "threadId=$ThreadId" -F "body=$ReplyBody" -f "query=$mutation" | Out-Null
 }
 
 function GitHub-SetMrDescription {

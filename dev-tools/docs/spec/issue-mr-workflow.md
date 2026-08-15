@@ -65,7 +65,8 @@ dev-tools/src/vcs/
 | `Get-Issue -Number <n>` | issueのtitle/body/labelsを取得 | `gh issue view` | `glab issue view` |
 | `New-IssueBranch -IssueNumber <n> -Title <slug>` | `<branchPrefixTemplate>` に従いブランチを作成しcheckout、リモートpush | `git switch -c` + `git push` | 同左 |
 | `New-DraftMergeRequest -IssueNumber <n> -Branch <b> -Title <t>` | issueに紐づくDraft PR/MRを作成（bodyは仮テンプレート、後続の `Set-MrDescription` で上書き前提。`-Title` はissueタイトルをそのまま渡す） | `gh pr create --draft` | `glab mr create --draft` |
-| `Get-MrUnresolvedComments -MrNumber <n>` | 未解決のレビューコメント／スレッドを取得しテキストへ整形 | `gh api` (review comments) | `glab api` (discussions) |
+| `Get-MrUnresolvedComments -MrNumber <n> [-IncludeResolved]` | レビューコメント／スレッドを取得しテキストへ整形（スレッドID・ファイルパス・行番号・diffを含む）。既定では未解決のスレッドのみを返し、対応済み（解決済み）スレッドは機械的に除外する。`-IncludeResolved` 指定時は解決済みも含めた全件を返す | `gh api graphql` (review threads) | `glab api` (discussions) |
+| `Add-MrThreadReply -MrNumber <n> -ThreadId <id> -ReplyBody <text>` | 指定スレッドに対応内容を返信する（スレッドの解決＝resolvedはレビュアー側の操作のため本関数では行わない） | `gh api graphql`（reply mutation） | `glab api`（note追加） |
 | `Set-MrDescription -MrNumber <n> -BodyFile <path>` | PR/MRのdescriptionを指定ファイル内容で上書き | `gh pr edit --body-file` | `glab mr update --description` |
 | `Sync-Branch` | 現在のブランチをfetch、必要ならcheckout（新しいセッションでの再開用） | `git fetch` + `git checkout` | 同左 |
 | `Test-IssueSections -Body <text>` | issue本文に「目的／現状／期待する動作／受け入れ条件」の4見出しが揃っているか確認し、欠けている見出し名の配列を返す（プロバイダ非依存） | — | — |
@@ -80,6 +81,18 @@ issue起票からマージまでの詳細な手順（担当・順序）は
 `/issue-mr-flow` のサブコマンドは `start` `comments` `describe` `sync` の4つに絞り、設計ドキュメント作成・
 plan作成・実装・設計反映・AIアセット改善そのものは `.claude/skills/issue-mr-flow/SKILL.md` の該当ステップ
 （スキル `ahk-implement` を含む）に委ねる。
+
+### レビューコメントへの返信
+
+対応が完了したレビューコメントに対して、対応内容を返信する。スレッドの解決（resolved）は
+レビュアー側が行う操作のため、本機能では行わない。
+
+- `Add-MrThreadReply -MrNumber <n> -ThreadId <id> -ReplyBody <text>` で、指定スレッドへ対応内容を
+  返信する。`ThreadId` は `Get-MrUnresolvedComments` の出力に含まれるスレッドIDを使う。
+- `Get-MrUnresolvedComments` は既定で未解決スレッドのみを返す（レビュアーが解決済みにしたものは
+  機械的に除外される）。再確認等で解決済みも含めた全件が必要な場合は `-IncludeResolved` を指定する。
+- `/issue-mr-flow` 側では、`comments` サブコマンドに `all` 引数を追加して `-IncludeResolved` を
+  指定できるようにし、対応完了時に呼ぶ `reply <threadId> <対応内容>` サブコマンドを新設する。
 
 ### ブランチ命名
 
@@ -137,6 +150,12 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
 新規（追加分）:
 - `dev-tools/docs/adr/0002-issue-mr-flowへの実装フロー統合.md`
 
+変更（追加分）:
+- `dev-tools/src/vcs/Provider.ps1`（`Add-MrThreadReply` 追加、`Get-MrUnresolvedComments` に
+  `-IncludeResolved` 追加）
+- `dev-tools/src/vcs/Github.ps1` / `Gitlab.ps1`（返信のmutation/API呼び出しを追加）
+- `.claude/skills/issue-mr-flow/SKILL.md`（`comments` に `all` 引数、`reply` サブコマンドを新設）
+
 ## 設定項目
 
 `.mrworkflow.json`（nagame-ahk向けの初期値）
@@ -176,3 +195,8 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
   最上位エントリーポイントではなく `issue-mr-flow` から呼ばれるサブフローという位置づけに変更した。
   「issueを起票しないごく小さな変更」は `git-workflow.md` の適用範囲の例外（main直接コミット許容）で
   引き続き扱えるが、実際に非issueタスクの需要が残るかどうかは運用しながら見極める。
+- **GitLab側の返信API未検証**: `Add-MrThreadReply` のGitLab実装（discussionへのnote追加）はAPI仕様を
+  調べた上での実装であり、実機での動作確認ができない（他の`Gitlab.ps1`実装と同様の制約）。
+- **返信本文のテンプレート**: `Add-MrThreadReply` の `-ReplyBody` にどこまで定型文を含めるか
+  （例: 「対応しました: 」等の接頭辞を付けるか、呼び出し側が自由文をそのまま渡すか）は
+  実装時に決める。

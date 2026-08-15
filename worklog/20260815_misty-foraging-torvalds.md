@@ -111,3 +111,37 @@ plan: `plans/misty-foraging-torvalds.md`「issue-mr-flowへの実装フロー統
 - push後、PR #4上で3件のレビューコメントに返信し、レビューを依頼する。
 
 ---
+
+## Phase 4: レビューコメントへの返信機能 + 対応済み除外フィルタ
+
+対象: `Get-MrUnresolvedComments` の対応済み除外フィルタ拡張、レビューコメントへの返信機能の追加。
+plan: `plans/misty-foraging-torvalds.md`「レビューコメントへの返信機能 + 対応済み除外フィルタ」節
+（Phase 3の内容を上書き）。
+
+### 試したこと・うまくいったこと
+
+- `gh api graphql` のスキーマintrospection（読み取り専用、副作用なし）で返信用mutationを確認:
+  `addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId, body})`。
+  必須フィールドが `pullRequestReviewThreadId: ID!` / `body: String!` であることも
+  `AddPullRequestReviewThreadReplyInput` のintrospectionで確認済み。
+- `Get-MrUnresolvedComments` に `-IncludeResolved` を追加（既定は未解決のみ、指定時は解決済みも含む全件）。
+  `reviewThreads.nodes` に `id` を追加し、出力に `threadId=...` と解決状態（resolved/unresolved）を含めた。
+- `Add-MrThreadReply -MrNumber -ThreadId -ReplyBody`（Provider.ps1のディスパッチャ + Github.ps1/Gitlab.ps1の
+  実装）を新規追加。**スレッドの解決（resolved）操作は行わない**（レビュアー側の操作のため、との
+  ユーザー明示の方針）。
+- `.claude/skills/issue-mr-flow/SKILL.md` に `comments [all]` 引数と `reply <threadId> <対応内容>`
+  サブコマンドを追加。
+- 実機確認: PR #4に対して `Get-MrUnresolvedComments -MrNumber 4` / `-IncludeResolved` を実行し、
+  `threadId=` 付きで取得できることを確認。続けて `Add-MrThreadReply` で実際にPR #4の3件のレビュー
+  スレッドへ対応内容を返信し、`gh api graphql` で再取得して反映されていることを確認した。
+
+### ダメだったこと
+
+- 特になし。
+
+### 次の一歩
+
+- 実装完了。ユーザーのcommit/push指示待ち。
+- GitLab側（`GitLab-AddMrThreadReply` / `-IncludeResolved`）は `glab` 未インストールのため未検証のまま。
+
+---

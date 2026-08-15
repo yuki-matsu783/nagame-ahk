@@ -35,12 +35,12 @@ description: nagame-ahkの開発フロー全体（issue起票〜マージ）の�
 | 6 | Planモードで実行手順に合意する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント＋人間 |
 | 7 | commit, push する | エージェント |
 | 8 | MRでレビュー・コメントする | 人間 |
-| 9 | レビュー内容を取得し、planを修正する（8〜9を合意まで繰り返す） | `comments` |
+| 9 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（8〜9を合意まで繰り返す） | `comments` / `reply` |
 | 10 | planをもとにMR descriptionを更新する | `describe` |
 | 11 | 設計・実装を進め、ドキュメントを更新する（`.claude/rules/ahk-style.md` 等の規約に従う。worklogに書き足す） | エージェント |
 | 12 | commit, push する | エージェント |
 | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
-| 14 | MRでレビュー・コメントする（8〜14の実装ループを合意まで繰り返す） | 人間 |
+| 14 | MRでレビュー・コメントする。対応が完了したコメントには対応内容を返信する（8〜14の実装ループを合意まで繰り返す） | 人間 / `reply` |
 | 15 | **設計反映**: `plans/` `worklog/` の内容を `docs/spec/` `docs/adr/` へ反映する | エージェント |
 | 16 | **AIアセット改善**: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
 | 17 | commit, push → レビュー（15〜17を合意まで繰り返す） | エージェント＋人間 |
@@ -66,14 +66,24 @@ description: nagame-ahkの開発フロー全体（issue起票〜マージ）の�
    - 既に存在すれば（セッション再開）: `Sync-Branch -Branch <branch>` でfetch・checkoutのみ行う。
 3. 取得したissue内容をもとに、全体フロー4（設計ドキュメント作成）に進む旨をユーザーに案内する。
 
-### `comments` — MRレビューコメントの取得（全体フロー9・14）
+### `comments [all]` — MRレビューコメントの取得（全体フロー9・14）
 
 1. 現在のブランチに紐づくMR番号を取得する（GitHub: `gh pr view --json number --jq .number`、
    GitLab: `glab mr view --output json --jq .iid`）。
 2. `Get-MrUnresolvedComments -MrNumber <n>` で未解決コメントを取得し、そのまま提示する
-   （ファイルパス・行番号・該当diffを含む）。
+   （ファイルパス・行番号・スレッドID・該当diffを含む）。対応済み（解決済み）のスレッドは既定で
+   機械的に除外される。引数に `all` が指定された場合は `-IncludeResolved` を付けて呼び、
+   解決済みも含めた全件を取得する。
 3. 提示した内容をもとに、`plans/<plan名>.md` を修正する、または設計・実装を修正する
-   （この修正作業自体は本スキルの対象外。通常の編集で行う）。
+   （この修正作業自体は本スキルの対象外。通常の編集で行う）。対応が完了したコメントには、
+   `reply` サブコマンドで対応内容を返信する。
+
+### `reply <threadId> <対応内容>` — レビューコメントへの返信（全体フロー9・14）
+
+1. 現在のブランチに紐づくMR番号を取得する（`comments` の手順1と同じ）。
+2. `Add-MrThreadReply -MrNumber <n> -ThreadId <threadId> -ReplyBody <対応内容>` で、指定した
+   スレッドに対応内容を返信する。`threadId` は `comments` の出力に含まれる `threadId=...` を使う。
+3. スレッドの解決（resolved）はレビュアー側の操作であり、本サブコマンドでは行わない。
 
 ### `describe` — MR descriptionの更新（全体フロー10・13）
 

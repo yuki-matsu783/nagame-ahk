@@ -8,21 +8,19 @@ AIセッション間・AI⇔人間の状況引継ぎメモ。常に「このブ�
 
 - issue #3「開発フローを変える」対応ブランチ（現ブランチ `3-開発フローを変える`）、PR #4作成済み
   （https://github.com/yuki-matsu783/nagame-ahk/pull/4）。
-- issue駆動MRワークフロー支援（`.claude/skills/issue-mr-flow`）を実装し、PR #4のレビュー3件を受けて
-  さらに以下を実施済み（未commit）:
-  - `.claude/skills/issue-mr-flow/SKILL.md` を、issue起票〜マージの**唯一の実装フロー定義**に統合
-    （`docs-workflow.md` / `git-workflow.md` の手順部分を移動。今後は全タスクをissue起点で進める前提）
-  - 「reflect」を「設計反映」（docs/spec, docs/adr）／「AIアセット改善」（.claude/rules等）に分割
-  - `dev-tools/docs/adr/0002-issue-mr-flowへの実装フロー統合.md` を新規起票
-  - `Github.ps1` の `gh api graphql` 不具合を修正（`{owner}`/`{repo}` はクエリ文字列でなく `-F` で渡す）、
-    `path`/`line`/`diffHunk` も取得するよう拡張
+- PR #4のレビュー3件に対応（実装フロー統合・reflect分割）した後、追加要望として
+  「レビューコメントへの返信機能」「対応済みレビューの除外フィルタ」を実装済み（未commit）:
+  - `Get-MrUnresolvedComments -MrNumber <n> [-IncludeResolved]`（既定は未解決のみ）
+  - `Add-MrThreadReply -MrNumber <n> -ThreadId <id> -ReplyBody <text>`（返信のみ。解決operateは
+    レビュアー側の作業のため行わない）
+  - `.claude/skills/issue-mr-flow/SKILL.md` に `comments [all]` / `reply <threadId> <text>` を追加
+  - 実機でPR #4の3件のレビュースレッドに実際に返信済み（GitHub上で反映確認済み）
   - plan: `plans/misty-foraging-torvalds.md`、worklog: `worklog/20260815_misty-foraging-torvalds.md`
 
 ## 次回やること
 
 - 変更をcommit, pushする。
 - `/issue-mr-flow describe` でPR #4のdescriptionに今回の対応内容を反映する。
-- PR #4上で3件のレビューコメントに対応した旨を伝え、再レビューを依頼する。
 - 合意が得られたら「設計反映」（plan/worklogをdocs/spec, docs/adrへ反映）→「AIアセット改善」の
   ステップへ進む（`.claude/skills/issue-mr-flow/SKILL.md` の全体フロー15〜19）。
 
@@ -41,3 +39,5 @@ AIセッション間・AI⇔人間の状況引継ぎメモ。常に「このブ�
 
 - write系関数（`New-IssueBranch` / `New-DraftMergeRequest` / `Set-MrDescription`）を、この
   issue #3ブランチ・PR #4に対して誤って再実行しない（重複ブランチ/MR作成のおそれ）。
+- `Add-MrThreadReply` はGitHub上に実際にコメントを投稿する（副作用あり）。テスト目的で
+  無関係なスレッドに誤投稿しないよう注意する。
