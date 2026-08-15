@@ -47,6 +47,7 @@ $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";"
 
 手順4でPR/MRが見つかった場合のみ、`Get-MrUnresolvedComments -MrNumber <n> -IncludeResolved` を
 実行し、`unresolved` の件数を数える（内容の詳細な提示は不要。件数と、あれば概要のみでよい）。
+MRがマージ済みでissueもクローズ済みの場合は、現在ブランチはマージ済みなので他ブランチで作業するかをユーザに判断してもらう。これ以降の手順については実施しない。
 
 ## 手順6: ブランチ固有のplan/worklogファイルを列挙する
 
