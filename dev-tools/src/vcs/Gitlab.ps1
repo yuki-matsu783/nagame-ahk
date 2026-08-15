@@ -37,6 +37,17 @@ function GitLab-NewDraftMergeRequest {
     $description = "Closes #$IssueNumber`n`n(plan作成中。/issue-mr-flow describe で更新する)"
     glab mr create --draft --source-branch $Branch --target-branch $BaseBranch `
         --title $Title --description $description --yes | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        # baseとの差分（コミット）が無いブランチでは `glab mr create` が失敗する既知の制約
+        # （dev-tools/docs/spec/issue-mr-workflow.md参照）。空コミットで解消して1回だけリトライする。
+        # 【未検証】このリポジトリのremoteはGitHubのみのためGitLab側の実機確認はできていない。
+        Add-EmptyCommitForDraftMr
+        glab mr create --draft --source-branch $Branch --target-branch $BaseBranch `
+            --title $Title --description $description --yes | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "glab mr create に失敗しました（空コミットでのリトライ後も失敗）"
+        }
+    }
     [int](glab mr view $Branch --output json --jq ".iid")
 }
 
@@ -101,4 +112,15 @@ function GitLab-SetMrDescription {
     )
     $description = Get-Content -Raw -Path $BodyFile
     glab mr update $MrNumber --description $description | Out-Null
+}
+
+# MRへ新規コメントを1件投稿する（スレッド返信・レビューではない通常コメント）。
+# 【未検証】このリポジトリのremoteはGitHubのみのため実機確認できていない。
+function GitLab-AddMrComment {
+    param(
+        [Parameter(Mandatory)][int]$MrNumber,
+        [Parameter(Mandatory)][string]$BodyFile
+    )
+    $body = Get-Content -Raw -Path $BodyFile
+    glab mr note $MrNumber --message $body | Out-Null
 }

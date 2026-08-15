@@ -161,6 +161,28 @@ function Set-MrDescription {
     }
 }
 
+# MRへ新規コメントを1件投稿する（スレッド返信ではなく、レビューでもない通常コメント。
+# レビュー合否判定には影響しない）。呼び出し元想定: セッション使用量レポート（post-push-usage-report.ps1）。
+function Add-MrComment {
+    param(
+        [Parameter(Mandatory)][int]$MrNumber,
+        [Parameter(Mandatory)][string]$BodyFile
+    )
+    switch (Get-Provider) {
+        'github' { GitHub-AddMrComment -MrNumber $MrNumber -BodyFile $BodyFile }
+        'gitlab' { GitLab-AddMrComment -MrNumber $MrNumber -BodyFile $BodyFile }
+    }
+}
+
+# baseとの差分（コミット）が無いブランチでは `gh pr create` / `glab mr create` が失敗するため
+# （New-IssueBranch直後など。dev-tools/docs/spec/issue-mr-workflow.md の既知の制約参照）、
+# 空コミットを1つ積んでpushすることで回避する。呼び出し元（GitHub-/GitLab-NewDraftMergeRequest）が
+# 失敗を検知した後にこれを呼び、作成を1回だけリトライする。
+function Add-EmptyCommitForDraftMr {
+    git commit --allow-empty -m "chore: Draft PR作成のための空コミット（baseとの差分が無いため）" | Out-Null
+    git push | Out-Null
+}
+
 # issue番号・スラッグから `.mrworkflow.json` の branchPrefixTemplate に沿ったブランチを作成しcheckout、
 # リモートへpushする（ステップ3・4: 「issueからMRとブランチを作る」「作成したブランチをfetch, checkout」）。
 function New-IssueBranch {

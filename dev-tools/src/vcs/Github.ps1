@@ -32,6 +32,15 @@ function GitHub-NewDraftMergeRequest {
 
     $body = "Closes #$IssueNumber`n`n(plan作成中。/issue-mr-flow describe で更新する)"
     gh pr create --draft --base $BaseBranch --head $Branch --title $Title --body $body | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        # baseとの差分（コミット）が無いブランチでは `gh pr create` が失敗する既知の制約
+        # （dev-tools/docs/spec/issue-mr-workflow.md参照）。空コミットで解消して1回だけリトライする。
+        Add-EmptyCommitForDraftMr
+        gh pr create --draft --base $BaseBranch --head $Branch --title $Title --body $body | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "gh pr create に失敗しました（空コミットでのリトライ後も失敗）"
+        }
+    }
     [int](gh pr view $Branch --json number --jq ".number")
 }
 
@@ -133,4 +142,13 @@ function GitHub-SetMrDescription {
         [Parameter(Mandatory)][string]$BodyFile
     )
     gh pr edit $MrNumber --body-file $BodyFile | Out-Null
+}
+
+# MRへ新規コメントを1件投稿する（スレッド返信・レビューではない通常コメント）。
+function GitHub-AddMrComment {
+    param(
+        [Parameter(Mandatory)][int]$MrNumber,
+        [Parameter(Mandatory)][string]$BodyFile
+    )
+    gh pr comment $MrNumber --body-file $BodyFile | Out-Null
 }
