@@ -298,6 +298,11 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
   投稿者分離は規模超過のため見送り。背景・却下案は
   [dev-tools/docs/adr/0004-AI返信は署名で識別しbotアカウント分離は見送る.md](../adr/0004-AI返信は署名で識別しbotアカウント分離は見送る.md)
   参照。
+- **SessionStart hookの実装言語はPowerShell**: Bashスクリプトへの置き換え（`gh`/`git`/`jq`が
+  UTF-8をそのまま扱えるため、Windows PowerShell 5.1特有のコードページ問題を根本的に回避できる）も
+  レビューで検討したが、`Provider.ps1`が持つGitHub/GitLab差異吸収ロジックを別言語で二重実装する
+  コストが見合わないと判断し却下した。コードページ問題自体は`Provider.ps1`側の対策（後述）で解消
+  している。
 - **SessionStart hookでのサブエージェント抑止方法**: 公式ドキュメント確認の結果、SessionStart hookは
   matcher（`startup`/`resume`/`clear`等）で区別してもTask tool経由のサブエージェント内で発火する
   ことが判明した。そのためmatcherでの抑止は不可能と判断し、スクリプト側でstdin JSONの`agent_id`
