@@ -2,33 +2,30 @@
 alwaysApply: true
 ---
 
-# Git運用（ブランチ・worklog・PR）
+# Git運用（ブランチ・命名規則）
+
+開発フロー全体（issue起票〜マージ、worklog・設計反映・PR・マージの手順を含む）は
+`.claude/skills/issue-mr-flow/SKILL.md` を参照する（唯一の実装フロー定義）。本ファイルは
+ブランチ運用に関する参照情報のみを記載する。
 
 ## 適用範囲
 
-`.claude/rules/docs-workflow.md` の「実装フロー（必須）」が適用されるタスク（新機能の追加・既存動作の変更）に適用する。
-誤字修正・軽微なドキュメント修正等、実装フロー自体を省略してよいごく小さな変更は、mainへの直接コミットも許容する。
+`.claude/skills/issue-mr-flow/SKILL.md` の全体フローが適用されるタスク（新機能の追加・既存動作の変更）に適用する。
+誤字修正・軽微なドキュメント修正等、フロー自体を省略してよいごく小さな変更は、mainへの直接コミットも許容する。
 
 ## ブランチ運用
 
-- 実装フロー対象のタスクは、着手前に必ずfeatureブランチを作成する（mainへの直接コミットはしない）。
-- ブランチ名は用途が分かる短い英語表現とする（例: `feat/window-detect`, `fix/log-encoding`, `docs/readme-split`）。
+- フロー対象のタスクは、着手前に必ずfeatureブランチを作成する（mainへの直接コミットはしない）。
+- ブランチ名は `.mrworkflow.json` の `branchPrefixTemplate`（既定 `feature-<issue番号>-<slug>`）に従う。
 
-## worklogとreflect
+## worklogの配置・命名
 
-作業中に蓄積される「試したこと／うまくいったこと／ダメだったこと」などのログを `worklog/日付_<planファイル名>.md` に記録する（配置・命名は `directory-structure.md`、ライフサイクルは `docs-workflow.md` の「ドキュメント運用」表を参照）。
-
-- worklogファイルは、planモード完了時（`plans/<planファイル名>.md` 確定時）に作成する。同じブランチで作業している間はセッションをまたいでも消さずに書き足す。
-- この間 `HANDOFF.md` は「現在地・次回やること」等の軽量な最新状態のみを保つ。詳細な試行錯誤はworklog側に書く。
-- PRを作成する前に必ず「reflect」を行う。
-  1. worklogファイルの内容を棚卸しする。
-  2. 仕様として確定した内容は `docs/spec/機能名.md` に反映する。
-  3. 「後で『なぜこうなってるんだっけ』と聞かれそうな決定」は `docs/adr/000N-タイトル.md` として新規起票する。
-  4. 反映済みのworklogファイルは削除し、削除自体もコミットに含める。
-  5. `HANDOFF.md` を次のタスクに向けてリセットする。
+`worklog/日付_<planファイル名>.md` に記録する（配置・命名は `directory-structure.md`、ライフサイクルは
+`docs-workflow.md` の「ドキュメント運用」表、作成・削除のタイミングは `.claude/skills/issue-mr-flow/SKILL.md`
+の全体フローを参照）。
 
 ## PR・マージ
 
-- PR作成・レビュー依頼・マージは人間が実施する。AIエージェントはブランチでの実装・コミット・reflectまでを担当し、`gh pr create` / `gh pr merge` 等のPR作成・マージ操作は、ユーザーから明示的に指示されない限り実行しない。
-- マージはsquash mergeを用いる。reflect時にworklogファイルを削除しておくことで、squash後にmainへ反映される内容は「コード＋spec/adr」のみになり、試行錯誤の詳細はブランチ上のコミット履歴（PRのコミット一覧）としてのみ残る。
+- PR作成・レビュー依頼・マージは人間が実施する。AIエージェントはブランチでの実装・コミット・設計反映までを担当し、`gh pr create` / `gh pr merge` 等のPR作成・マージ操作は、ユーザーから明示的に指示されない限り実行しない。
+- マージはsquash mergeを用いる。設計反映時にworklogファイルを削除しておくことで、squash後にmainへ反映される内容は「コード＋spec/adr」のみになり、試行錯誤の詳細はブランチ上のコミット履歴（PRのコミット一覧）としてのみ残る。
 - マージ後、作業ブランチは削除してよい。

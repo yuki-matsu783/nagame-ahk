@@ -1,0 +1,8 @@
+{
+  "branchPrefixTemplate": "feature-{issue}-{slug}",
+  "defaultBaseBranch": "main",
+  "plansDir": "plans",
+  "worklogDir": "worklog",
+  "specDirs": ["docs/spec", "dev-tools/docs/spec"],
+  "adrDirs": ["docs/adr", "dev-tools/docs/adr"]
+}
