@@ -159,7 +159,11 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
 - `dev-tools/src/vcs/Provider.ps1`（`Add-MrThreadReply` 追加、`Get-MrUnresolvedComments` に
   `-IncludeResolved` 追加）
 - `dev-tools/src/vcs/Github.ps1` / `Gitlab.ps1`（返信のmutation/API呼び出しを追加）
-- `.claude/skills/issue-mr-flow/SKILL.md`（`comments` に `all` 引数、`reply` サブコマンドを新設）
+- `.claude/skills/issue-mr-flow/SKILL.md`（`comments` に `all` 引数、`reply` サブコマンドを新設。
+  「レビュー完了合図の確認」節を追加）
+
+新規（設計反映時）:
+- `dev-tools/docs/adr/0003-レビュースレッド解決は自動化しない.md`
 
 ## 設定項目
 
@@ -176,19 +180,28 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
 }
 ```
 
+## 決定済み事項（旧・未決定事項）
+
+- **issueとMRのリンク方法**: GitHub/GitLab双方とも `New-DraftMergeRequest` の本文に
+  `Closes #<issue番号>` をそのまま使う（両プロバイダとも同じキーワード構文で自動クローズに対応するため、
+  差異吸収は不要だった）。
+- **未解決コメントの判定基準**: GitHubは `reviewThreads.isResolved`、GitLabは
+  `discussion.notes[].resolved`（`resolvable` なnoteのみ対象）をそれぞれ真偽値として使う。
+  `Get-MrUnresolvedComments` はこれを既定の除外条件、`-IncludeResolved` で無視する条件として使う。
+- **返信本文のテンプレート**: `Add-MrThreadReply` の `-ReplyBody` は呼び出し側（AIエージェント）が
+  組み立てた自由文をそのまま渡す。関数側で定型の接頭辞等は付けない。
+- **スレッドの解決（resolved）操作**: `Add-MrThreadReply` は返信のみ行い、解決マークは付けない
+  （レビュアー側の操作という位置づけ）。かわりに、人間からの完了合図を受けた際は
+  `Get-MrUnresolvedComments -IncludeResolved` で再確認してから次のステップへ進む運用にした。
+  背景・却下案は
+  [dev-tools/docs/adr/0003-レビュースレッド解決は自動化しない.md](../adr/0003-レビュースレッド解決は自動化しない.md)
+  参照。
+
 ## 未決定事項・懸念点
 
-- **gh / glab の導入前提**: 動作確認したこのマシンには `gh` `glab` のどちらもインストールされていない
-  ことを確認済み。実装後、README等に導入手順（インストール・`gh auth login` / `glab auth login`）を
-  案内する必要がある。認証情報自体はスクリプト側では管理せず、各CLIの既存ログイン状態に依存する。
-- **GitLab側の動作未検証**: このリポジトリの実remoteはGitHubのみのため、`Gitlab.ps1` はAPI仕様を
-  調べた上での実装となり、実機での動作確認ができない。実装時にGitLab側のテスト方法（別リポジトリ用意等）
-  を検討する。
-- **issueとMRのリンク方法の統一**: GitHub（`Closes #n` 等のキーワード）とGitLab（`Closes #n` は同様に
-  対応、ただしMR説明文の書式作法が異なる）の差異を、`New-DraftMergeRequest` 内でどう統一表現するか。
-- **未解決コメントの判定基準**: `Get-MrUnresolvedComments` で「未解決」をどう定義するか（GitHubには
-  Draft PRのレビュースレッドresolved/unresolvedの概念があるが、単純なコメントには無い）。GitHub/GitLab
-  双方のAPI差異を含め実装時に確定する。
+- **GitLab側の動作未検証**: このリポジトリの実remoteはGitHubのみのため、`Gitlab.ps1`（`Get-MrUnresolvedComments`
+  の `-IncludeResolved` 分岐、`GitLab-AddMrThreadReply` を含む）はAPI仕様を調べた上での実装となり、
+  実機での動作確認ができていない。GitLab側のテスト方法（別リポジトリ用意等）は今後の課題。
 - **他リポジトリへの移植性の検証**: `.mrworkflow.json` による切り出しで足りるか、実際に他リポジトリへ
   導入してみないと確認できない。今回はnagame-ahk上での実装・検証にとどめる。
 - **全角文字のみのissueタイトルのスラッグ化**: `ConvertTo-Slug` はASCII英数字のみを残す簡易実装のため、
@@ -200,8 +213,3 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
   最上位エントリーポイントではなく `issue-mr-flow` から呼ばれるサブフローという位置づけに変更した。
   「issueを起票しないごく小さな変更」は `git-workflow.md` の適用範囲の例外（main直接コミット許容）で
   引き続き扱えるが、実際に非issueタスクの需要が残るかどうかは運用しながら見極める。
-- **GitLab側の返信API未検証**: `Add-MrThreadReply` のGitLab実装（discussionへのnote追加）はAPI仕様を
-  調べた上での実装であり、実機での動作確認ができない（他の`Gitlab.ps1`実装と同様の制約）。
-- **返信本文のテンプレート**: `Add-MrThreadReply` の `-ReplyBody` にどこまで定型文を含めるか
-  （例: 「対応しました: 」等の接頭辞を付けるか、呼び出し側が自由文をそのまま渡すか）は
-  実装時に決める。
