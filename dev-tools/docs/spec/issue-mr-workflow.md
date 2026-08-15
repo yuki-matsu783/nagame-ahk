@@ -304,14 +304,18 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
   フィールドの有無を見て早期終了する実装とした。
 - **SessionStart hookのmatcher範囲**: `startup|resume|clear` に限定し、`compact`（頻度が高く`gh` API
   呼び出しのコストが無視できない）と `fork`（今回のissueのスコープ外）は対象外とした。
-- **Windows PowerShell 5.1の文字コード対策**: issue #5対応中に、日本語Windowsのシステムコードページ
-  （cp932）起因の文字化け・構文エラーを2種類実機で確認した（`gh`出力の誤読によるJSON構文エラー、
-  `Get-Content`のエンコーディング未指定によるレビュー返信の文字化け）。恒久対策として
-  `Provider.ps1`のdot-source直後に`[Console]::OutputEncoding`/`InputEncoding`をUTF-8へ切り替え
-  （外部コマンドとのI/Oを保護）、加えて呼び出し側の注意事項を
-  [.claude/rules/powershell-encoding.md](../../../.claude/rules/powershell-encoding.md)
-  にまとめた（`Get-Content`/`Set-Content`は個別に`-Encoding UTF8`が必要、`.ps1`ファイルはBOM付き
-  UTF-8で保存する等）。
+- **Windows PowerShell 5.1の文字コード対策はルールでなくスクリプト側で強制する**: issue #5対応中に、
+  日本語Windowsのシステムコードページ（cp932）起因の文字化け・構文エラーを2種類実機で確認した
+  （`gh`出力の誤読によるJSON構文エラー、`Get-Content`のエンコーディング未指定によるレビュー返信の
+  文字化け）。当初は「呼び出し側が`-Encoding UTF8`を書く」という運用ルールでの対応を考えたが、
+  書き忘れに依存する対策は同じ事故を再発させかねないとの指摘を受け、`Provider.ps1`側で機械的に
+  保証する方式に変更した。`Provider.ps1`のdot-source直後に、(1) `[Console]::OutputEncoding`/
+  `InputEncoding`をUTF-8へ切り替え（外部コマンドとのI/Oを保護）、(2) `$PSDefaultParameterValues`で
+  `Get-Content`/`Set-Content`/`Add-Content`/`Out-File`の既定エンコーディングをUTF-8へ切り替え
+  （呼び出し側が`-Encoding`を省略しても安全）を行う。ワイルドカード`'*:Encoding'`は他コマンドレットの
+  `-Encoding`パラメータ定義と衝突し警告が出たため、対象コマンドレットを個別に指定した。
+  `Provider.ps1`をdot-sourceしない独立スクリプト（`.claude/hooks/session-start.ps1`等）向けの
+  注意事項のみ、`.claude/rules/powershell-encoding.md` に残した。
 
 ## 未決定事項・懸念点
 

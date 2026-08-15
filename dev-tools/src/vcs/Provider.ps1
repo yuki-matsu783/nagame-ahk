@@ -12,18 +12,25 @@
     対応関数（GitHub-Xxx / GitLab-Xxx）へディスパッチする。
 
     注意（文字コード）: Windows PowerShell 5.1は既定でシステムのANSI/OEMコードページ
-    （日本語Windowsではcp932）でコンソール入出力を扱う。これに合わせると、UTF-8でやり取りする
-    `gh`/`glab`コマンドの結果（issue本文の日本語等）を誤って解釈したり、`gh api graphql`へ渡す
-    引数（返信本文の日本語等）が文字化けしたりする不具合が実機で発生することを確認済み
-    （issue #5対応時）。そのためdot-source直後にコンソールの入出力エンコーディングを明示的に
-    UTF-8へ切り替える。ただし、これは「PowerShellプロセスと外部コマンド間のI/O」のみを保護する。
-    `Get-Content`/`Set-Content`等でテキストファイルを読み書きする呼び出し側のコードは、別途
-    `-Encoding UTF8`を明示すること（既定はこれもANSI/OEMコードページになるため）。
+    （日本語Windowsではcp932）でコンソール入出力・`Get-Content`等のファイルI/Oを扱う。これに合わせると、
+    UTF-8でやり取りする`gh`/`glab`コマンドの結果（issue本文の日本語等）を誤って解釈したり、
+    BOM無しUTF-8のテキストファイルを読み込んだ内容が文字化けしたまま`gh api graphql`等へ渡って
+    しまったりする不具合が実機で発生することを確認済み（issue #5対応時）。呼び出し側が
+    `-Encoding UTF8`を書き忘れても安全なように、dot-source直後に以下2点をこのファイル側で
+    強制する（詳細: `.claude/rules/powershell-encoding.md`）。
+    - コンソールの入出力エンコーディングをUTF-8へ切り替える（外部コマンドとのI/Oを保護）。
+    - `Get-Content`/`Set-Content`/`Add-Content`/`Out-File`の既定エンコーディングをUTF-8へ切り替える
+      （`$PSDefaultParameterValues`。ワイルドカード`'*:Encoding'`は他コマンドレットの`-Encoding`
+      パラメータ定義と衝突し警告が出たため、対象コマンドレットを個別に指定する）。
 #>
 
 $ErrorActionPreference = "Stop"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::InputEncoding = [System.Text.Encoding]::UTF8
+$PSDefaultParameterValues['Get-Content:Encoding'] = 'UTF8'
+$PSDefaultParameterValues['Set-Content:Encoding'] = 'UTF8'
+$PSDefaultParameterValues['Add-Content:Encoding'] = 'UTF8'
+$PSDefaultParameterValues['Out-File:Encoding'] = 'UTF8'
 
 . (Join-Path $PSScriptRoot "Github.ps1")
 . (Join-Path $PSScriptRoot "Gitlab.ps1")

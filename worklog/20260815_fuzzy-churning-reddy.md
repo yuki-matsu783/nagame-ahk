@@ -72,8 +72,18 @@
     読み込んだ時点で文字列が壊れ、そのまま`gh api graphql`経由でGitHubへ投稿されていた。
   - **対処**: `Get-Content -Raw -Encoding UTF8`で読み直し、各スレッドに「直前の返信は文字化けして
     いた」旨の断り書き付きで正しい内容を再投稿し、正しく表示されることを確認した。
-  - **恒久対策**: 同種の問題が`Provider.ps1`を使う他の場面（`gh`出力の読み取り等）でも起きうるため、
-    `Provider.ps1`のdot-source直後に`[Console]::OutputEncoding`/`InputEncoding`をUTF-8へ切り替える
-    処理を追加。あわせて`Get-Content`/`Set-Content`は個別に`-Encoding UTF8`が必要である旨を含め、
-    新規ルール`.claude/rules/powershell-encoding.md`にまとめ、`issue-mr-flow/SKILL.md`の
-    「詳細ルールへのポインタ」から参照させた。
+  - **恒久対策（1回目）**: 同種の問題が`Provider.ps1`を使う他の場面（`gh`出力の読み取り等）でも
+    起きうるため、`Provider.ps1`のdot-source直後に`[Console]::OutputEncoding`/`InputEncoding`を
+    UTF-8へ切り替える処理を追加。あわせて`Get-Content`/`Set-Content`は個別に`-Encoding UTF8`が
+    必要である旨を含め、新規ルール`.claude/rules/powershell-encoding.md`にまとめ、
+    `issue-mr-flow/SKILL.md`の「詳細ルールへのポインタ」から参照させた。
+  - **恒久対策（2回目、ユーザー指摘を受けて修正）**: 「呼び出し側が`-Encoding UTF8`を書く」という
+    ルール頼みの対策は書き忘れで再発しうるとの指摘を受け、`Provider.ps1`側で機械的に保証する方式に
+    変更。`$PSDefaultParameterValues`で`Get-Content`/`Set-Content`/`Add-Content`/`Out-File`の既定
+    エンコーディングをUTF-8へ切り替えることで、呼び出し側が`-Encoding`を省略しても安全になることを
+    実機で確認（`Provider.ps1`をdot-sourceした状態で`-Encoding`未指定の`Get-Content -Raw`が正しく
+    UTF-8として読めることを確認）。ワイルドカード`'*:Encoding'`は他コマンドレットの`-Encoding`
+    パラメータ定義と衝突し警告が出たため、対象コマンドレットを個別に指定する形にした。
+    `.claude/rules/powershell-encoding.md`は「Provider.ps1をdot-sourceしていれば自動的に安全」
+    という説明に更新し、`.ps1`ファイル自体をBOM付きUTF-8で保存する点等、ランタイムでは防げない
+    事項のみを注意点として残した。
