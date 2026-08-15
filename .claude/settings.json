@@ -1,6 +1,6 @@
 {
-  "remoteControlEnabled": true,
   "permissions": {
     "defaultMode": "plan"
-  }
+  },
+  "plansDirectory": "./plans"
 }

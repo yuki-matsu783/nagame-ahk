@@ -2,4 +2,4 @@
 
 @./AGENTS.md
 
-## Claude Code固有ルール
+## geminiCLI固有ルール
