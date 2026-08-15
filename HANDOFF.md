@@ -23,12 +23,17 @@ AIセッション間・AI⇔人間の状況引継ぎメモ。常に「このブ�
 
 ## 次回やること
 
-- 今回追加したhook（Stop/PostToolUse）が**このセッション自身の次回git push時に実際に発火するか**を確認する
-  （settings.json変更が同一セッション内で即時反映されるかは未検証。反映されない場合は次回セッションでの
-  実機確認になる）。
-- issue-mr-flowの残りステップを継続: MRレビュー→設計反映（`dev-tools/docs/spec/issue-mr-workflow.md`へ
-  「Draft PR空コミット自動リトライ」「セッション使用量レポート」の節を追加、`docs/ddr/`へtranscript
-  パース方式を採用した経緯を記録）→ plans/worklog削除→Draft解除。
+- **hookの実地E2E確認が未完了**。今回commit・push直後にPR #17のコメントを確認したが投稿されなかった。
+  ただし原因は特定できていない可能性が高い理由がある: このpushを行った時点で、当該ターンの`Stop`イベントが
+  まだ発火していなかった（Stopは応答ターン終了時に発火するため）ので、`.claude/usage-state/feature-15-mr.json`
+  が未作成＝蓄積0件であり、`post-push-usage-report.ps1`が「投稿しない」を選ぶのは設計通りの可能性が高い。
+  次回、何かしらの応答ターンが1回でも完了した**後**に`git push`を行い、実際にMRへコメントが投稿されるかを
+  確認すること。投稿されない場合は、`.claude/settings.json`の変更が同一セッション内で即時反映されるか
+  （＝再起動しないとhook登録が有効化されないのではないか）を疑うこと。
+- 上記が確認できたら、issue-mr-flowの残りステップを継続: MRレビュー→設計反映
+  （`dev-tools/docs/spec/issue-mr-workflow.md`へ「Draft PR空コミット自動リトライ」「セッション使用量
+  レポート」の節を追加、`docs/ddr/`へtranscriptパース方式を採用した経緯を記録）→ plans/worklog削除→
+  Draft解除。
 
 ## 判断が分かれるポイント
 
