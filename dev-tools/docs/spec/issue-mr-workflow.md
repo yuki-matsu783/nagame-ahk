@@ -450,3 +450,6 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
   同時にhookを発火させた場合、`.claude/usage-state/<branch>.json`への読み書きにロックが無いため、
   一方の更新が失われる可能性がある（レースコンディション）。単一開発者が同一作業ディレクトリで
   複数セッションを同時実行する運用は想定しにくいため許容している。
+- **投稿コメント本文へのBOM混入**: `Add-MrComment`が読む一時ファイルは`Set-Content -Encoding UTF8`
+  （Windows PowerShell 5.1既定でBOM付与）で書き出すため、GitHub上のコメント本文先頭に不可視の
+  BOM文字が入る。表示上の実害は無く、`Set-MrDescription`など既存箇所と同じ挙動のため許容している。

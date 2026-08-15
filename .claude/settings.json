@@ -3,6 +3,7 @@
     "defaultMode": "plan"
   },
   "plansDirectory": "./plans",
+  "autoCompactWindow": 600000,
   "hooks": {
     "SessionStart": [
       {
