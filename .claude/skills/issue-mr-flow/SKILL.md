@@ -48,6 +48,9 @@ description: nagame-ahkの開発フロー全体（issue起票〜マージ）の�
 | 19 | commit, push する | エージェント |
 | 20 | マージする（squash merge。ブランチは削除してよい） | 人間 |
 
+issue番号やブランチ名を知らない状態（別セッション・別担当者による途中引き継ぎ）でこのフローに
+入る場合は、まず `resume` を使って「今どこにいるか」を特定してから該当ステップに進む。
+
 ## サブコマンド
 
 呼び出しは `/issue-mr-flow <サブコマンド> [引数]` の形。
@@ -68,8 +71,7 @@ description: nagame-ahkの開発フロー全体（issue起票〜マージ）の�
 
 ### `comments [all]` — MRレビューコメントの取得（全体フロー9・14）
 
-1. 現在のブランチに紐づくMR番号を取得する（GitHub: `gh pr view --json number --jq .number`、
-   GitLab: `glab mr view --output json --jq .iid`）。
+1. `Get-MrForBranch -Branch (git branch --show-current)` で現在のブランチに紐づくMR番号を取得する。
 2. `Get-MrUnresolvedComments -MrNumber <n>` で未解決コメントを取得し、そのまま提示する
    （ファイルパス・行番号・スレッドID・該当diffを含む）。対応済み（解決済み）のスレッドは既定で
    機械的に除外される。引数に `all` が指定された場合は `-IncludeResolved` を付けて呼び、
@@ -80,7 +82,8 @@ description: nagame-ahkの開発フロー全体（issue起票〜マージ）の�
 
 ### `reply <threadId> <対応内容>` — レビューコメントへの返信（全体フロー9・14）
 
-1. 現在のブランチに紐づくMR番号を取得する（`comments` の手順1と同じ）。
+1. `Get-MrForBranch -Branch (git branch --show-current)` で現在のブランチに紐づくMR番号を取得する
+   （`comments` の手順1と同じ）。
 2. `Add-MrThreadReply -MrNumber <n> -ThreadId <threadId> -ReplyBody <対応内容>` で、指定した
    スレッドに対応内容を返信する。`threadId` は `comments` の出力に含まれる `threadId=...` を使う。
 3. スレッドの解決（resolved）はレビュアー側の操作であり、本サブコマンドでは行わない。
@@ -102,13 +105,28 @@ description: nagame-ahkの開発フロー全体（issue起票〜マージ）の�
    <worklogの「うまくいったこと」等から、現時点までの実装内容の要約。plan段階では「未着手」>
    ```
 
-3. 現在のブランチに紐づくMR番号を取得し（`comments` の手順1と同じ）、
-   `Set-MrDescription -MrNumber <n> -BodyFile <一時ファイル>` で反映する。
+3. `Get-MrForBranch -Branch (git branch --show-current)` で現在のブランチに紐づくMR番号を取得し
+   （`comments` の手順1と同じ）、`Set-MrDescription -MrNumber <n> -BodyFile <一時ファイル>` で反映する。
 
 ### `sync` — セッション再開（全体フロー3の再開版）
 
 新しいセッションで作業を再開するときに使う。対象ブランチ名を引数に取り、
 `Sync-Branch -Branch <branch>` を呼ぶだけの単純なコマンド。引数省略時は現在のブランチ名を使う。
+issue番号やブランチ名が分かっている場合に使う（分からない場合は `resume` を使う）。
+
+### `resume` — 途中引き継ぎ（引数なし）
+
+issue番号やブランチ名を知らない状態（別セッション・別担当者が途中から引き継ぐ場合等）で、
+「今どこにいるか」を自力で特定するために使う。
+
+1. Agentツールで `issue-mr-resume` サブエージェント（`.claude/agents/issue-mr-resume.md`）を起動する。
+2. サブエージェントが返す「現在地サマリ」（ブランチ・issue・PR/MR・未解決コメント件数・
+   ブランチ固有のplan/worklogファイル・HANDOFF.mdの内容、および矛盾・注意点）をそのまま
+   ユーザーに提示する。
+3. 提示した内容をもとに、全体フロー20ステップのうちどこから再開すべきかをAIエージェントが判断し、
+   次にすべきことを提案する（この判断はサブエージェントではなく呼び出し元が行う）。
+4. issue番号が特定できていればブランチ/MRの存在確認へ（`start` 手順2相当）、issueが特定できなければ
+   ブランチ命名規則から外れている旨を伝えて `start <issue番号>` での対応を促す。
 
 ## レビュー完了合図の確認（全体フロー9・14・17）
 

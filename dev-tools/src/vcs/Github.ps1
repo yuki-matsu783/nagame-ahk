@@ -110,6 +110,23 @@ mutation($threadId: ID!, $body: String!) {
     gh api graphql -F "threadId=$ThreadId" -F "body=$ReplyBody" -f "query=$mutation" | Out-Null
 }
 
+# 指定ブランチに紐づくPR（無ければ $null）を返す。途中引き継ぎ対応（resume）と、
+# comments/describeサブコマンドでの「現在のブランチのMR番号取得」の共通実装として使う。
+function GitHub-GetMrForBranch {
+    param([Parameter(Mandatory)][string]$Branch)
+
+    $json = gh pr view $Branch --json number,url,isDraft,title 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not $json) { return $null }
+
+    $pr = $json | ConvertFrom-Json
+    [PSCustomObject]@{
+        Number  = $pr.number
+        Url     = $pr.url
+        IsDraft = $pr.isDraft
+        Title   = $pr.title
+    }
+}
+
 function GitHub-SetMrDescription {
     param(
         [Parameter(Mandatory)][int]$MrNumber,

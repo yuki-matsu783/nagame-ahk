@@ -76,6 +76,24 @@ function GitLab-AddMrThreadReply {
     glab api "projects/:id/merge_requests/$MrNumber/discussions/$ThreadId/notes" -X POST -f "body=$ReplyBody" | Out-Null
 }
 
+# 指定ブランチに紐づくMR（無ければ $null）を返す。途中引き継ぎ対応（resume）と、
+# comments/describeサブコマンドでの「現在のブランチのMR番号取得」の共通実装として使う。
+# 【未検証】このリポジトリのremoteはGitHubのみのため実機確認できていない。
+function GitLab-GetMrForBranch {
+    param([Parameter(Mandatory)][string]$Branch)
+
+    $json = glab mr view $Branch --output json 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not $json) { return $null }
+
+    $mr = $json | ConvertFrom-Json
+    [PSCustomObject]@{
+        Number  = $mr.iid
+        Url     = $mr.web_url
+        IsDraft = $mr.work_in_progress
+        Title   = $mr.title
+    }
+}
+
 function GitLab-SetMrDescription {
     param(
         [Parameter(Mandatory)][int]$MrNumber,

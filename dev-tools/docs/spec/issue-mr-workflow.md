@@ -44,6 +44,8 @@ dev-tools/src/vcs/
 └── Gitlab.ps1                      # glab CLIラッパー
 .claude/skills/issue-mr-flow/
 └── SKILL.md                        # ステップ実行のオーケストレーション手順書
+.claude/agents/
+└── issue-mr-resume.md              # 途中引き継ぎ用の状態調査サブエージェント（resumeから起動）
 ```
 
 - **`Provider.ps1`**: `git remote get-url origin` のホスト名（`github.com` / `gitlab.*`）でプロバイダを判定し、
@@ -70,6 +72,9 @@ dev-tools/src/vcs/
 | `Set-MrDescription -MrNumber <n> -BodyFile <path>` | PR/MRのdescriptionを指定ファイル内容で上書き | `gh pr edit --body-file` | `glab mr update --description` |
 | `Sync-Branch` | 現在のブランチをfetch、必要ならcheckout（新しいセッションでの再開用） | `git fetch` + `git checkout` | 同左 |
 | `Test-IssueSections -Body <text>` | issue本文に「目的／現状／期待する動作／受け入れ条件」の4見出しが揃っているか確認し、欠けている見出し名の配列を返す（プロバイダ非依存） | — | — |
+| `Get-IssueNumberFromBranch [-Branch <name>]` | ブランチ名を `branchPrefixTemplate` に照らしてissue番号を抽出する（省略時は現在のブランチ）。マッチしなければ `$null`（プロバイダ非依存） | — | — |
+| `Get-MrForBranch -Branch <name>` | 指定ブランチに紐づくPR/MRの番号・URL・タイトル・Draft状態を取得する（無ければ `$null`） | `gh pr view <branch>` | `glab mr view <branch>` |
+| `Get-BranchWorkFiles` | 現在のブランチ固有（`<defaultBaseBranch>` に無い）の `plans/` `worklog/` ファイル一覧を返す（プロバイダ非依存） | — | — |
 
 ### 全体フロー
 
@@ -78,7 +83,7 @@ issue起票からマージまでの詳細な手順（担当・順序）は
 に一本化した。本specとの内容重複・ドリフトを避けるため、ここでは表を持たない
 （詳細は[0002-issue-mr-flowへの実装フロー統合.md](../adr/0002-issue-mr-flowへの実装フロー統合.md)参照）。
 
-`/issue-mr-flow` のサブコマンドは `start` `comments` `reply` `describe` `sync` の5つに絞り、
+`/issue-mr-flow` のサブコマンドは `start` `comments` `reply` `describe` `sync` `resume` の6つに絞り、
 設計ドキュメント作成・plan作成・実装・設計反映・AIアセット改善そのものは
 `.claude/skills/issue-mr-flow/SKILL.md` の該当ステップ（スキル `ahk-implement` を含む）に委ねる。
 
@@ -98,6 +103,36 @@ issue起票からマージまでの詳細な手順（担当・順序）は
   人間に再確認を取ってから次に進む（`reply` は返信のみで解決は行わないため、返信済みでも
   `unresolved` のまま残ることがある）。詳細は `.claude/skills/issue-mr-flow/SKILL.md` の
   「レビュー完了合図の確認」節を参照。
+
+### 途中引き継ぎ対応（resume）
+
+`start <issue番号>` / `sync <branch>` はどちらも「issue番号やブランチ名を知っている」ことが前提の
+コマンドであり、別の人（別セッション）が途中から作業を引き継ぐ場合、AIエージェント自身が
+「今どのissue／ブランチ／PRの、どの段階か」を特定する手段が無かった（PR #4レビュー指摘）。
+
+`resume`（引数なし）は、専用サブエージェント `.claude/agents/issue-mr-resume.md` を起動し、
+現在チェックアウトされているブランチだけを手がかりに以下を機械的に収集・報告させる
+（情報収集・突き合わせは調査作業であり、その過程（試行錯誤・大量の生ログ）でメイン会話の
+コンテキストを汚さないよう、読み取り専用の別エージェントに分離する）。
+
+1. `git branch --show-current` で現在のブランチ名を取得する（`<defaultBaseBranch>` 上、または
+   ブランチが特定できない場合は、その旨を伝えて `start <issue番号>` を促し終了する）。
+2. `Get-IssueNumberFromBranch` でブランチ名からissue番号を抽出し、`Get-Issue` でissue内容を取得する
+   （抽出できなければ「命名規則に一致しないブランチです」と警告しつつ以降を続行する）。
+3. `Get-MrForBranch` で対応するPR/MRの有無・番号・URL・Draft状態を取得する。
+4. PR/MRがあれば `Get-MrUnresolvedComments -IncludeResolved` で全件取得し、未解決件数を集計する。
+5. `Get-BranchWorkFiles` で、このブランチ固有の `plans/` `worklog/` ファイルを列挙する
+   （`<defaultBaseBranch>` との差分から求めるため、削除済み＝設計反映済みの判別にも使える）。
+6. `HANDOFF.md` の内容を読む。
+7. 1〜6を「現在地サマリ」としてまとめ、呼び出し元（メインのAIエージェント）に返す。**HANDOFF.mdの
+   記述と実際の状態（PR有無・未解決コメント件数等）に矛盾があれば、それも指摘する**
+   （例: HANDOFF.mdは「PR未作成」と書いてあるが実際はPRが存在する、等）。
+
+呼び出し元は、このサマリをもとに全体フロー20ステップのうちどこから再開すべきかを判断し、
+人間に提案する（この判断自体はサブエージェントの役割ではなく、呼び出し元が行う）。
+
+`comments` / `describe` サブコマンドの「現在のブランチに紐づくMR番号を取得する」手順は、
+重複実装を避けるため `Get-MrForBranch` に統一する。
 
 ### ブランチ命名
 
@@ -165,6 +200,16 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
 新規（設計反映時）:
 - `dev-tools/docs/adr/0003-レビュースレッド解決は自動化しない.md`
 
+新規（追加分・途中引き継ぎ対応）:
+- `.claude/agents/issue-mr-resume.md`（状態調査サブエージェント）
+
+変更（追加分・途中引き継ぎ対応）:
+- `dev-tools/src/vcs/Provider.ps1`（`Get-IssueNumberFromBranch`, `Get-MrForBranch`,
+  `Get-BranchWorkFiles` を追加）
+- `dev-tools/src/vcs/Github.ps1` / `Gitlab.ps1`（`GitHub-GetMrForBranch` / `GitLab-GetMrForBranch` を追加）
+- `.claude/skills/issue-mr-flow/SKILL.md`（`resume` サブコマンドを新設。`comments` / `describe` の
+  MR番号取得手順を `Get-MrForBranch` に統一）
+
 ## 設定項目
 
 `.mrworkflow.json`（nagame-ahk向けの初期値）
@@ -213,3 +258,7 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
   最上位エントリーポイントではなく `issue-mr-flow` から呼ばれるサブフローという位置づけに変更した。
   「issueを起票しないごく小さな変更」は `git-workflow.md` の適用範囲の例外（main直接コミット許容）で
   引き続き扱えるが、実際に非issueタスクの需要が残るかどうかは運用しながら見極める。
+- **`resume` の「現在地」判定の精度**: `Get-BranchWorkFiles` は `<defaultBaseBranch>` との差分で
+  plan/worklogファイルを推定するヒューリスティックであり、複数issueを1ブランチで扱う等の
+  変則的な運用では正しく機能しない可能性がある。本プロジェクトの通常運用（1ブランチ1issue）を
+  前提とする。

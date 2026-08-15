@@ -197,3 +197,45 @@ plan: `plans/misty-foraging-torvalds.md`「レビューコメントへの返信�
 - 合意後、plan/worklogを削除しHANDOFF.mdをリセットする（全体フロー18〜19）。
 
 ---
+
+## Phase 7: 途中引き継ぎ対応（resume + issue-mr-resumeサブエージェント）
+
+対象: PR #4レビュー指摘「担当者が変わった際に、今どのブランチ/PRの段階かをAIが自力で
+特定できない」への対応。ユーザー提案により調査処理を専用サブエージェントに分離。
+plan: `plans/misty-foraging-torvalds.md`「途中引き継ぎ対応（resumeサブコマンド + 状態調査
+サブエージェント）」節（Phase 6の内容を上書き）。
+
+### 試したこと・うまくいったこと
+
+- `Get-IssueNumberFromBranch` を追加。`{issue}`/`{slug}` を記号を含まないプレースホルダに
+  置換してから `[regex]::Escape` する実装で、テンプレートのリテラル部分（ハイフン等）を
+  正しくエスケープしつつプレースホルダだけ正規表現化できることを確認。
+  単体確認: `feature-42-window-detect` → `42`、`main` → `$null`。
+- `Get-MrForBranch`（Provider.ps1ディスパッチャ + `GitHub-GetMrForBranch` / `GitLab-GetMrForBranch`）
+  を追加。実機確認: 現在のブランチ（`3-開発フローを変える`）に対してPR #4の情報
+  （番号・URL・Draft状態）を正しく取得できることを確認。
+- `Get-BranchWorkFiles` を追加。実機確認: `plans/misty-foraging-torvalds.md` と
+  `worklog/20260815_misty-foraging-torvalds.md` がこのブランチ固有のファイルとして
+  正しく列挙されることを確認。
+- `comments` / `describe` サブコマンドのMR番号取得手順を `Get-MrForBranch` に統一し、
+  生のgh/glabコマンドの重複記述を解消。
+- `.claude/agents/issue-mr-resume.md` を新規作成（`ahk-code-reviewer.md` と同じ frontmatter形式、
+  読み取り専用）。`resume` サブコマンドはこれをAgentツールで起動する設計。
+
+### ダメだったこと
+
+- 新規作成した `issue-mr-resume` サブエージェントを同一セッション内でAgentツールから
+  実際に起動しようとしたところ、「Agent type 'issue-mr-resume' not found」となった。
+  エージェント定義は（スキル定義とは異なり）セッション開始時に読み込まれ、実行中セッションでは
+  ホットリロードされないためと考えられる。→ 実機での起動確認は次回セッション（このブランチを
+  `resume` する形）で行う。ロジック自体（`Get-IssueNumberFromBranch` / `Get-MrForBranch` /
+  `Get-BranchWorkFiles`）は個別に実機確認済みのため、サブエージェント側は
+  `ahk-code-reviewer.md` の形式に倣った手順の記述ミスが無いか目視確認にとどめた。
+
+### 次の一歩
+
+- 実装完了。commit/push待ち。
+- 次回セッション開始時（本ブランチを再度扱う際）に `/issue-mr-flow resume` を実際に呼び出し、
+  サブエージェントの起動・現在地サマリの内容を実機確認する。
+
+---

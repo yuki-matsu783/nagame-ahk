@@ -124,6 +124,14 @@ function Add-MrThreadReply {
     }
 }
 
+function Get-MrForBranch {
+    param([Parameter(Mandatory)][string]$Branch)
+    switch (Get-Provider) {
+        'github' { GitHub-GetMrForBranch -Branch $Branch }
+        'gitlab' { GitLab-GetMrForBranch -Branch $Branch }
+    }
+}
+
 function Set-MrDescription {
     param(
         [Parameter(Mandatory)][int]$MrNumber,
@@ -167,4 +175,34 @@ function Sync-Branch {
     } else {
         git checkout -b $Branch "origin/$Branch"
     }
+}
+
+# ブランチ名を branchPrefixTemplate に照らしてissue番号を抽出する（途中引き継ぎ対応のresumeで使用）。
+# {issue}/{slug} を記号を含まないプレースホルダに置換してから [regex]::Escape することで、
+# テンプレートのリテラル部分（ハイフン等）だけを正しくエスケープしつつプレースホルダを
+# 正規表現化する。マッチしなければ $null を返す。
+function Get-IssueNumberFromBranch {
+    param([string]$Branch = (git branch --show-current))
+
+    $config = Get-WorkflowConfig
+    $tokenized = $config.branchPrefixTemplate -replace '\{issue\}', 'ZZISSUEZZ' -replace '\{slug\}', 'ZZSLUGZZ'
+    $pattern = [regex]::Escape($tokenized) -replace 'ZZISSUEZZ', '(?<issue>\d+)' -replace 'ZZSLUGZZ', '.+'
+
+    if ($Branch -match "^$pattern`$") {
+        [int]$Matches['issue']
+    } else {
+        $null
+    }
+}
+
+# 現在のブランチ固有（<defaultBaseBranch> には無い）の plans/worklog ファイル一覧を返す
+# （コミット済み差分＋作業ツリーの未コミット分をマージ・重複排除）。プロバイダ非依存。
+function Get-BranchWorkFiles {
+    $config = Get-WorkflowConfig
+    $paths = @($config.plansDir, $config.worklogDir)
+
+    $committed = git diff --name-only "origin/$($config.defaultBaseBranch)...HEAD" -- @paths
+    $working = git status --porcelain -- @paths | ForEach-Object { $_.Substring(3).Trim() }
+
+    @($committed) + @($working) | Where-Object { $_ } | Sort-Object -Unique
 }
