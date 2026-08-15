@@ -22,15 +22,30 @@ AIセッション間・AI⇔人間の状況引継ぎメモ。常に「このブ�
 - 上記実機確認の結果を受け、PR #4の未解決コメント（threadId `PRRT_kwDOT4Y-5s6Ze4iq`,
   `.claude/skills/issue-mr-flow/SKILL.md:23`）に対応完了として返信済み（スレッド自体は
   レビュアーが解決するまでunresolvedのまま残る仕様）。
+- 人間から「レビューした」と合図を受けたため `comments all` で再確認したところ、
+  新たに未解決コメントが2件見つかった:
+  1. `PRRT_kwDOT4Y-5s6ZfGIk`（`SKILL.md:43`、全体フロー旧行14）: 人間/AIの担当が1行に
+     混在していた点。行14/15に分割して対応（行8・9と同じパターンに統一）。
+  2. `PRRT_kwDOT4Y-5s6ZfGaK`（`SKILL.md:83`、`reply`）: AIの返信がGitHub上で元コメント投稿者
+     （人間の`gh`認証アカウント）と同一に見える点。アカウント自体の分離は技術的にできないため、
+     返信本文冒頭に `🤖 Claude Code (AI) より:` の署名を必ず付ける運用ルールを追加して対応
+     （botアカウント方式は規模超過のため見送り。判断理由は
+     `worklog/20260815_pr4-review-followup2.md` 参照）。
+  - `.claude/skills/issue-mr-flow/SKILL.md` の全体フロー表は21ステップに更新済み
+    （旧14が14/15に分割されたため、旧15〜20は新16〜21）。
+  - 上記2件への返信は次回セッションでの対応（未実施）。
 
 ## 次回やること
 
-- 人間のレビュー・合意を受ける。合意まで9〜14の実装ループを繰り返す（完了合図後は必ず
+- `PRRT_kwDOT4Y-5s6ZfGIk` / `PRRT_kwDOT4Y-5s6ZfGaK` に `/issue-mr-flow reply`（新しい署名運用）で
+  対応内容を返信する。
+- 人間のレビュー・合意を受ける。合意まで9〜15の実装ループを繰り返す（完了合図後は必ず
   `Get-MrUnresolvedComments` / `/issue-mr-flow comments all` で unresolved が残っていないか
   再確認してから次に進む。ADR 0003参照）。
-- 合意後、全体フロー18〜19: `plans/misty-foraging-torvalds.md` と
-  `worklog/20260815_misty-foraging-torvalds.md` を削除し、本HANDOFF.mdを次タスクへリセットする。
-  その後commit, push。
+- 合意後、全体フロー19〜20: `plans/misty-foraging-torvalds.md` `plans/toasty-orbiting-finch.md`
+  `plans/pr4-review-followup2.md` と対応するworklogを削除し、本HANDOFF.mdを次タスクへリセットする。
+  その後commit, push。このタイミングで、署名方式採用の経緯（worklog参照）を
+  `dev-tools/docs/spec/issue-mr-workflow.md` の決定事項・必要ならADRへ反映する。
 - 最後に人間がPR #4をsquash mergeする。
 
 ## 判断が分かれるポイント
