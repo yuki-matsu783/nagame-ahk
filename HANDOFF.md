@@ -14,22 +14,26 @@ AIセッション間・AI⇔人間の状況引継ぎメモ。常に「このブ�
   - `dev-tools/src/vcs/Provider.ps1`/`Github.ps1`/`Gitlab.ps1`: `New-DraftMergeRequest`が
     base差分無しブランチで失敗した場合に空コミット→1回リトライする自動化（`Add-EmptyCommitForDraftMr`）。
     `Add-MrComment`（MRへ新規コメント投稿）を追加。
-  - `.claude/hooks/stop-usage-record.ps1`（Stop hook）: セッションのtranscriptからモデル別トークン数・
-    ツール呼び出し回数を集計し、ブランチ単位の状態ファイル（`.claude/usage-state/<branch>.json`,
-    gitignore対象）へ差分蓄積。
-  - `.claude/hooks/post-push-usage-report.ps1`（PostToolUse hook, git push検知）: 蓄積分をMRへ
-    新規コメントとして投稿し、投稿成功後にリセット。
+  - `.claude/hooks/lib/UsageTracking.ps1`（新規・共有ライブラリ）: `Sync-UsageState`が集計本体。
+    `entry.gitBranch -eq $Branch` でフィルタして集計する（複数ブランチを跨いだ際の他ブランチ分混入
+    バグを修正済み。実データで452,144トークン分の混入を確認・解消した）。
+  - `.claude/hooks/stop-usage-record.ps1`（Stop hook）: `Sync-UsageState -IncrementTurn`を呼ぶだけに
+    簡素化。ターン数カウントの役割のみ残した。
+  - `.claude/hooks/post-push-usage-report.ps1`（PostToolUse hook, git push検知）: 投稿前に自分でも
+    `Sync-UsageState`を呼んで最新化してから投稿・リセットする（Stop未発火のターン中の初回pushでも
+    記録漏れが起きないよう修正済み。実機検証済み：「対象ターン数0」でも実データが反映されることを確認）。
   - `.claude/settings.json`にStop/PostToolUseのhook登録を追加。
 
 ## 次回やること
 
-- **hookの実地E2E確認は完了済み**（2026-08-16）。ターン終了→`Stop` hookが状態ファイルへ実データを蓄積
-  →空コミットでのgit push→`PostToolUse` hook（`if: git push`検知）が実際に発火し、PR #17へ実使用量
-  コメントが自動投稿されることを確認した（`.claude/settings.json`変更は同一セッション内で即時反映される
-  ことも合わせて確認できた）。
+- **hookの実地E2E確認は完了済み**（2026-08-16、2回実施）。1回目: ターン終了→`Stop` hookが状態ファイルへ
+  実データを蓄積→空コミットでのgit push→`PostToolUse` hookが実際に発火しPR #17へ自動投稿されることを確認。
+  2回目: `gitBranch`混入バグ修正後、状態ファイルを削除した状態から実セッションの`session_id`で
+  `post-push-usage-report.ps1`を実行し、Stop未発火（ターン途中）でも実データが反映されることを確認
+  （いずれもテスト投稿は確認後に削除済み）。
 - issue-mr-flowの残りステップを継続: MRレビュー→設計反映（`dev-tools/docs/spec/issue-mr-workflow.md`へ
   「Draft PR空コミット自動リトライ」「セッション使用量レポート」の節を追加、`docs/ddr/`へtranscript
-  パース方式を採用した経緯を記録）→ plans/worklog削除→Draft解除。
+  パース方式を採用した経緯・gitBranchフィルタの理由を記録）→ plans/worklog削除→Draft解除。
 
 ## 判断が分かれるポイント
 

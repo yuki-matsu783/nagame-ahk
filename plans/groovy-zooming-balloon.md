@@ -98,3 +98,73 @@ issue #15（https://github.com/yuki-matsu783/nagame-ahk/issues/15）は、AIが1
   レポート機能」の節を追加し、未決定事項の該当項目を解消する。
 - `docs/ddr/` に「transcript JSONLパース方式を採用した理由（他に確実な取得手段が無いため）とその既知のリスク
   （非公開フォーマットで将来壊れうる）」を記録する。
+
+---
+
+# 追加計画（同issue #15内、2026-08-16 2回目）: 初回push時のトークン記録漏れ対応
+
+**注記**: 上記が最初に承認・実装・実機検証済みの計画（実装完了）。本セクションは同じセッション内で
+発覚した追加課題に対する2つ目の計画（`.claude/rules/plan-mode-safety.md`に従い、承認済み計画を書き換える
+のではなく新セクションとして追記する。既存文書ツールの都合上ファイルは分けていないが、内容は独立した
+計画として扱う）。
+
+## Context
+
+ユーザーからの指摘: 「最初のpush時にそれまで使ったトークン量を投稿できるようにしたい。stop以外のhookで
+記録するようにすれば良いか？」
+
+原因: `Stop`は**1ターン完了時**にしか発火しない。1ターンの途中で`git push`が実行されると
+（実際、今回のissue #15対応でも「ブランチ作成→調査→実装→push」を1ターン内で行っており、最初のpushは
+ターン途中で発生していた）、そのターンで既に消費したトークンは、まだ`Stop`によって状態ファイルへ
+記録されていない。そのため`post-push-usage-report.ps1`は「記録が0件」と判断し投稿しない
+（設計通りだが、ユーザー体験としては「最初のpushで何も投稿されない」という欠落に見える）。
+
+調査の結果、より良い解決策が判明した。「Stopの代わりに別のhookで記録する」のではなく、
+**`post-push-usage-report.ps1`自身が投稿直前に自分でtranscriptを読み直す**（`Stop`同様の集計処理を
+共通化して呼ぶ）ことで、その時点までにtranscriptへ書き出し済みの内容を漏れなく反映できる
+（`transcript_path`は`PostToolUse`のペイロードにも含まれる共通フィールドであるため）。`Stop`は
+「ターン数のカウント」のためにこのまま維持する。
+
+**追加で発見した既存バグ**: 現在の実装（`Get-ZeroTokenBucket`集計ロジック）はセッション全体の累計を
+無条件にそのブランチの使用量として扱っており、**同一セッション内で複数ブランチを跨いだ場合に
+他ブランチ分のトークンまで混入する**。実際に今回のセッションのtranscriptを確認したところ、
+`gitBranch`フィールド（各assistantメッセージに付与されている。全assistantエントリ198件中198件に
+存在することを確認済み）が `feature-12-adr-ddr-design-decision-record`(32件) → `main`(6件) →
+`feature-15-mr`(274件) と遷移しており、既に投稿済みのレポート（PR #17, comment id 5303199534）には
+本来issue #15と無関係な`feature-12`ブランチでの消費分が混入していたことを確認した。これも今回合わせて
+修正する（`gitBranch`でフィルタして集計する）。既に投稿済みの当該コメントは実害が小さく
+（「目安」であることを明記済み・レビュー判定にも不使用）、遡っての訂正は行わない。
+
+## 変更するファイル
+
+1. **`.claude/hooks/lib/UsageTracking.ps1`**（新規、共有ライブラリ）
+   - `ConvertTo-HashtableDeep`・`Get-ZeroTokenBucket`: 既存2スクリプトから移設
+   - `Sync-UsageState -RepoRoot -Branch -SessionId -TranscriptPath [-IncrementTurn]`:
+     既存の集計ロジックを移設した上で、`type=="assistant"`に加え**`entry.gitBranch -eq $Branch`**
+     でフィルタするよう変更（ブランチ混入バグの修正）。状態ファイルの読み込み・差分計算・
+     `sinceLastPush`への加算・保存までを行い、更新後の`$state`を返す。`-IncrementTurn`指定時のみ
+     `sinceLastPush.turns`を+1する。
+
+2. **`.claude/hooks/stop-usage-record.ps1`**（修正）
+   - 集計処理本体を`UsageTracking.ps1`のdot-source＋`Sync-UsageState -IncrementTurn`呼び出しに置き換え。
+     冒頭のガード処理（サブエージェント判定・mainブランチ判定等）はそのまま維持。
+
+3. **`.claude/hooks/post-push-usage-report.ps1`**（修正）
+   - 「状態ファイルを読んで合計0なら終了」の**前**に、`UsageTracking.ps1`をdot-sourceし
+     `Sync-UsageState`（`-IncrementTurn`無し）を呼んで状態を最新化してから、以降の投稿要否判定・
+     投稿処理を行う。これにより、当該ターンの`Stop`が未発火でも、その時点までtranscriptに
+     書き出し済みの内容が反映される（初回pushでも記録漏れが起きなくなる）。
+
+## 対象外（今回やらないこと）
+
+- セッション（transcriptファイル）を跨いだ集計の継続（`/resume`等で新しいtranscriptファイルに
+  切り替わった場合、旧セッション分との合算は行わない。現行実装でも未対応で、今回もスコープ外のまま）
+- 既に投稿済みのコメント（PR #17, comment id 5303199534）の遡及的な訂正・削除
+
+## 検証方法
+
+- 修正後、`.claude/usage-state/feature-15-mr.json`を一旦削除し、実際に何らかのBash/PowerShell操作を
+  行った直後（＝`Stop`が発火する前）に`git push`を実行して、`post-push-usage-report.ps1`が
+  その時点までの使用量を反映したコメントをPR #17へ投稿することを実地確認する。
+- 現セッションのtranscript（`gitBranch`混在済み）で`Sync-UsageState`を手動実行し、
+  `feature-15-mr`分のみが集計され、`feature-12-...`/`main`分の数値が含まれないことを確認する。

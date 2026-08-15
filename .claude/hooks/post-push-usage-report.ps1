@@ -9,11 +9,15 @@
     通常のBash/PowerShell利用への性能影響は無い）。if フィルタはベストエフォートのため、
     本スクリプト側でも念のため command 文字列を正規表現で再チェックする。
 
-    stop-usage-record.ps1 が `.claude/usage-state/<branch>.json` の `sinceLastPush` に
-    積み上げた「前回push以降の使用量」を読み、MRへ新規コメントとして投稿する（レビューではない
-    通常コメントのため、レビュー合否判定には影響しない）。投稿に成功したら `sinceLastPush` を
-    リセットする。失敗時は状態を変更せず握りつぶす（次のpush時に繰り越されるだけで、
-    git push自体をブロックしない）。
+    投稿前に、自分自身でも .claude/hooks/lib/UsageTracking.ps1 の Sync-UsageState を
+    （`-IncrementTurn` 無しで）呼んで状態を最新化する。Stop は1ターン完了時にしか発火しないため、
+    ターンの途中（＝そのターンのStopがまだ発火していない状態）でgit pushが実行されるケース
+    （例: 最初のpushがブランチ作成・調査・実装と同じターン内で行われる場合）でも、その時点までに
+    transcriptへ書き出し済みの内容を漏れなく反映するための措置。
+
+    `sinceLastPush` を読み、MRへ新規コメントとして投稿する（レビューではない通常コメントのため、
+    レビュー合否判定には影響しない）。投稿に成功したら `sinceLastPush` をリセットする。失敗時は
+    状態を変更せず握りつぶす（次のpush時に繰り越されるだけで、git push自体をブロックしない）。
 
     注意（文字コード）: .claude/hooks/session-start.ps1 と同じ理由により、コンソールの
     入出力エンコーディングをUTF-8へ明示的に切り替える（詳細: .claude/rules/powershell-encoding.md）。
@@ -22,22 +26,6 @@
 $ErrorActionPreference = "Stop"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::InputEncoding = [System.Text.Encoding]::UTF8
-
-# stop-usage-record.ps1 と同じ変換ヘルパー（各hookスクリプトは独立プロセスとして起動されるため、
-# 共有モジュール化はせず自己完結させている。既存のsession-start.ps1と同じ方針）
-function ConvertTo-HashtableDeep {
-    param($InputObject)
-    if ($null -eq $InputObject) { return @{} }
-    $ht = @{}
-    foreach ($p in $InputObject.PSObject.Properties) {
-        if ($p.Value -is [System.Management.Automation.PSCustomObject]) {
-            $ht[$p.Name] = ConvertTo-HashtableDeep -InputObject $p.Value
-        } else {
-            $ht[$p.Name] = $p.Value
-        }
-    }
-    $ht
-}
 
 $raw = [Console]::In.ReadToEnd()
 $hookInput = $null
@@ -66,17 +54,30 @@ if (-not $command -or ($command -notmatch '(?i)git\s+push')) { exit 0 }
 try {
     Set-Location $env:CLAUDE_PROJECT_DIR
     . (Join-Path $env:CLAUDE_PROJECT_DIR "dev-tools\src\vcs\Provider.ps1")
+    . (Join-Path $env:CLAUDE_PROJECT_DIR ".claude\hooks\lib\UsageTracking.ps1")
 
     $branch = (git branch --show-current 2>$null)
     $config = Get-WorkflowConfig
     if (-not $branch -or $branch -eq $config.defaultBaseBranch) { exit 0 }
 
-    $stateDir = Join-Path (Get-RepoRoot) ".claude\usage-state"
-    $safeBranch = ($branch -replace '[^a-zA-Z0-9_-]', '_')
-    $stateFile = Join-Path $stateDir "$safeBranch.json"
-    if (-not (Test-Path $stateFile)) { exit 0 }
+    $sessionId = $hookInput.session_id
+    $transcriptPath = $hookInput.transcript_path
+    $repoRoot = Get-RepoRoot
 
-    $state = ConvertTo-HashtableDeep -InputObject (Get-Content -Raw -Path $stateFile | ConvertFrom-Json)
+    # 投稿判定の前に、その時点までtranscriptへ書き出し済みの内容を状態へ反映する
+    # （Stopが未発火のターン中でも、初回pushなどで記録漏れが起きないようにするための同期）
+    $state = $null
+    if ($sessionId -and $transcriptPath) {
+        $state = Sync-UsageState -RepoRoot $repoRoot -Branch $branch -SessionId $sessionId -TranscriptPath $transcriptPath
+    }
+
+    if (-not $state) {
+        $stateDir = Join-Path $repoRoot ".claude\usage-state"
+        $safeBranch = ($branch -replace '[^a-zA-Z0-9_-]', '_')
+        $stateFile = Join-Path $stateDir "$safeBranch.json"
+        if (-not (Test-Path $stateFile)) { exit 0 }
+        $state = ConvertTo-HashtableDeep -InputObject (Get-Content -Raw -Path $stateFile | ConvertFrom-Json)
+    }
     if (-not $state.ContainsKey('sinceLastPush')) { exit 0 }
     $usage = $state.sinceLastPush
 
@@ -123,6 +124,9 @@ try {
         Add-MrComment -MrNumber $mr.Number -BodyFile $tmpFile
 
         # 投稿成功時のみ sinceLastPush をリセットする（失敗時は次回pushへ繰り越す）
+        $stateDir = Join-Path $repoRoot ".claude\usage-state"
+        $safeBranch = ($branch -replace '[^a-zA-Z0-9_-]', '_')
+        $stateFile = Join-Path $stateDir "$safeBranch.json"
         $state.sinceLastPush = @{ tokensByModel = @{}; toolCalls = @{}; turns = 0 }
         $state.lastPostedAt = (Get-Date).ToString("o")
         $state | ConvertTo-Json -Depth 10 | Set-Content -Path $stateFile

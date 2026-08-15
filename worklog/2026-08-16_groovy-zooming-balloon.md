@@ -62,3 +62,26 @@
   （コメントID 5303199534）。投稿後は状態ファイルの`sinceLastPush`が正しくリセットされていることも確認。
 - 副次的な確認事項として、`.claude/settings.json`のhooks変更が**同一セッション内で即時反映される**
   （プロセス再起動不要）ことも分かった。
+
+## 追加対応: 初回push時の記録漏れ・他ブランチ混入バグの修正（同日2回目）
+
+ユーザー指摘: 「最初のpush時にそれまで使ったトークン量を投稿できるようにしたい。stop以外のhookで
+記録するようにすれば良いか？」
+
+- 原因調査の過程で、実transcriptの`gitBranch`フィールド（各assistantメッセージに実行時のブランチ名が
+  付与されている）を発見。既存実装は**セッション全体の累計を無条件にそのブランチの使用量として扱って
+  おり、複数ブランチを跨いだ場合に他ブランチ分が混入するバグ**があったことも同時に発覚した。
+  実際にこのセッションのtranscriptで検証したところ、`feature-15-mr`分17,634,027トークンに対し、
+  無関係な`feature-12-...`/`main`分が452,144トークン混入する状態だった（既存実装の実害を定量確認）。
+- 対応: `.claude/hooks/lib/UsageTracking.ps1`を新規作成し、`ConvertTo-HashtableDeep`/
+  `Get-ZeroTokenBucket`/集計本体（`Sync-UsageState`関数、`entry.gitBranch -eq $Branch`でフィルタ）を
+  共有ロジックとして集約。`stop-usage-record.ps1`・`post-push-usage-report.ps1`はこれをdot-sourceして
+  呼ぶだけに簡素化した。
+- `post-push-usage-report.ps1`は投稿要否判定の**前**に自分でも`Sync-UsageState`を呼ぶよう変更。これにより
+  「Stopがまだ発火していないターン途中でのgit push」でも、その時点までtranscriptに書き出し済みの内容が
+  反映されるようになった（`Stop`は「ターン数のカウント」のためだけに残した`-IncrementTurn`指定で維持）。
+- 新規ファイルは今回もBOM無しUTF-8で作成されたため、都度BOM付きに変換＋`ParseFile`で構文検証した。
+- **実機検証**: 状態ファイルを削除した状態から、実セッションの`session_id`/`transcript_path`を使って
+  `post-push-usage-report.ps1`を実行（＝「このターンのStopがまだ発火していない」状況を正確に再現）。
+  投稿されたレポートの「対象ターン数」が`0`（Stop未発火）でありながら、実際のトークン数・ツール実行回数が
+  正しく反映されていることを確認した（確認後にテストコメントは削除）。
