@@ -33,17 +33,20 @@ AIセッション間・AI⇔人間の状況引継ぎメモ。常に「このブ�
      `worklog/20260815_pr4-review-followup2.md` 参照）。
   - `.claude/skills/issue-mr-flow/SKILL.md` の全体フロー表は21ステップに更新済み
     （旧14が14/15に分割されたため、旧15〜20は新16〜21）。
-  - 上記2件への返信は次回セッションでの対応（未実施）。
+  - 上記2件への返信は署名運用の初適用として実施済み（commit `3c75b50`）。
+- 全体フロー17（AIアセット改善）として、セッション中に発生した `ExitPlanMode` の計画とりちがえ事故
+  （古い計画テキストを3回連続で誤送信）の再発防止ルールを
+  `.claude/rules/plan-mode-safety.md` に追加し、`CLAUDE.md` からインポートした。
+  経緯となぜなぜ分析は `worklog/20260815_planmode-safety-rule.md` 参照。
 
 ## 次回やること
 
-- `PRRT_kwDOT4Y-5s6ZfGIk` / `PRRT_kwDOT4Y-5s6ZfGaK` に `/issue-mr-flow reply`（新しい署名運用）で
-  対応内容を返信する。
 - 人間のレビュー・合意を受ける。合意まで9〜15の実装ループを繰り返す（完了合図後は必ず
   `Get-MrUnresolvedComments` / `/issue-mr-flow comments all` で unresolved が残っていないか
   再確認してから次に進む。ADR 0003参照）。
-- 合意後、全体フロー19〜20: `plans/misty-foraging-torvalds.md` `plans/toasty-orbiting-finch.md`
-  `plans/pr4-review-followup2.md` と対応するworklogを削除し、本HANDOFF.mdを次タスクへリセットする。
+- 合意後、全体フロー19〜20: `plans/` `worklog/` のこのブランチ固有ファイル
+  （`misty-foraging-torvalds` / `toasty-orbiting-finch` / `pr4-review-followup2` /
+  `planmode-safety-rule` の各plan・worklog）を削除し、本HANDOFF.mdを次タスクへリセットする。
   その後commit, push。このタイミングで、署名方式採用の経緯（worklog参照）を
   `dev-tools/docs/spec/issue-mr-workflow.md` の決定事項・必要ならADRへ反映する。
 - 最後に人間がPR #4をsquash mergeする。
