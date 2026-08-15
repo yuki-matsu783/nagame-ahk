@@ -1,3 +1,7 @@
+---
+alwaysApply: true
+---
+
 # Planモードの安全な運用（Claude Code固有）
 
 `ExitPlanMode` で計画をユーザーに提示する際に、**過去の計画テキストを誤って再送信する事故**が
