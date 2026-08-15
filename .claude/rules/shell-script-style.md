@@ -81,9 +81,10 @@ issue #6でリポジトリ内の開発補助スクリプトを全てPowerShell�
 への移植性を優先）。ただし環境によっては、Windowsの`PATH`で`C:\Windows\System32\bash.exe`
 （WSL起動用スタブ）が`Git\bin`より先に解決され、エラーも出さずgit bashではなくWSLが起動する
 可能性がある（このマシンで実機確認済み。Git for Windowsのインストーラは既定で`bash.exe`のある
-`Git\bin`を`PATH`に追加しないことが原因）。**ユーザー環境変数`Path`に`Git\bin`
-（例: `C:\Program Files\Git\bin`）を`C:\Windows\System32`より前に来る位置で追加する**ことで
-解決する（具体的な手順は
+`Git\bin`を`PATH`に追加しないことが原因）。**システム環境変数（`Machine`スコープ）の`Path`に
+`Git\bin`（例: `C:\Program Files\Git\bin`）を`C:\Windows\System32`より前に来る位置で追加する**
+ことで解決する（ユーザー環境変数に追加するだけでは効果が無い。Windowsの有効PATHはシステム環境変数
+側が先に連結されるため）。具体的な手順は
 [dev-tools/docs/spec/shell-scripts.md](../../dev-tools/docs/spec/shell-scripts.md)
 「Claude Code hookの起動コマンド」参照）。`${CLAUDE_PROJECT_DIR}`（Windows形式パス）はこの
 `bash.exe`へargvで渡しても正しく解決される。

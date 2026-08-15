@@ -94,4 +94,21 @@ plan: `plans/shimmying-wibbling-simon.md`
   `shell-scripts.md`の手順でPATHを直すまでこの状態が続く（git push自体はブロックされないため
   実害は「使用量レポートが投稿されない」のみ）
 
+## 追加レビュー対応（PR #18 3回目の指摘）
+
+- ユーザーが実際にPATHを修正（システム環境変数のPathの先頭にGit\binを追加）したところ解決した、
+  との報告。ただし「ユーザー環境変数」ではなく「**システム環境変数**」側でないと効かなかった、
+  との訂正（Windowsの有効PATHはシステム環境変数のPathが先に連結されるため、ユーザー環境変数側に
+  何を積んでもSystem32より後になる）。`setx`コマンドでの案内も要望された
+- `shell-scripts.md` `shell-script-style.md` `issue-mr-workflow.md`の「ユーザー環境変数」表記を
+  「システム環境変数（Machineスコープ）」に訂正。`setx`は1024文字切り詰めの既知の危険があるため、
+  `[Environment]::SetEnvironmentVariable`を使うPowerShell版を推奨として併記し、`setx /M`も
+  注意書き付きで案内した
+- 実機で`where.exe bash`が`C:\Program Files\Git\bin\bash.exe`を最優先で返すこと、
+  PowerShellから`bash <script>`を実行しhookが正常応答すること（`exit=0`、期待通りのJSON出力）を
+  再確認。SessionStart hookも実セッションで正常に追加コンテキストを注入することを確認済み
+- 編集ミスで「Machine скоpe」という文字化け（キリル文字混入）が入ったことに気づき修正
+  （日本語⇔英語混在テキストを手打ちで組み立てる際に発生。今後同様の作業では書いた直後に
+  該当行をgrepで確認する）
+
 ---

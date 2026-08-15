@@ -161,8 +161,9 @@ resume・clear時に毎回、現在ブランチのissue/MR状態をコンテキ�
   呼び出しが走るのを避ける）と `fork`（今回はスコープ外）は対象外とする。
 - **実行シェル**: exec form（`args`指定）で `"bash"` を呼ぶ（フルパス直書きはしない。他環境への
   移植性を優先）。ただしこのマシンではPATHの優先順位次第で素の`"bash"`がWSL起動用スタブ
-  （`C:\Windows\System32\bash.exe`）に解決されてしまうため、ユーザー環境変数`Path`へgit bashの
-  `bin`をSystem32より前に来る位置で追加するセットアップが別途必要（詳細:
+  （`C:\Windows\System32\bash.exe`）に解決されてしまうため、システム環境変数（`Machine`スコープ）
+  の`Path`へgit bashの`bin`をSystem32より前に来る位置で追加するセットアップが別途必要
+  （ユーザー環境変数に追加するだけでは効果が無い。詳細:
   [shell-scripts.md](shell-scripts.md)「Claude Code hookの起動コマンド」）。
 - **サブエージェントでの抑止**: 公式ドキュメント上、SessionStart hookはTask tool経由の
   サブエージェント内でも発火する（`agent_id`/`agent_type`がstdin JSONに追加される場合のみ

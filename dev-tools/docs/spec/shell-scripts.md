@@ -95,21 +95,35 @@
   WSL内では`${CLAUDE_PROJECT_DIR}`がWindows形式パスのままのため解決できず、hookは例外を
   握りつぶす設計のためエラーも出ずに黙って動作しなくなる）。
   - **対処（PATHへのgit bash追加＋順序調整）**: `C:\Program Files\Git\bin`を、
-    `C:\Windows\System32`より**前**に来るようユーザー環境変数`Path`へ追加する。
-    1. Windowsキー→「環境変数を編集」を検索して開く（またはシステムのプロパティ→
-       詳細設定→環境変数）。
-    2. 「ユーザー環境変数」の`Path`を選択して編集を開く。
-    3. `C:\Program Files\Git\bin`（Git for Windowsの実際のインストール先が異なる場合はそちらの
-       `bin`フォルダ）を新規追加し、一覧内でできるだけ上（少なくとも`C:\Windows\System32`より上）
-       に並べ替える。
-    4. 開いているターミナル・Claude Codeセッションを再起動し、`where bash`（PowerShell/cmd上）で
-       `C:\Program Files\Git\bin\bash.exe`が最初に出ることを確認する。
-    - PowerShellでの確認コマンド例（変更の適用自体はGUIで行うことを推奨。ユーザー環境変数を
-      スクリプトで書き換えるのはシステム全体に影響する操作のため、内容を理解した上で手動で行う）:
+    `C:\Windows\System32`より**前**に来るよう**システム環境変数**（`Machine`スコープ）の`Path`へ
+    追加する。**ユーザー環境変数`Path`に追加するだけでは効果が無い**ことを実機確認済み
+    （Windowsの有効PATHは「システム環境変数のPath」を先頭に、その後ろに「ユーザー環境変数のPath」を
+    連結して構成されるため、`C:\Windows\System32`のようなシステム環境変数側のエントリは、
+    ユーザー環境変数側に何を積んでも常に先に解決されてしまう）。
+    - **GUIでの設定**（管理者権限が必要）:
+      1. Windowsキー→「環境変数を編集」を検索して開く（またはシステムのプロパティ→
+         詳細設定→環境変数）。
+      2. 画面下側の**「システム環境変数」**（「ユーザー環境変数」ではない）の`Path`を選択して
+         編集を開く。
+      3. `C:\Program Files\Git\bin`（Git for Windowsの実際のインストール先が異なる場合はそちらの
+         `bin`フォルダ）を新規追加し、一覧内で`C:\Windows\System32`より上に並べ替える
+         （「上へ移動」で一番上まで上げるのが確実）。
+      4. 開いているターミナル・Claude Codeセッションを再起動し、`where bash`（PowerShell/cmd上）で
+         `C:\Program Files\Git\bin\bash.exe`が最初に出ることを確認する。
+    - **コマンドラインでの設定**: `setx`はシステムPATHが1024文字を超えると値を切り詰めて破壊する
+      既知の危険があり、システムPATHは他ソフトの追加で既に長くなっていることが多いため、
+      **PATH操作には`setx`ではなく`[Environment]::SetEnvironmentVariable`を使うPowerShellを
+      推奨する**（切り詰めの心配が無い）。管理者権限のPowerShellで実行する:
       ```powershell
-      [Environment]::GetEnvironmentVariable("Path","User") -split ';' |
-        Where-Object { $_ -match 'Git|System32' }
+      $gitBin = "C:\Program Files\Git\bin"
+      $current = [Environment]::GetEnvironmentVariable("Path", "Machine")
+      if ($current -notlike "*$gitBin*") {
+        [Environment]::SetEnvironmentVariable("Path", "$gitBin;$current", "Machine")
+      }
       ```
+      どうしても`setx`を使う場合は `setx /M Path "C:\Program Files\Git\bin;%Path%"`
+      （管理者権限のコマンドプロンプト）だが、実行前に現在の`Path`の文字数を確認し、
+      1024文字に近い場合は上記PowerShell版かGUIを使うこと。
   - この対処をしていない環境では、SessionStart/PostToolUseの自動コンテキスト注入・使用量レポート
     投稿がエラーも出さずに動かなくなる（`git`コマンド自体は通常通り動くため気づきにくい）。
 - **PowerShell版からの簡略化点**: `ConvertTo-HashtableDeep`（Windows PowerShell 5.1の
@@ -152,9 +166,9 @@
 - **hook起動コマンドはPATH解決に依存する**: `.claude/settings.json`のhook `command`は`"bash"`のみで
   （フルパス直書きはしない方針に変更）、実行体の解決はOSのPATH探索に委ねている。このマシンでは
   「PATHへのgit bash追加＋順序調整」（上記）を適用しないと、WSL側のbash.exeスタブへ黙って
-  解決されエラーも出ずhookが動作しなくなる。この対処はマシン（ユーザー環境変数）ごとに必要な
-  一度きりのセットアップであり、リポジトリ側のファイルには残らない（新しい開発機でこのリポジトリを
-  使い始める際は毎回必要になる）。
+  解決されエラーも出ずhookが動作しなくなる。この対処（システム環境変数`Path`の変更、管理者権限が
+  必要）はマシンごとに必要な一度きりのセットアップであり、リポジトリ側のファイルには残らない
+  （新しい開発機でこのリポジトリを使い始める際は毎回必要になる）。
 - **"PowerShellのまま残すべきスクリプト"の実例が無い**: 本issueの対応で最終的に全PowerShell
   スクリプトがbash化されたため、判断基準（git bashで実行不可能なもの）を実際に適用した例が
   今のところ無い。今後、PowerShell固有機能（COM操作・.NETクラスの直接利用等）に依存する新規
