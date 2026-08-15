@@ -49,3 +49,16 @@
 - `.claude/settings.json`に`Stop`・`PostToolUse`（matcher `Bash|PowerShell`、`if`で`git push`検知）を追加。
   JSONとして妥当であることを確認済み。
 - `.gitignore`に`/.claude/usage-state/`を追加。
+
+## 実地E2E確認（2026-08-16、手動ドライランではなく実ハーネス発火での確認）
+
+- commit・push直後（同ターン内）にPR #17を確認した際はコメントが無かったが、これは
+  push時点で当該ターンの`Stop`イベントがまだ発火していなかった（応答終了時に発火するため）ことによる
+  想定通りの結果だった。
+- 次ターンで`.claude/usage-state/feature-15-mr.json`を確認すると、前ターンの`Stop` hookにより
+  実際のトークン数・ツール呼び出し回数が`sinceLastPush`に記録されていた。
+- 確認用の空コミットをpushしたところ、`post-push-usage-report.ps1`が実際に発火し、PR #17
+  （https://github.com/yuki-matsu783/nagame-ahk/pull/17）へ実データを含む自動コメントが投稿された
+  （コメントID 5303199534）。投稿後は状態ファイルの`sinceLastPush`が正しくリセットされていることも確認。
+- 副次的な確認事項として、`.claude/settings.json`のhooks変更が**同一セッション内で即時反映される**
+  （プロセス再起動不要）ことも分かった。
