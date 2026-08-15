@@ -51,7 +51,10 @@ class Logger {
     ; アイコンダブルクリック等コンソールが無い状態で実行した場合は何もしない（例外を握りつぶす）。
     static _WriteConsole(line) {
         try {
-            FileAppend(line "`n", "*")
+            ; エンコーディング省略時はシステムのANSIコードページで書き込まれ、
+            ; UTF-8前提でstdoutを読むツール（VSCode拡張のahk++等）で文字化けするため明示する。
+            ; "*"(stdout)は永続ハンドルを持たず毎回BOMが付与されてしまうため、BOM無しの UTF-8-RAW を使う。
+            FileAppend(line "`n", "*", "UTF-8-RAW")
         } catch as e {
             ; コンソール未接続時は stdout への書き込みが失敗するため、代わりにDebugView等で拾えるよう出力する
             OutputDebug(line)

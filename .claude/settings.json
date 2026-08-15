@@ -1,5 +1,4 @@
 {
-  "remoteControlEnabled": true,
   "permissions": {
     "defaultMode": "plan"
   }

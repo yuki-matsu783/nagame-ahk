@@ -10,7 +10,7 @@
 - ログレベル: `DEBUG` < `INFO` < `WARN` < `ERROR` < `NONE`（`Logger.Levels` に重みを定義）。
 - `Settings.LogLevel` で設定した値以上の重みのログのみ出力する（`Logger._ShouldOutput`）。未知の値が設定されていた場合は `INFO` 扱いにフォールバックする。
 - 公開メソッド: `Logger.Debug(message)` / `Logger.Info(message)` / `Logger.Warn(message)` / `Logger.Error(message)`。
-- 出力先1: コンソール（stdout）。`FileAppend(line, "*")` を使用。AHKはGUIサブシステムのアプリのため、cmd/PowerShell等のコンソールから起動した場合のみ表示される。失敗時は握りつぶさず `OutputDebug` にフォールバックする。
+- 出力先1: コンソール（stdout）。`FileAppend(line, "*", "UTF-8-RAW")` を使用。エンコーディングを省略するとシステムのANSIコードページで書き込まれ、UTF-8前提でstdoutを読むツール（VSCode拡張のahk++等）で文字化けするため明示的にUTF-8を指定する。`"*"`(stdout)は永続ファイルハンドルを持たないため、BOM付きの `"UTF-8"` を指定すると行ごとにBOMが挿入されてしまう。そのためBOM無しの `"UTF-8-RAW"` を使う。AHKはGUIサブシステムのアプリのため、cmd/PowerShell等のコンソールから起動した場合のみ表示される。失敗時は握りつぶさず `OutputDebug` にフォールバックする。
 - 出力先2: ファイル（`Settings.LogFilePath`、UTF-8）。失敗時は `OutputDebug` にフォールバックする。
 - ログフォーマット: `yyyy-MM-dd HH:mm:ss [LEVEL] メッセージ`
 
