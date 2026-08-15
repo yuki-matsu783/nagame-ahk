@@ -46,20 +46,20 @@ issue #6（開発補助スクリプトのbash化）対応。リポジトリ内�
 新規作成し、関連spec/rules/SKILL.mdを更新した。詳細は`worklog/20260816_shimmying-wibbling-simon.md`
 参照。
 
-## 次回やること
+## 次にやること
 
 commit・push・`describe`でMR description更新済み。人間によるMRレビュー待ち
 （レビューが来たら`comments`→修正→`reply`のループ、完了後は設計反映済みのため
 plans/worklog削除・Draft解除へ進める）。
 
-## 判断を迷ったポイント
+## 判断を迷った内容
 
 - Hookのbash化をスコープに含めるかはユーザーに確認済み（含める、を選択）。
 - `.claude/settings.json`のhook `command`はgit bash本体のフルパス
   （`C:\Program Files\Git\bin\bash.exe`）を直書きしている。単一開発者運用を前提にした判断で、
   別マシンでは書き換えが必要（`shell-scripts.md`の未決定事項に記載）。
 
-## 未解決の質問
+## 未解決の内容
 
 （特になし）
 
