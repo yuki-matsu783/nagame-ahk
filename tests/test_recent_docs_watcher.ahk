@@ -17,19 +17,10 @@
 #Include ..\src\lib\Json.ahk
 #Include ..\src\lib\FileOpenNotifier.ahk
 #Include ..\src\features\RecentDocsWatcher.ahk
+#Include lib\Assert.ahk
 
 failures := 0
 passed := 0
-
-Assert(actual, expected, label) {
-    global failures, passed
-    if actual == expected {
-        passed++
-    } else {
-        failures++
-        FileAppend("FAIL: " label " expected=[" expected "] actual=[" actual "]`n", "*")
-    }
-}
 
 ; ---- _DecodeSlotsFromMruHex: MRUListExの16進文字列 -> 上位スロット番号の配列 ----
 ; スロット1,2,3 + 終端(0xFFFFFFFF)。DWORDはリトルエンディアン

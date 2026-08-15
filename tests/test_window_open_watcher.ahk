@@ -13,19 +13,10 @@
 #Include ..\src\config\Settings.ahk
 #Include ..\src\lib\Logger.ahk
 #Include ..\src\lib\WindowOpenWatcher.ahk
+#Include lib\Assert.ahk
 
 failures := 0
 passed := 0
-
-Assert(actual, expected, label) {
-    global failures, passed
-    if actual == expected {
-        passed++
-    } else {
-        failures++
-        FileAppend("FAIL: " label " expected=[" expected "] actual=[" actual "]`n", "*")
-    }
-}
 
 ; Start()を呼ばなければ実フックは張られないため、コンストラクタ・内部ロジックのみを検証できる
 watcher := WindowOpenWatcher(Array("WINWORD.EXE", "EXCEL.EXE"), (*) => 0)

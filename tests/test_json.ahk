@@ -4,19 +4,10 @@
 ; lib/Json.ahk の単体テスト。GUIを開かず、アサーション結果をコンソール出力してExitApp()する。
 ; 実行例: AutoHotkey64.exe tests\test_json.ahk
 #Include ..\src\lib\Json.ahk
+#Include lib\Assert.ahk
 
 failures := 0
 passed := 0
-
-Assert(actual, expected, label) {
-    global failures, passed
-    if actual == expected {
-        passed++
-    } else {
-        failures++
-        FileAppend("FAIL: " label " expected=[" expected "] actual=[" actual "]`n", "*")
-    }
-}
 
 ; ---- Stringify ----
 Assert(Json.Stringify(Map("a", 1, "b", "hello")), '{"a":1,"b":"hello"}', "stringify basic object")
