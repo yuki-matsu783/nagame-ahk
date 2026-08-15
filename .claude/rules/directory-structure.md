@@ -36,7 +36,7 @@ nagame-ahk/
 ├── worklog/                  # 実装中の詳細な試行錯誤ログ（日付_<planファイル名>.md）。PR作成前のreflectでspec/adrへ反映し削除する（.claude/rules/git-workflow.md参照）
 ├── .gitignore
 ├── CLAUDE.md                    # プロジェクト概要・開発実行・.claude/rules/ へのポインタ
-├── HANDOFF.md                   # セッション間・作業者間の軽量な引継ぎメモ（現在地・次回やること等。詳細な試行錯誤はworklog/へ）
+├── HANDOFF.md                   # セッション間・作業者間の軽量な引継ぎメモ（ブランチの現在地・次回やること等。詳細な試行錯誤はworklog/へ）
 └── README.md
 ```
 
