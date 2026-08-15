@@ -1,9 +1,51 @@
 # 開発者向けドキュメント
 
-開発者向けの情報（ビルド・配布）をまとめる。ディレクトリ構成・コーディングルールは
-[CLAUDE.md](CLAUDE.md) を参照。開発者向けツール一式（ビルドスクリプト等）は
+`nagame-ahk` の開発に参加する人向けのドキュメント。exeファイルを使うだけのユーザー向け情報は
+[README.md](README.md) を参照。
+
+プロジェクト概要は [AGENTS.md](AGENTS.md)、コーディング規約・ディレクトリ構成などの詳細ルールは
+[.claude/rules/](.claude/rules/) 配下を参照。開発者向けツール一式（ビルドスクリプト等）は
 [dev-tools/](dev-tools/) 配下にアプリ本体と分離して置いている
 （設計: [dev-tools/docs/spec/distribution.md](dev-tools/docs/spec/distribution.md)）。
+
+## 動作環境
+
+- AutoHotkey v2（v2.0系）。exeビルド時は同梱の Ahk2Exe も使用する。
+- 推奨エディタ: VSCode + AutoHotkey v2 拡張機能（構文ハイライト・デバッグ用）。
+
+## ソースから実行する
+
+`src/main.ahk` を AutoHotkey v2 で実行する。
+
+```
+AutoHotkey64.exe src\main.ahk
+```
+
+## ディレクトリ構成
+
+詳細は [.claude/rules/directory-structure.md](.claude/rules/directory-structure.md) を参照。
+
+主な機能とその正史仕様（`docs/spec/`）は以下の通り。機能追加・変更時はまずここを確認する
+（一覧は [docs/README.md](docs/README.md) にもある）。
+
+- [activity-status.md](docs/spec/activity-status.md) ── 操作状態表示（ActivityStatus）
+- [external-command-server.md](docs/spec/external-command-server.md) ── 外部コマンドサーバー（ExternalCommandServer）
+- [logger.md](docs/spec/logger.md) ── ロガー（Logger）
+- [office-file-watcher.md](docs/spec/office-file-watcher.md) ── MS Officeファイル監視・情報表示（OfficeFileWatcher）
+- [pdf-file-watcher.md](docs/spec/pdf-file-watcher.md) ── PDFファイル監視・情報表示（PdfFileWatcher）
+- [recent-docs-watcher.md](docs/spec/recent-docs-watcher.md) ── 最近使ったファイル監視・通知（RecentDocsWatcher）
+
+## 実装フロー
+
+新機能の追加や既存動作の変更を行う前に、必ず設計ドキュメント作成→人間の承認→（必要に応じて）
+planモードでの合意→実装、という手順を踏む。詳細は
+[.claude/rules/docs-workflow.md](.claude/rules/docs-workflow.md) を参照（`/ahk-implement` スキルとして
+手順化されている）。
+
+## テスト
+
+`tests/` 配下に手動/自動テスト用スクリプトがある。一覧・実行方法・手動確認手順は
+[tests/README.md](tests/README.md) を参照。
 
 ## exeのビルド
 
