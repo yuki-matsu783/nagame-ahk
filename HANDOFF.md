@@ -6,11 +6,13 @@ AIセッション間・AI⇔人間の状況引継ぎメモ。常に「このブ�
 
 ## 現在地
 
-- 特になし。
+- issue #12「adrをddr(design decision record)に変更する」対応中。
+- ブランチ `feature-12-adr-ddr-design-decision-record` / Draft PR #13 を作成済み（`start` サブコマンド完了）。
+- plan未作成（全体フローのステップ4「Planモードで実行手順を作成する」から着手する）。
 
 ## 次回やること
 
-- 特になし。
+- Planモードで実行手順を作成し、`plans/` へ出力する。
 
 ## 判断が分かれるポイント
 
