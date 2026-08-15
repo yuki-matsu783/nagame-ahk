@@ -34,7 +34,8 @@ JSON形式のコマンドを実行し、結果をJSON形式で応答する。
   - **実装メモ(設計変更の経緯)**: 当初はよりAHKに馴染む方式として `WSAAsyncSelect` +
     `OnMessage()` のイベント駆動方式を実装したが、実機テストで**初回の接続が完了した後、
     2回目以降の接続でFD_ACCEPT等のウィンドウメッセージが一切届かなくなる**という再現性の高い
-    不具合に遭遇した(`tests/test_external_command_server.ps1` で複数回の連続接続を検証して発覚)。
+    不具合に遭遇した(`tests/test_external_command_server.sh`。当時はPowerShell版だったが
+    issue #6でbash化。複数回の連続接続を検証して発覚)。
     Winsockメッセージ配信の詳細な原因切り分けよりも安定動作を優先し、実績のあるポーリング方式に
     戻した。ポーリングのため理論上は`Settings.ServerPollIntervalMs`分のレイテンシが乗るが、
     既定50msは実用上問題にならない。

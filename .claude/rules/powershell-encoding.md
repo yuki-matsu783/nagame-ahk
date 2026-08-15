@@ -1,5 +1,11 @@
 # PowerShellスクリプト・コマンドの文字コード注意事項
 
+**適用範囲**: 本ファイルはPowerShell（`.ps1`・`powershell.exe`経由のコマンド）を直接書く場合にのみ
+適用する。issue #6でリポジトリ内の開発補助スクリプトは全てbash（`.sh`）へ移行しており、bashには
+本ファイルが扱うANSI/OEMコードページの問題自体が発生しない（詳細:
+[dev-tools/docs/spec/shell-scripts.md](../../dev-tools/docs/spec/shell-scripts.md)「文字コード」節）。
+bashスクリプトの規約は [shell-script-style.md](shell-script-style.md) を参照。
+
 Windows PowerShell 5.1（`powershell.exe`。本プロジェクトの実行環境）は既定で、コンソール入出力・
 `Get-Content`/`Set-Content`/`Out-File`等のファイルI/Oを**システムのANSI/OEMコードページ**
 （日本語Windowsでは通常cp932）で扱う。UTF-8を前提とする`gh`/`glab` CLIとのやり取りや、日本語を含む
