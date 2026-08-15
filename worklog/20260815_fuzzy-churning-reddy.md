@@ -48,3 +48,19 @@
     番号の振り直し・文中の相互参照（全体フロー4/9/10/15/20等の参照箇所）・未完文を修正した。
 - `dev-tools/docs/spec/issue-mr-workflow.md`に「セッション開始時の自動コンテキスト注入（SessionStart
   hook）」節を追加。影響範囲・決定済み事項・未決定事項も更新。
+- 実装push後、ユーザーから「レビュー完了した」との合図を受けたが、`comments all`で再確認したところ
+  未解決コメントが2件残っていた（SKILL.mdの「レビュー完了合図の確認」ルール通り、合図だけで次工程に
+  進まず確認したことで発覚）。同じタイミングでSessionStart hookの追加コンテキストが文字化けしている
+  ことにも気づいた。
+  - **文字化けの根本原因**: Windows PowerShell 5.1は既定で日本語Windowsのシステムコードページ
+    （cp932）でコンソール入出力を扱うため、UTF-8で出力する`gh`コマンドの結果（issue本文の日本語等）を
+    誤って解釈していた。issue本文中の日本語がJSONとして壊れ、`ConvertFrom-Json`自体が構文エラーになり、
+    その例外メッセージ（日本語）も同じ理由で文字化けする、という二重の問題だった。
+  - 対処: スクリプト冒頭で`[Console]::OutputEncoding`/`InputEncoding`を明示的にUTF-8へ切り替え。
+    Bashから直接`powershell.exe`を起動する形（Claude Codeの実際の起動方式に近い）で再現・解消を確認
+    （commit b78315e）。
+  - レビューコメント2件（`.claude/hooks/session-start.ps1:13`の実装方針への質問、
+    `.claude/settings.json:19`の相対パス提案）に対応方針をユーザーに確認のうえ、
+    `Add-MrThreadReply`で署名付き返信を投稿（参考ドキュメントリンク付き、ユーザー指定）。
+    コードは現状維持（`${CLAUDE_PROJECT_DIR}`のまま、`agent_id`判定もそのまま）。
+  - スレッドの解決（resolved）自体はレビュアー側の操作のため、返信後もレビュアーの確認待ち。
