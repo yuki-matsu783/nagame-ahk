@@ -9,3 +9,4 @@
 ## spec（機能仕様）
 
 - [distribution.md](spec/distribution.md) ── Windows用exe配布方法
+- [issue-mr-workflow.md](spec/issue-mr-workflow.md) ── issue駆動MRワークフロー支援
