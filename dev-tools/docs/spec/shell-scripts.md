@@ -92,6 +92,19 @@
   ためGit for Windowsの標準インストール先を前提としており、別環境で異なる場合はパスを書き換える
   （「未決定事項・懸念点」参照）。`${CLAUDE_PROJECT_DIR}`（Windows形式パス）をそのままこの
   `bash.exe`へargvで渡しても正しく解決されることは実機確認済み。
+  - **`C:\Program Files\Git\bin\bash.exe`が存在しない環境での対処**: この環境では
+    Claude Codeがhookのプロセス起動に失敗し、SessionStart/PostToolUseの自動コンテキスト注入・
+    使用量レポート投稿が動かなくなる（`git`コマンド自体は失敗しないため気づきにくい）。以下の
+    手順で実際のインストール先を確認し、`.claude/settings.json`の該当4箇所（`hooks.SessionStart`
+    1箇所、`hooks.PostToolUse`2箇所）の`command`値をすべて書き換える。
+    1. 通常のターミナル（PowerShell/コマンドプロンプト）で `where git` を実行し、
+       `git.exe`のパス（例: `C:\Program Files\Git\cmd\git.exe`）を確認する。
+    2. そのGitインストールのルート（`cmd\git.exe`の1つ上の階層）配下の `bin\bash.exe`
+       （例: `C:\Program Files\Git\bin\bash.exe`）が存在するか `where` の結果を元に確認する。
+       存在しなければ [Git for Windows](https://git-scm.com/download/win) を既定設定のまま
+       再インストールする（既定では`C:\Program Files\Git`配下にインストールされる）。
+    3. 確認できたパスで `.claude/settings.json` の4箇所の`command`値を置き換える
+       （バックスラッシュは`\\`とJSONエスケープすること）。
 - **PowerShell版からの簡略化点**: `ConvertTo-HashtableDeep`（Windows PowerShell 5.1の
   `ConvertFrom-Json`が`-AsHashtable`を持たないための回避策）はjqのネイティブなJSON操作機能により
   不要になったため、bash版（`UsageTracking.sh`）には存在しない。

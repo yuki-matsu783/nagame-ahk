@@ -70,8 +70,12 @@ plan: `plans/shimmying-wibbling-simon.md`
 
 - （build.shの`/in`パス変換問題は上記に記載済み。他に致命的な失敗は無し）
 
+- PR #18レビュー対応: 「git bashのパスが通っていない場合のユーザー案内手順が無い」との指摘を受け、
+  `shell-scripts.md`に`where git`でのインストール先特定〜`.claude/settings.json`書き換えまでの
+  具体手順を追記。スレッドへ署名付きで返信済み
+
 ## 次の一歩
 
-- 全実施内容が完了。commit・push・MR description更新（`describe`）を行い、人間のレビューを待つ
+- レビュー対応をpushし、`comments all`で未解決スレッドが無いことを確認する
 
 ---

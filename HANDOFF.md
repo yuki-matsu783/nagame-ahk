@@ -52,7 +52,7 @@ commit・push・`describe`でMR description更新済み。人間によるMRレ�
 （レビューが来たら`comments`→修正→`reply`のループ、完了後は設計反映済みのため
 plans/worklog削除・Draft解除へ進める）。
 
-## 判断が分かれるポイント
+## 判断を迷ったポイント
 
 - Hookのbash化をスコープに含めるかはユーザーに確認済み（含める、を選択）。
 - `.claude/settings.json`のhook `command`はgit bash本体のフルパス
