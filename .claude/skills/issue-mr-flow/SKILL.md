@@ -30,18 +30,18 @@ description: nagame-ahkの開発フロー全体（issue起票〜マージ）の�
 | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間 |
 | 2 | issueの内容を取得する | `start <issue番号>` |
 | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
-| 4 | `docs/spec/機能名.md` に設計ドキュメントを作成する（AHK機能実装は `.claude/skills/ahk-implement/SKILL.md` の詳細手順に従う） | エージェント |
-| 5 | 設計ドキュメントの承認を得る（**承認まで実装に着手しない**） | 人間 |
-| 6 | Planモードで実行手順に合意する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント＋人間 |
-| 7 | commit, push する | エージェント |
-| 8 | MRでレビュー・コメントする | 人間 |
-| 9 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（8〜9を合意まで繰り返す） | `comments` / `reply` |
-| 10 | planをもとにMR descriptionを更新する | `describe` |
-| 11 | 設計・実装を進め、ドキュメントを更新する（`.claude/rules/ahk-style.md` 等の規約に従う。worklogに書き足す） | エージェント |
+| 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
+| 5 | Planに合意する | 人間 |
+| 6 | commit, push する | エージェント |
+| 7 | MRで再度planについてレビュー・コメントする | 人間 |
+| 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
+| 9 | planをもとにMR descriptionを更新する | `describe` |
+| 10 | コンテキスト削減のためにセッションをclearする | エージェント |
+| 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
 | 12 | commit, push する | エージェント |
 | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
 | 14 | MRでレビュー・コメントする | 人間 |
-| 15 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（8〜15の実装ループを合意まで繰り返す） | `comments` / `reply` |
+| 15 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（7〜15の実装ループを合意まで繰り返す） | `comments` / `reply` |
 | 16 | **設計反映**: `plans/` `worklog/` の内容を `docs/spec/` `docs/adr/` へ反映する | エージェント |
 | 17 | **AIアセット改善**: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
 | 18 | commit, push する | エージェント |
@@ -57,6 +57,7 @@ description: nagame-ahkの開発フロー全体（issue起票〜マージ）の�
 目的はブランチ名の特定ではなく、PR/MRの状態・未解決コメント件数・plan/worklogファイル・
 HANDOFF.mdとの矛盾など、ブランチ名だけでは分からない「このセッションでまだ確認していない現在地
 情報」を集約することにある。
+**フローが進むごとにHANDOFF.mdに現在の状況を反映する**
 
 ## サブコマンド
 
@@ -74,9 +75,9 @@ HANDOFF.mdとの矛盾など、ブランチ名だけでは分からない「こ�
    - 存在しなければ: `New-IssueBranch -IssueNumber <n> -Title <issue.Title>` でブランチを作成・checkout・push、
      続けて `New-DraftMergeRequest -IssueNumber <n> -Branch <branch> -Title <issue.Title>` でDraft MRを作成する。
    - 既に存在すれば（セッション再開）: `Sync-Branch -Branch <branch>` でfetch・checkoutのみ行う。
-3. 取得したissue内容をもとに、全体フロー4（設計ドキュメント作成）に進む旨をユーザーに案内する。
+3. 取得したissue内容をもとに、全体フロー4（Planモードでの実行手順作成）に進む旨をユーザーに案内する。
 
-### `comments [all]` — MRレビューコメントの取得（全体フロー9・15）
+### `comments [all]` — MRレビューコメントの取得（全体フロー8・15）
 
 1. `Get-MrForBranch -Branch (git branch --show-current)` で現在のブランチに紐づくMR番号を取得する。
 2. `Get-MrUnresolvedComments -MrNumber <n>` で未解決コメントを取得し、そのまま提示する
@@ -87,7 +88,7 @@ HANDOFF.mdとの矛盾など、ブランチ名だけでは分からない「こ�
    （この修正作業自体は本スキルの対象外。通常の編集で行う）。対応が完了したコメントには、
    `reply` サブコマンドで対応内容を返信する。
 
-### `reply <threadId> <対応内容>` — レビューコメントへの返信（全体フロー9・15）
+### `reply <threadId> <対応内容>` — レビューコメントへの返信（全体フロー8・15）
 
 1. `Get-MrForBranch -Branch (git branch --show-current)` で現在のブランチに紐づくMR番号を取得する
    （`comments` の手順1と同じ）。
@@ -100,7 +101,7 @@ HANDOFF.mdとの矛盾など、ブランチ名だけでは分からない「こ�
    指定したスレッドに返信する。`threadId` は `comments` の出力に含まれる `threadId=...` を使う。
 4. スレッドの解決（resolved）はレビュアー側の操作であり、本サブコマンドでは行わない。
 
-### `describe` — MR descriptionの更新（全体フロー10・13）
+### `describe` — MR descriptionの更新（全体フロー9・13）
 
 1. 現在のブランチに対応する `plans/<plan名>.md`（と、あれば `worklog/日付_<plan名>.md` の要点）を読む。
 2. 以下のテンプレートでMR description本文を組み立て、一時ファイルへ書き出す。
@@ -142,7 +143,7 @@ HANDOFF.mdとの矛盾など、ブランチ名だけでは分からない「こ�
 4. issue番号が特定できていればブランチ/MRの存在確認へ（`start` 手順2相当）、issueが特定できなければ
    ブランチ命名規則から外れている旨を伝えて `start <issue番号>` での対応を促す。
 
-## レビュー完了合図の確認（全体フロー9・15・20）
+## レビュー完了合図の確認（全体フロー8・15・20）
 
 人間から「レビューOK」「合意」等、レビューループを終えて次のステップに進んでよいという合図を
 受けても、それだけを根拠に次のステップへ進んではいけない。**必ず `comments all`
