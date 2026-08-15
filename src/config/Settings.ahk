@@ -43,4 +43,15 @@ class Settings {
     static PdfWatchAutoStart := true
     ; PdfFileWatcher: 検出結果のTrayTip(JSON表示)を明示的に消すまでの時間(ms)
     static PdfWatchTrayTipDurationMs := 5000
+
+    ; RecentDocsWatcher: RecentDocsレジストリのポーリング間隔(ms、docs/spec/recent-docs-watcher.md参照)
+    static RecentDocsPollIntervalMs := 2000
+    ; RecentDocsWatcher: アプリ起動時に自動的に監視を開始するか
+    static RecentDocsWatchAutoStart := true
+    ; RecentDocsWatcher: 検出結果のTrayTip(JSON表示)を明示的に消すまでの時間(ms)
+    static RecentDocsTrayTipDurationMs := 5000
+    ; RecentDocsWatcher: 「最近使った項目の記録」がOFFの場合に起動時警告TrayTipを出すか
+    static RecentDocsWarnIfDisabled := true
+    ; RecentDocsWatcher: 毎回のポーリングでチェックするMRU上位の件数(docs/spec/recent-docs-watcher.md参照)
+    static RecentDocsCheckCount := 5
 }

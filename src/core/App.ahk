@@ -24,6 +24,11 @@ class App {
         }
         TrayMenu.SyncPdfWatchCheck()
 
+        if Settings.RecentDocsWatchAutoStart {
+            RecentDocsWatcher.Start()
+        }
+        TrayMenu.SyncRecentDocsWatchCheck()
+
         Logger.Info(Settings.AppName " を起動しました")
     }
 }

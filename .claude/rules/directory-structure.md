@@ -28,8 +28,8 @@ nagame-ahk/
 │   └── skills/                 # /ahk-implement などのスキル定義
 ├── .gitignore
 ├── CLAUDE.md                    # プロジェクト概要・開発実行・.claude/rules/ へのポインタ
-├── PLAN.md                      # 実装方針メモ（中期・任意）
-├── TASK.md                      # 実装チェックリスト（短期・任意）
+├── PLAN.md                      # 方針メモ（設計〜実装、中期。ごく簡単なタスクを除き使用）
+├── TASK.md                      # チェックリスト（設計〜実装、短期。ごく簡単なタスクを除き使用）
 ├── HANDOFF.md                   # セッション間の伝言板（試行錯誤の記録として履歴に残す）
 └── README.md
 ```

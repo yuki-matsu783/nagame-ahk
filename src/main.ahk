@@ -22,5 +22,6 @@
 #Include features\NotifyUI.ahk
 #Include features\OfficeFileWatcher.ahk
 #Include features\PdfFileWatcher.ahk
+#Include features\RecentDocsWatcher.ahk
 
 App.Start()

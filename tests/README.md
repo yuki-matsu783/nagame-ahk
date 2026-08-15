@@ -13,6 +13,7 @@
 | `test_file_open_notifier.ahk` | `src/lib/FileOpenNotifier.ahk`のうち、検出結果のJSON整形ロジック（`OfficeFileWatcher`/`PdfFileWatcher`共通の表示基盤） | なし。GUIを開かずアサーション結果を標準出力してExitApp() | `AutoHotkey64.exe tests\test_file_open_notifier.ahk` |
 | `test_office_file_watcher.ahk` | `src/features/OfficeFileWatcher.ahk`（`docs/spec/office-file-watcher.md`）のうち、種類名マッピング・ファイル名抽出・`WindowOpenWatcher`への委譲設定など実ウィンドウ/COM無しで検証できるロジック | なし。GUIを開かずアサーション結果を標準出力してExitApp() | `AutoHotkey64.exe tests\test_office_file_watcher.ahk` |
 | `test_pdf_file_watcher.ahk` | `src/features/PdfFileWatcher.ahk`（`docs/spec/pdf-file-watcher.md`）のうち、コマンドラインからの`.pdf`パス抽出・ファイル名抽出・`WindowOpenWatcher`への委譲設定など実ウィンドウ/WMI無しで検証できるロジック | なし。GUIを開かずアサーション結果を標準出力してExitApp() | `AutoHotkey64.exe tests\test_pdf_file_watcher.ahk` |
+| `test_recent_docs_watcher.ahk` | `src/features/RecentDocsWatcher.ahk`（`docs/spec/recent-docs-watcher.md`）のうち、`MRUListEx`/エントリの16進バイナリからの最新スロット・ファイル名抽出、JSON整形など実レジストリ/COM無しで検証できるロジック | なし。GUIを開かずアサーション結果を標準出力してExitApp() | `AutoHotkey64.exe tests\test_recent_docs_watcher.ahk` |
 
 ## 実行結果の見方
 
@@ -34,6 +35,9 @@
   （`Win32_Process.CommandLine`）経由でのファイルパス取得、`TrayTip` の実表示（実際にAdobe Acrobat/
   Reader・SumatraPDF・Foxit Readerのいずれかがインストールされた環境が必要。手動確認手順は下記
   「PdfFileWatcherの手動確認」を参照）
+- `RecentDocsWatcher` の実レジストリ（`RecentDocs`）ポーリング、`WScript.Shell`（COM）経由の`.lnk`
+  ターゲットパス解決、「最近使った項目の記録」設定の実読み取り、`TrayTip` の実表示（実機のWindows設定・
+  実際のファイルオープン操作が必要。手動確認手順は下記「RecentDocsWatcherの手動確認」を参照）
 
 ## OfficeFileWatcherの手動確認
 
@@ -71,6 +75,29 @@ Adobe Acrobat/Reader・SumatraPDF・Foxit Readerのいずれかがインスト�
    制約通り`pathResolved:false`のフォールバック表示になることを確認する。
 6. ウィンドウを閉じたあと、トレイメニュー「PDF監視」のON/OFF切り替えが正常に動作することを確認する。
 7. Officeのファイルを開いてもPDF監視側のTrayTipが誤って表示されない（逆も同様）ことを確認する。
+
+## RecentDocsWatcherの手動確認
+
+`test_recent_docs_watcher.ahk`はレジストリバイナリのパース・JSON整形など純粋なロジックのみを検証して
+おり、実際の検出動作（レジストリポーリング・`.lnk`経由のパス解決・`TrayTip`表示）は実機で手動確認する。
+
+1. `src/main.ahk`を起動する（トレイメニューの「最近使ったファイル通知」がチェック済みであること）。
+2. `nagame-ahk.log`に`最近使ったファイル監視を開始しました`が出ており、`Windowsの「最近使った項目の
+   記録」がOFF`という`WARN`が出ていないことを確認する（出ている場合はWindows設定を確認する。
+   設定のON/OFF確認手順は`docs/spec/recent-docs-watcher.md`の該当節を参照）。
+3. 適当なファイル（テキスト等）をエクスプローラーでダブルクリックして開く。
+4. `Settings.RecentDocsPollIntervalMs`（既定2000ms）程度待ち、画面右下にTrayTipが表示され、
+   本文が`{"fileName":...,"path":...,"pathResolved":...,"extension":...}`形式のJSONになっている
+   ことを確認する。`path`にフルパスが入っていれば`pathResolved:true`、入っていなければ`false`。
+5. **既知の制約（実機確認済み）**: ファイルを開くと、ファイルを開いたアプリによっては直後に
+   *ファイルの親フォルダ自体*も「最近使った項目」として再登録されることがある（テキストエディタの
+   File>Open初期フォルダ記憶など）。この場合、ポーリング時点でのMRUの先頭が「開いたファイル」ではなく
+   「親フォルダ」になり、直前に同じフォルダ名で既に通知済みだと新規オープンとして検知されない
+   （フォルダ名の変化が無いため）ことがある。これは`docs/spec/recent-docs-watcher.md`の
+   未決定事項に追記済みの既知の制約であり、バグではない。気になる場合は普段使わないフォルダの
+   新規ファイルで試すと現象が発生しにくい。
+6. ウィンドウを閉じたあと、トレイメニュー「最近使ったファイル通知」のON/OFF切り替えが正常に動作する
+   ことを確認する。
 
 ## 新しい機能を追加したとき
 

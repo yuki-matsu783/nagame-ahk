@@ -1,3 +1,4 @@
 {
-  "remoteControlAtStartup": true
+  "remoteControlEnabled": true,
+  "defaultMode": "plan"
 }

@@ -8,6 +8,7 @@ class TrayMenu {
         A_TrayMenu.Add("外部コマンド受付", (*) => TrayMenu.ToggleExternalCommandServer())
         A_TrayMenu.Add("Office監視", (*) => TrayMenu.ToggleOfficeWatch())
         A_TrayMenu.Add("PDF監視", (*) => TrayMenu.TogglePdfWatch())
+        A_TrayMenu.Add("最近使ったファイル通知", (*) => TrayMenu.ToggleRecentDocsWatch())
         A_TrayMenu.Add()
         A_TrayMenu.Add("再読み込み", (*) => Reload())
         A_TrayMenu.Add("終了", (*) => ExitApp())
@@ -87,5 +88,20 @@ class TrayMenu {
     static TogglePdfWatch(*) {
         PdfFileWatcher.Toggle()
         TrayMenu.SyncPdfWatchCheck()
+    }
+
+    ; 「最近使ったファイル通知」メニューのチェック状態を RecentDocsWatcher.Enabled に同期する
+    static SyncRecentDocsWatchCheck() {
+        if RecentDocsWatcher.Enabled {
+            A_TrayMenu.Check("最近使ったファイル通知")
+        } else {
+            A_TrayMenu.Uncheck("最近使ったファイル通知")
+        }
+    }
+
+    ; RecentDocsWatcherの切り替えとメニューのチェック状態同期をまとめて行う
+    static ToggleRecentDocsWatch(*) {
+        RecentDocsWatcher.Toggle()
+        TrayMenu.SyncRecentDocsWatchCheck()
     }
 }
