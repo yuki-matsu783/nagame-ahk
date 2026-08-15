@@ -100,30 +100,20 @@
     （Windowsの有効PATHは「システム環境変数のPath」を先頭に、その後ろに「ユーザー環境変数のPath」を
     連結して構成されるため、`C:\Windows\System32`のようなシステム環境変数側のエントリは、
     ユーザー環境変数側に何を積んでも常に先に解決されてしまう）。
-    - **GUIでの設定**（管理者権限が必要）:
-      1. Windowsキー→「環境変数を編集」を検索して開く（またはシステムのプロパティ→
-         詳細設定→環境変数）。
-      2. 画面下側の**「システム環境変数」**（「ユーザー環境変数」ではない）の`Path`を選択して
-         編集を開く。
-      3. `C:\Program Files\Git\bin`（Git for Windowsの実際のインストール先が異なる場合はそちらの
-         `bin`フォルダ）を新規追加し、一覧内で`C:\Windows\System32`より上に並べ替える
-         （「上へ移動」で一番上まで上げるのが確実）。
-      4. 開いているターミナル・Claude Codeセッションを再起動し、`where bash`（PowerShell/cmd上）で
-         `C:\Program Files\Git\bin\bash.exe`が最初に出ることを確認する。
-    - **コマンドラインでの設定**: `setx`はシステムPATHが1024文字を超えると値を切り詰めて破壊する
-      既知の危険があり、システムPATHは他ソフトの追加で既に長くなっていることが多いため、
-      **PATH操作には`setx`ではなく`[Environment]::SetEnvironmentVariable`を使うPowerShellを
-      推奨する**（切り詰めの心配が無い）。管理者権限のPowerShellで実行する:
-      ```powershell
-      $gitBin = "C:\Program Files\Git\bin"
-      $current = [Environment]::GetEnvironmentVariable("Path", "Machine")
-      if ($current -notlike "*$gitBin*") {
-        [Environment]::SetEnvironmentVariable("Path", "$gitBin;$current", "Machine")
-      }
-      ```
-      どうしても`setx`を使う場合は `setx /M Path "C:\Program Files\Git\bin;%Path%"`
-      （管理者権限のコマンドプロンプト）だが、実行前に現在の`Path`の文字数を確認し、
-      1024文字に近い場合は上記PowerShell版かGUIを使うこと。
+    設定方法はPowerShellのみを案内する（`setx`はシステムPATHが1024文字を超えると値を切り詰めて
+    破壊する既知の危険があり、システムPATHは他ソフトの追加で既に長くなっていることが多いため
+    避ける）。管理者権限のPowerShellで実行する:
+    ```powershell
+    $gitBin = "C:\Program Files\Git\bin"
+    $current = [Environment]::GetEnvironmentVariable("Path", "Machine")
+    if ($current -notlike "*$gitBin*") {
+      [Environment]::SetEnvironmentVariable("Path", "$gitBin;$current", "Machine")
+    }
+    ```
+    （Git for Windowsの実際のインストール先が異なる場合は`$gitBin`をそちらの`bin`フォルダへ
+    書き換える。上記は先頭に追加するため`C:\Windows\System32`より前に来る。）
+    実行後、開いているターミナル・Claude Codeセッションを再起動し、`where bash`（PowerShell/cmd上）で
+    `C:\Program Files\Git\bin\bash.exe`が最初に出ることを確認する。
   - この対処をしていない環境では、SessionStart/PostToolUseの自動コンテキスト注入・使用量レポート
     投稿がエラーも出さずに動かなくなる（`git`コマンド自体は通常通り動くため気づきにくい）。
 - **PowerShell版からの簡略化点**: `ConvertTo-HashtableDeep`（Windows PowerShell 5.1の
