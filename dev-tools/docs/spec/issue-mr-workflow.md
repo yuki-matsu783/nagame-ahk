@@ -159,9 +159,11 @@ resume・clear時に毎回、現在ブランチのissue/MR状態をコンテキ�
   `.claude/settings.json` の `hooks.SessionStart` 設定。
 - **matcher**: `startup|resume|clear` に限定する。`compact`（コンテキスト圧縮のたびに`gh` API
   呼び出しが走るのを避ける）と `fork`（今回はスコープ外）は対象外とする。
-- **実行シェル**: exec form（`args`指定）でgit bash本体（`C:\Program Files\Git\bin\bash.exe`）を
-  フルパスで明示的に呼ぶ。素の`"bash"`はこのマシンではWSL起動用スタブ
-  （`C:\Windows\System32\bash.exe`）に解決されてしまうため使えない（詳細: [shell-scripts.md](shell-scripts.md)）。
+- **実行シェル**: exec form（`args`指定）で `"bash"` を呼ぶ（フルパス直書きはしない。他環境への
+  移植性を優先）。ただしこのマシンではPATHの優先順位次第で素の`"bash"`がWSL起動用スタブ
+  （`C:\Windows\System32\bash.exe`）に解決されてしまうため、ユーザー環境変数`Path`へgit bashの
+  `bin`をSystem32より前に来る位置で追加するセットアップが別途必要（詳細:
+  [shell-scripts.md](shell-scripts.md)「Claude Code hookの起動コマンド」）。
 - **サブエージェントでの抑止**: 公式ドキュメント上、SessionStart hookはTask tool経由の
   サブエージェント内でも発火する（`agent_id`/`agent_type`がstdin JSONに追加される場合のみ
   判別可能）。そのためmatcherでは実現できず、スクリプト冒頭でstdinの`agent_id`の有無を見て
@@ -213,7 +215,7 @@ Claude Codeのセッション使用量（モデル別トークン数・ツール
     呼んで状態を最新化してから投稿する（ターンの途中でのpushでも記録漏れが起きないようにするため）。
     `sinceLastPush` が全て0なら投稿しない。`get_mr_for_branch` でMRが無ければ投稿しない。
     投稿成功後のみ `sinceLastPush` をリセットする（失敗時は次回pushへ繰り越す。git push自体は
-    ブロックしない）。hookの起動コマンドはgit bash本体をフルパスで指定する（詳細:
+    ブロックしない）。hookの起動コマンドは`"bash"`（PATH解決に依存。詳細:
     [shell-scripts.md](shell-scripts.md)）。
   - `.claude/settings.json`: `hooks.PostToolUse` を追加。
   - `.gitignore`: `/.claude/usage-state/` を追加。
@@ -356,7 +358,8 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
   `dev-tools/src/build.ps1`, `.claude/hooks/session-start.ps1`,
   `.claude/hooks/post-push-usage-report.ps1`, `.claude/hooks/lib/UsageTracking.ps1`,
   `tests/test_external_command_server.ps1`）
-- `.claude/settings.json`（hookの`command`を`powershell.exe`からgit bash本体のフルパスへ変更）
+- `.claude/settings.json`（hookの`command`を`powershell.exe`から`bash`へ変更。PATH解決に依存する
+  ため、開発機ごとに「PATHへのgit bash追加＋順序調整」のセットアップが別途必要）
 - `.claude/skills/issue-mr-flow/SKILL.md`（コード例・関数名をbash/snake_case版に更新、
   前提に`jq`を追加）
 - `dev-tools/docs/spec/distribution.md`（`build.ps1`→`build.sh`）

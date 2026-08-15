@@ -74,8 +74,24 @@ plan: `plans/shimmying-wibbling-simon.md`
   `shell-scripts.md`に`where git`でのインストール先特定〜`.claude/settings.json`書き換えまでの
   具体手順を追記。スレッドへ署名付きで返信済み
 
+- PR #18レビュー再指摘: 「対応方針が違う。settings.jsonに"command": "bash"だけ記載し、エラーに
+  なる場合はgit bashのインストールとパスの設定方法を案内する」との明確化を受けた。ただし実機検証で
+  「エラーになる」という前提自体が成り立たない（WSLのbash.exeスタブがエラー無く起動してしまう）
+  ことが分かったため、ユーザーに選択肢を提示し「PATHからWSLより前にgit bashを来るよう設定する
+  手順を案内する」方針で合意を得た
+- `.claude/settings.json`のhook `command`を`bash`のみに戻し、`shell-scripts.md`
+  `.claude/rules/shell-script-style.md` `issue-mr-workflow.md`のフルパス直書きの記述を
+  「PATH解決＋事前セットアップ手順」の記述に書き換えた
+- PowerShellから実際に`bash <script>`（settings.jsonと同じ呼び出し形）を実行し、現状（PATH未修正）
+  ではWSL側に解決され`exit=127`で失敗すること（バックスラッシュがWSLへの引数受け渡しで消失し
+  パスが解決できない）を実機確認。ドキュメントの記述内容の正しさを裏付けた
+
 ## 次の一歩
 
 - レビュー対応をpushし、`comments all`で未解決スレッドが無いことを確認する
+- 注意: このマシン自体はまだPATH未修正のため、次回セッション開始時のSessionStart hook・
+  git push時のPostToolUse hookは（ドキュメント通り）動作しない状態のまま。ユーザーが
+  `shell-scripts.md`の手順でPATHを直すまでこの状態が続く（git push自体はブロックされないため
+  実害は「使用量レポートが投稿されない」のみ）
 
 ---

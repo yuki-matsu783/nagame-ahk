@@ -11,7 +11,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "C:\\Program Files\\Git\\bin\\bash.exe",
+            "command": "bash",
             "args": [
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.sh"
             ],
@@ -27,7 +27,7 @@
           {
             "type": "command",
             "if": "Bash(git push*)",
-            "command": "C:\\Program Files\\Git\\bin\\bash.exe",
+            "command": "bash",
             "args": [
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/post-push-usage-report.sh"
             ],
@@ -36,7 +36,7 @@
           {
             "type": "command",
             "if": "PowerShell(git push*)",
-            "command": "C:\\Program Files\\Git\\bin\\bash.exe",
+            "command": "bash",
             "args": [
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/post-push-usage-report.sh"
             ],

@@ -85,26 +85,33 @@
   コードページ（cp932）のまま返る（実機確認: 日本語メッセージが文字化けした）。この種のコマンドの
   出力を判定に使う場合は、日本語メッセージの文字列一致を避け、終了コードやASCII文字列
   （イメージ名等）での判定に留める（`test_external_command_server.sh`の`proc_running`参照）。
-- **Claude Code hookの起動コマンド**: `.claude/settings.json`のhook `command`に素の`"bash"`を
-  指定すると、このマシンでは`where.exe bash`の解決結果が`C:\Windows\System32\bash.exe`
-  （WSL起動用スタブ）を優先してしまい、git bashではなくWSLが起動する（実機確認）。
-  git bash本体`C:\Program Files\Git\bin\bash.exe`をフルパスで指定する必要がある。単一開発者運用の
-  ためGit for Windowsの標準インストール先を前提としており、別環境で異なる場合はパスを書き換える
-  （「未決定事項・懸念点」参照）。`${CLAUDE_PROJECT_DIR}`（Windows形式パス）をそのままこの
-  `bash.exe`へargvで渡しても正しく解決されることは実機確認済み。
-  - **`C:\Program Files\Git\bin\bash.exe`が存在しない環境での対処**: この環境では
-    Claude Codeがhookのプロセス起動に失敗し、SessionStart/PostToolUseの自動コンテキスト注入・
-    使用量レポート投稿が動かなくなる（`git`コマンド自体は失敗しないため気づきにくい）。以下の
-    手順で実際のインストール先を確認し、`.claude/settings.json`の該当4箇所（`hooks.SessionStart`
-    1箇所、`hooks.PostToolUse`2箇所）の`command`値をすべて書き換える。
-    1. 通常のターミナル（PowerShell/コマンドプロンプト）で `where git` を実行し、
-       `git.exe`のパス（例: `C:\Program Files\Git\cmd\git.exe`）を確認する。
-    2. そのGitインストールのルート（`cmd\git.exe`の1つ上の階層）配下の `bin\bash.exe`
-       （例: `C:\Program Files\Git\bin\bash.exe`）が存在するか `where` の結果を元に確認する。
-       存在しなければ [Git for Windows](https://git-scm.com/download/win) を既定設定のまま
-       再インストールする（既定では`C:\Program Files\Git`配下にインストールされる）。
-    3. 確認できたパスで `.claude/settings.json` の4箇所の`command`値を置き換える
-       （バックスラッシュは`\\`とJSONエスケープすること）。
+- **Claude Code hookの起動コマンド**: `.claude/settings.json`のhook `command`は `"bash"` とだけ
+  指定する（実行体をフルパスで固定しない。他環境への移植性を優先する方針。issue #6のレビューで
+  フルパス直書き案から変更）。ただしこのマシンでは、Windowsの`PATH`（システム環境変数）が
+  `C:\Windows\System32`（`bash.exe`というWSL起動用スタブが存在する）を`C:\Program Files\Git\cmd`
+  より先に列挙しており、しかもGit for Windowsのインストーラは既定で`Git\cmd`（`git.exe`用）のみを
+  `PATH`に追加し、`bash.exe`のある`Git\bin`は追加しない。そのため素の`"bash"`はエラーにならず
+  **WSL側のbash.exeスタブへ黙って解決されてしまう**ことを実機確認した（`where.exe bash`で確認。
+  WSL内では`${CLAUDE_PROJECT_DIR}`がWindows形式パスのままのため解決できず、hookは例外を
+  握りつぶす設計のためエラーも出ずに黙って動作しなくなる）。
+  - **対処（PATHへのgit bash追加＋順序調整）**: `C:\Program Files\Git\bin`を、
+    `C:\Windows\System32`より**前**に来るようユーザー環境変数`Path`へ追加する。
+    1. Windowsキー→「環境変数を編集」を検索して開く（またはシステムのプロパティ→
+       詳細設定→環境変数）。
+    2. 「ユーザー環境変数」の`Path`を選択して編集を開く。
+    3. `C:\Program Files\Git\bin`（Git for Windowsの実際のインストール先が異なる場合はそちらの
+       `bin`フォルダ）を新規追加し、一覧内でできるだけ上（少なくとも`C:\Windows\System32`より上）
+       に並べ替える。
+    4. 開いているターミナル・Claude Codeセッションを再起動し、`where bash`（PowerShell/cmd上）で
+       `C:\Program Files\Git\bin\bash.exe`が最初に出ることを確認する。
+    - PowerShellでの確認コマンド例（変更の適用自体はGUIで行うことを推奨。ユーザー環境変数を
+      スクリプトで書き換えるのはシステム全体に影響する操作のため、内容を理解した上で手動で行う）:
+      ```powershell
+      [Environment]::GetEnvironmentVariable("Path","User") -split ';' |
+        Where-Object { $_ -match 'Git|System32' }
+      ```
+  - この対処をしていない環境では、SessionStart/PostToolUseの自動コンテキスト注入・使用量レポート
+    投稿がエラーも出さずに動かなくなる（`git`コマンド自体は通常通り動くため気づきにくい）。
 - **PowerShell版からの簡略化点**: `ConvertTo-HashtableDeep`（Windows PowerShell 5.1の
   `ConvertFrom-Json`が`-AsHashtable`を持たないための回避策）はjqのネイティブなJSON操作機能により
   不要になったため、bash版（`UsageTracking.sh`）には存在しない。
@@ -124,7 +131,8 @@
 - 上記に対応する全`.ps1`ファイル
 
 変更:
-- `.claude/settings.json`（hook `command`を`powershell.exe`からgit bash本体のフルパスへ）
+- `.claude/settings.json`（hook `command`を`powershell.exe`から`bash`へ。PATH解決に依存するため
+  「PATHへのgit bash追加＋順序調整」の実施が別途必要）
 - `.claude/skills/issue-mr-flow/SKILL.md`（コード例・関数名の更新、前提に`jq`を追加）
 - `dev-tools/docs/spec/issue-mr-workflow.md`（コンポーネント構成・提供関数表・各hookの説明を更新）
 - `dev-tools/docs/spec/distribution.md`（`build.ps1`→`build.sh`）
@@ -141,10 +149,12 @@
 
 - **GitLab版の実機動作未検証**: `Gitlab.sh`はPowerShell版`Gitlab.ps1`と同様、このリポジトリの
   実remoteがGitHubのみのため未検証。GitLabリポジトリで実際に使う前に動作確認が必要。
-- **hook起動コマンドのパス固定**: `.claude/settings.json`のgit bashフルパスは、単一開発者である
-  このマシンの標準インストール先を前提にしている。将来複数人での利用や別マシンへの展開時は、
-  環境ごとにパスを書き換える必要がある（`${CLAUDE_PROJECT_DIR}`のような変数展開の仕組みが
-  `command`フィールド自体には無いため、環境変数での切り替えはできない）。
+- **hook起動コマンドはPATH解決に依存する**: `.claude/settings.json`のhook `command`は`"bash"`のみで
+  （フルパス直書きはしない方針に変更）、実行体の解決はOSのPATH探索に委ねている。このマシンでは
+  「PATHへのgit bash追加＋順序調整」（上記）を適用しないと、WSL側のbash.exeスタブへ黙って
+  解決されエラーも出ずhookが動作しなくなる。この対処はマシン（ユーザー環境変数）ごとに必要な
+  一度きりのセットアップであり、リポジトリ側のファイルには残らない（新しい開発機でこのリポジトリを
+  使い始める際は毎回必要になる）。
 - **"PowerShellのまま残すべきスクリプト"の実例が無い**: 本issueの対応で最終的に全PowerShell
   スクリプトがbash化されたため、判断基準（git bashで実行不可能なもの）を実際に適用した例が
   今のところ無い。今後、PowerShell固有機能（COM操作・.NETクラスの直接利用等）に依存する新規
