@@ -1,3 +1,11 @@
+---
+title: PDFファイル監視・情報表示（PdfFileWatcher）
+type: spec
+description: デスクトップPDFリーダーで開かれたファイルの名前・パス・プロセス情報を表示する機能の仕様
+tags: [pdf-file-watcher, ahk, spec]
+timestamp: "2026-08-16T05:31:36"
+---
+
 # PDFファイル監視・情報表示（PdfFileWatcher）
 
 ## 背景・目的

@@ -1,3 +1,11 @@
+---
+title: tests/
+type: guide
+description: 手動/自動テスト用スクリプトの一覧と、各スクリプトの対象・副作用・実行方法をまとめたガイド
+tags: [tests, guide]
+timestamp: "2026-08-16T05:31:36"
+---
+
 # tests/
 
 手動/自動テスト用スクリプトを置くディレクトリ（`CLAUDE.md` 参照）。

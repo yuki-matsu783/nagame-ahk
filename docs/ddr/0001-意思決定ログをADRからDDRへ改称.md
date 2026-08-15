@@ -1,3 +1,11 @@
+---
+title: 0001. 意思決定ログのディレクトリ・呼称をADRからDDR（Design Decision Record）へ改称する
+type: ddr
+description: 意思決定ログのディレクトリ・呼称をADRからDDRへ改称した経緯を記録したDDR
+tags: [ddr, docs, naming]
+timestamp: "2026-08-16T05:31:36"
+---
+
 # 0001. 意思決定ログのディレクトリ・呼称をADRからDDR（Design Decision Record）へ改称する
 
 ## 背景

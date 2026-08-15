@@ -1,3 +1,11 @@
+---
+title: 外部コマンドサーバー（ExternalCommandServer）
+type: spec
+description: 外部プロセスからTCP経由でウィンドウ操作・入力操作等をJSONコマンドで呼び出せるようにする機能の仕様
+tags: [external-command-server, ahk, spec]
+timestamp: "2026-08-16T05:31:36"
+---
+
 # 外部コマンドサーバー（ExternalCommandServer）
 
 ## 背景・目的

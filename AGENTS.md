@@ -1,3 +1,11 @@
+---
+title: AIエージェント共通ルール
+type: rule
+description: 複数のAIコーディングエージェント（Claude Code, Gemini CLI等）が共通で従うルール・プロジェクト概要・開発実行方法
+tags: [agents, rule]
+timestamp: "2026-08-16T05:31:36"
+---
+
 ## ルール
 
 - 開発フロー全体（issueの起票〜マージ）は `.claude/skills/issue-mr-flow/SKILL.md` を参照する

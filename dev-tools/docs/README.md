@@ -1,3 +1,11 @@
+---
+title: dev-tools/docs配下の目次
+type: guide
+description: dev-tools配下（開発者向けツール一式）のspec・ddrの位置づけと各ドキュメントへのリンクをまとめた目次
+tags: [dev-tools, docs, index, guide]
+timestamp: "2026-08-16T05:31:36"
+---
+
 # dev-tools/docs 配下の目次
 
 `dev-tools/` は開発者向けツール（ビルド・配布まわり等）一式を、アプリ本体（`src/`, `docs/`）とは

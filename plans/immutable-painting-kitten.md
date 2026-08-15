@@ -7,8 +7,17 @@ issue #7「各markdownドキュメントにopen knowledge formatのyaml-frontmat
 将来的な一覧化・検索・ツール連携をしやすくする。issue本文は空だったため、ユーザーへのヒアリングで
 以下を確定した。
 
-- frontmatterキー: `title` / `type` / `description` / `tags`（`tag`は配列前提のため複数形`tags`を採用）
+- frontmatterキー: `type`（必須）/ `title` / `description` / `resource` / `tags` / `timestamp`（推奨）。
+  当初`title`/`type`/`description`/`tag`の4キーで実装を進めていたが、レビュー後に
+  `resource`（実リソースへのリンク）と`timestamp`（更新時刻）を追加する方針変更を受けた
+  （`tag`→複数形`tags`は当初案のまま）。詳細は`.claude/rules/markdown-frontmatter.md`のキー定義表を参照
 - `type`の値は自動判定せず、ファイルごとに内容を見て個別に決定する（本plan内の表がそれに当たる）
+- `resource`は対応する外部リソース（社内配布先URL等）が無いファイルではキー自体を省略する
+  （空文字列は使わない）。今回の対象39ファイルはいずれも該当する外部リソースが無いため、
+  全ファイルで省略した
+- `timestamp`は今回は全ファイル一律で作業時点の現在時刻（ISO 8601、タイムゾーン省略。
+  例: `2026-08-16T05:31:36`）を機械的に付与した（`sed`によるコマンド一括追加。個別のEditツールでの
+  手作業は行っていない）
 - 対象範囲: リポジトリ内の全markdown。ただし調査の結果、既に別スキーマのfrontmatterを持つ
   ファイルが見つかったため、下記の例外処理を行う
 
@@ -20,6 +29,8 @@ issue #7「各markdownドキュメントにopen knowledge formatのyaml-frontmat
 | `.github/ISSUE_TEMPLATE/task.md` | **対象外**（frontmatter追加しない。レビューで方針変更） | 既存のGitHub仕様`title:`との衝突を避けるため当初は`type`/`description`/`tags`のみ追加する案だったが、レビューでissueテンプレートにはOKF frontmatterそのものが不要と判断し、完全に対象外とした |
 | `.claude/agents/ahk-code-reviewer.md`, `.claude/agents/issue-mr-resume.md` | `title`/`type`/`tags`を追加（`description`は追加しない） | 既存の`description`はClaude Codeがサブエージェント選択に使う実キーのため、重複させず流用する |
 | `.claude/skills/ahk-implement/SKILL.md`, `.claude/skills/issue-mr-flow/SKILL.md` | 同上（`title`/`type`/`tags`のみ追加） | 同上（skill選択に使う`description`を保持） |
+| `.claude/rules/directory-structure.md`, `docs-workflow.md`, `git-workflow.md`, `plan-mode-safety.md` | 既存`alwaysApply: true`の下に新キーを追記 | 実装時に発覚。`alwaysApply`はClaude Codeのルール常時適用設定として実際に使われるキーのため、値・位置を変更しない |
+| `.claude/rules/ahk-style.md` | 既存`paths:`の下に新キーを追記 | 実装時に発覚。`paths`は対象ファイルパターンを表す既存メタ情報のため保持する |
 
 いずれも既存のfrontmatterブロックは1つのまま、新キーを末尾に追記する形にし、既存キーの値・順序は変更しない。
 
@@ -30,12 +41,15 @@ issue #7「各markdownドキュメントにopen knowledge formatのyaml-frontmat
 title: <ファイルの題名>
 type: <下表のtype値>
 description: <1行要約>
+resource: <対応する実リソースがあれば記載。無ければキー自体を省略>
 tags: [<kebab-caseのキーワード, 2〜4個>]
+timestamp: <更新時刻。ISO 8601、タイムゾーン省略>
 ---
 ```
 
-既存frontmatterを持つファイル（agent/skill/github issue template）は、既存キーの下に
-`title`（該当する場合）/`type`/`tags`を追記する形にする。
+既存frontmatterを持つファイル（agent/skill/github issue template/alwaysApplyルール/ahk-style.md）は、
+既存キーの下に不足しているキーのみを追記する形にする。詳細（キー定義・typeの値一覧・例外ルール）は
+`.claude/rules/markdown-frontmatter.md`を正とする（本plan内の記述と重複する場合はそちらを優先する）。
 
 ## typeの値割り当て（全38ファイル。対象外の2ファイルを除く）
 
@@ -80,6 +94,11 @@ tags: [<kebab-caseのキーワード, 2〜4個>]
 
 - 変更した各ファイルについて、`---`で始まり2つ目の`---`で閉じる単一のYAMLブロックになっているか
   目視確認する（`grep -c '^---$' <file>`が2であることを機械的に確認する簡易チェックをbashで回す）。
-- `.claude/agents/*.md` / `.claude/skills/*/SKILL.md`は、既存キー（`name`/`description`/`tools`/
-  `model`）の値が変更前と完全一致することをdiffで確認する（新キーの追記のみになっているか）。
+- `.claude/agents/*.md` / `.claude/skills/*/SKILL.md` / `alwaysApply`を持つルールファイル /
+  `ahk-style.md`は、既存キー（`name`/`description`/`tools`/`model`/`alwaysApply`/`paths`）の値が
+  変更前と完全一致することをdiffで確認する（新キーの追記のみになっているか）。
+- 全対象ファイルに`timestamp:`行が存在し、タイムゾーンオフセット（`+HH:MM`/`-HH:MM`）を含まないことを
+  `grep`で機械的に確認する。
+- `resource`キーは今回対象の全ファイルで省略していることを確認する（該当する外部リソースが後日
+  見つかった場合のみ個別に追加する）。
 - `git diff --stat`で対象ファイル数が想定（38ファイル + 新規ルール1ファイル）と一致することを確認する。

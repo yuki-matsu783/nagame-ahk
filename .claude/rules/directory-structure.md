@@ -1,5 +1,10 @@
 ---
 alwaysApply: true
+title: ディレクトリ構成
+type: rule
+description: リポジトリのディレクトリ構成と配置方針を定めたルール
+tags: [directory-structure, rule]
+timestamp: "2026-08-16T05:31:36"
 ---
 
 # ディレクトリ構成

@@ -2,6 +2,11 @@
 paths:
   - "src/**/*.ahk"
   - "tests/**/*.ahk"
+title: コーディングルール（AutoHotkey v2）
+type: rule
+description: AutoHotkey v2のコーディング規約（文字コード・インデント・命名等）を定めたルール
+tags: [ahk, coding-style, rule]
+timestamp: "2026-08-16T05:31:36"
 ---
 
 # コーディングルール（AutoHotkey v2）

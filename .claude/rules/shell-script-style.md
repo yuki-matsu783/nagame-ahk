@@ -1,3 +1,11 @@
+---
+title: bashスクリプトの規約
+type: rule
+description: 開発補助bashスクリプトの保存形式・エラー方針・命名規則等を定めたルール
+tags: [bash, shell-script, rule]
+timestamp: "2026-08-16T05:31:36"
+---
+
 # bashスクリプトの規約
 
 issue #6でリポジトリ内の開発補助スクリプトを全てPowerShellからbashへ移行した際に定めた規約。

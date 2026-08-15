@@ -1,3 +1,11 @@
+---
+title: ロガー（Logger）
+type: spec
+description: ログレベル制御・コンソール/ファイル出力に対応した共通ロガーの仕様
+tags: [logger, ahk, spec]
+timestamp: "2026-08-16T05:31:36"
+---
+
 # ロガー（Logger）
 
 ## 背景・目的

@@ -1,3 +1,11 @@
+---
+title: 0002. issue-mr-flowへの実装フロー統合と「reflect」の分割
+type: ddr
+description: issue駆動MRワークフロー支援をissue-mr-flowへ統合し、reflectステップを分割した経緯を記録したDDR
+tags: [issue-mr-flow, workflow, ddr]
+timestamp: "2026-08-16T05:31:36"
+---
+
 # 0002. issue-mr-flowへの実装フロー統合と「reflect」の分割
 
 ## 背景

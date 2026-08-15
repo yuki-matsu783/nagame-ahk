@@ -1,3 +1,11 @@
+---
+title: HANDOFF
+type: handoff
+description: セッション間・作業者間の引継ぎメモ（現在地・次回やること等）
+tags: [handoff, workflow]
+timestamp: "2026-08-16T05:31:36"
+---
+
 # HANDOFF
 
 <!--

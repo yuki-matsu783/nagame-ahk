@@ -1,3 +1,11 @@
+---
+title: Windows用exe配布方法
+type: spec
+description: Ahk2Exeを使ったnagame-ahkのexeビルド・社内配布方法の仕様
+tags: [distribution, ahk2exe, spec]
+timestamp: "2026-08-16T05:31:36"
+---
+
 # Windows用exe配布方法
 
 ## 背景・目的

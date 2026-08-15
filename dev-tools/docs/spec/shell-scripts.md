@@ -1,3 +1,11 @@
+---
+title: 開発補助スクリプトのシェル言語方針
+type: spec
+description: 開発補助スクリプトをbash/PowerShellのどちらで書くかの判断基準と移行方針の仕様
+tags: [bash, powershell, spec]
+timestamp: "2026-08-16T05:31:36"
+---
+
 # 開発補助スクリプトのシェル言語方針
 
 ## 背景・目的

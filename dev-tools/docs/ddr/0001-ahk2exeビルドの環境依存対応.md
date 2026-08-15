@@ -1,3 +1,11 @@
+---
+title: "0001. Ahk2Exeビルドの環境依存対応（`/base`指定・BOM必須・出力ファイルでの成否判定）"
+type: ddr
+description: "Ahk2Exeビルドで発生した環境依存問題（AutoHotkey v1/v2混在・BOM・出力判定）への対応を記録したDDR"
+tags: [ahk2exe, build, ddr]
+timestamp: "2026-08-16T05:31:36"
+---
+
 # 0001. Ahk2Exeビルドの環境依存対応（`/base`指定・BOM必須・出力ファイルでの成否判定）
 
 ## 背景

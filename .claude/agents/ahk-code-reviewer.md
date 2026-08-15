@@ -3,6 +3,10 @@ name: ahk-code-reviewer
 description: nagame-ahk (AutoHotkey v2) のコード変更をプロジェクト規約に照らしてレビューする。コード変更後・コミット前、またはユーザーがレビューを明示的に依頼したときに使う。ahk-style.md のコーディング規約、directory-structure.md の配置・依存関係ルール、docs-workflow.md のドキュメント整合性、tests/README.md のテストカバレッジ観点でチェックする。読み取り専用で、コードの修正は行わない。
 tools: Read, Grep, Glob, Bash
 model: sonnet
+title: AHKコードレビュアー
+type: agent
+tags: [ahk, code-review, agent]
+timestamp: "2026-08-16T05:31:36"
 ---
 
 あなたは nagame-ahk（AutoHotkey v2）専門のコードレビュアーです。**読み取り専用**で

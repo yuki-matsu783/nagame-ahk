@@ -1,5 +1,10 @@
 ---
 alwaysApply: true
+title: Git運用（ブランチ・命名規則）
+type: rule
+description: featureブランチの命名規則・worklog配置・PR/マージ運用を定めたルール
+tags: [git, branch, rule]
+timestamp: "2026-08-16T05:31:36"
 ---
 
 # Git運用（ブランチ・命名規則）

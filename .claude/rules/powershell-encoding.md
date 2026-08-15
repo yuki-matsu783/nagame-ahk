@@ -1,3 +1,11 @@
+---
+title: PowerShellスクリプト・コマンドの文字コード注意事項
+type: rule
+description: PowerShellスクリプト・コマンドでの文字コード（ANSI/OEMコードページ）に関する注意事項を定めたルール
+tags: [powershell, encoding, rule]
+timestamp: "2026-08-16T05:31:36"
+---
+
 # PowerShellスクリプト・コマンドの文字コード注意事項
 
 **適用範囲**: 本ファイルはPowerShell（`.ps1`・`powershell.exe`経由のコマンド）を直接書く場合にのみ

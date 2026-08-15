@@ -1,3 +1,11 @@
+---
+title: docs配下の目次
+type: guide
+description: docs/spec・docs/ddrの位置づけと各ドキュメントへのリンクをまとめた目次
+tags: [docs, index, guide]
+timestamp: "2026-08-16T05:31:36"
+---
+
 # docs 配下の目次
 
 `nagame-ahk` の開発フロー全体は [.claude/skills/issue-mr-flow/SKILL.md](../.claude/skills/issue-mr-flow/SKILL.md)

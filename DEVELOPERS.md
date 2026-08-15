@@ -1,3 +1,11 @@
+---
+title: 開発者向けドキュメント
+type: guide
+description: nagame-ahkの開発に参加する人向けの動作環境・関連ドキュメントへの入り口をまとめたガイド
+tags: [developers, guide]
+timestamp: "2026-08-16T05:31:36"
+---
+
 # 開発者向けドキュメント
 
 `nagame-ahk` の開発に参加する人向けのドキュメント。exeファイルを使うだけのユーザー向け情報は
