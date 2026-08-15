@@ -29,6 +29,3 @@ plan: `plans/fancy-painting-prism.md`
 
 ---
 
-（注: このworklogは開発フロー整理タスク（`docs/dev-workflow-rules`ブランチ）にあわせて、旧
-`HANDOFF.md`の内容をそのまま移設したもの。README/DEVELOPERS分割タスク自体は当時mainへ直接
-コミットする運用だったため、本来のreflect→削除のタイミングを経ていない。）

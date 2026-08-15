@@ -16,7 +16,7 @@ alwaysApply: true
 
 ## worklogとreflect
 
-作業中に蓄積される「試したこと／うまくいったこと／ダメだったこと」は `worklog/日付_<planファイル名>.md` に記録する（配置・命名は `directory-structure.md`、ライフサイクルは `docs-workflow.md` の「ドキュメント運用」表を参照）。
+作業中に蓄積される「試したこと／うまくいったこと／ダメだったこと」などのログを `worklog/日付_<planファイル名>.md` に記録する（配置・命名は `directory-structure.md`、ライフサイクルは `docs-workflow.md` の「ドキュメント運用」表を参照）。
 
 - worklogファイルは、planモード完了時（`plans/<planファイル名>.md` 確定時）に作成する。同じブランチで作業している間はセッションをまたいでも消さずに書き足す。
 - この間 `HANDOFF.md` は「現在地・次回やること」等の軽量な最新状態のみを保つ。詳細な試行錯誤はworklog側に書く。
