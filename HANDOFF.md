@@ -3,7 +3,7 @@ title: HANDOFF
 type: handoff
 description: セッション間・作業者間の引継ぎメモ（現在地・次回やること等）
 tags: [handoff, workflow]
-timestamp: "2026-08-16T05:31:36"
+timestamp: "2026-08-16T05:43:54"
 ---
 
 # HANDOFF
@@ -26,9 +26,9 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
 | [x] | 9 | planをもとにMR descriptionを更新する | `describe` |
 | [] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
-| [] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
-| [] | 12 | commit, push してレビュー依頼を行う | エージェント |
-| [] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
+| [x] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
+| [x] | 12 | commit, push してレビュー依頼を行う | エージェント |
+| [x] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
 | [] | 14 | MRでレビュー・コメントする | 人間 |
 | [] | 15 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（11〜15の作業ループを合意まで繰り返す） | `comments` / `reply` |
 | [] | 16 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
@@ -51,14 +51,20 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
   `.github/ISSUE_TEMPLATE/task.md`）を受け、同ファイルを完全にfrontmatter対象外へ変更
   （対象ファイル数39→38）。planを修正しコミット・push、スレッドに返信。
   `comments all`で未解決スレッド0件（resolved）を確認済み。
+- 対象38ファイルへ`title`/`type`/`description`/`tags`を追加・マージ実装。実装中に既存frontmatter
+  （`alwaysApply`/`paths`）を持つルールファイルを追加発見し、既存キーを保持したままマージ。
+- ユーザーからの追加指示で`resource`（該当ファイルのみ・今回は全ファイル省略）と`timestamp`
+  （ISO 8601・タイムゾーン省略・全ファイル一律の値を`sed`で機械的に付与）をスキーマに追加。
+- 新規ルール`.claude/rules/markdown-frontmatter.md`を作成（キー定義: `type`のみ必須、他は推奨）。
+- plan・worklogを最終スキーマに合わせて更新し、commit・push（`d56811e`）、PR description更新済み。
 
 ## 次にやること
 
-- 実装（flow-id 11）: 対象38ファイルへのfrontmatter（title/type/description/tags。
-  一部ファイルはキー構成が異なる）追加・マージ、および新規ルール
-  `.claude/rules/markdown-frontmatter.md` の作成。詳細は `plans/immutable-painting-kitten.md` 参照。
-- 実装後、`plans/immutable-painting-kitten.md`の検証方法に従いdiff確認・commit・push・
-  MR description更新（flow-id 12〜13）を行う。
+- PR #23 で実装内容のレビューを受ける（flow-id 14）。レビューOKの合図後は
+  `comments all` で未解決スレッドが無いことを確認してから設計反映（flow-id 16）へ進む。
+- 設計反映: `plans/immutable-painting-kitten.md` / `worklog/20260816_immutable-painting-kitten.md`
+  の内容を必要に応じて`docs/`配下へ反映（今回は`.claude/rules/markdown-frontmatter.md`が
+  正史ドキュメントに相当するため、追加反映の要否を確認する）。
 
 ## 判断を迷った内容
 
@@ -66,6 +72,8 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
   「ファイルごとに人が指定（＝AIが提案しユーザーが確認）」を採用した。
 - 当初`.github/ISSUE_TEMPLATE/task.md`は`title`キーのみ除外する案だったが、レビューで
   「issueテンプレートにはOKF frontmatter自体が不要」と判断され、完全に対象外へ変更した。
+- `resource`キーは対応する外部リソースが無い場合は空文字列ではなくキー自体を省略する方針にした
+  （今回の対象38ファイルは全て省略）。
 
 ## 未解決の内容
 
@@ -75,5 +83,6 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 - `.gitlab/issue_templates/task.md`、`.github/ISSUE_TEMPLATE/task.md` にはfrontmatterを
   追加しない（前者はGitLab仕様上issue本文へそのまま挿入されるため、後者はレビューでの方針変更）。
-- `.claude/agents/*.md` / `.claude/skills/*/SKILL.md` の既存`name`/`description`（実際に
-  Claude Codeが読み込む値）は変更しない（`title`/`type`/`tags`の追記のみ）。
+- `.claude/agents/*.md` / `.claude/skills/*/SKILL.md` の既存`name`/`description`、
+  `.claude/rules/directory-structure.md`等の既存`alwaysApply`、`.claude/rules/ahk-style.md`の
+  既存`paths`（いずれも実際にツール/設定が読み込む値）は変更しない（新キーの追記のみ）。
