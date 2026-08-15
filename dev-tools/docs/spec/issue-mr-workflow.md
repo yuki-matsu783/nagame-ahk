@@ -138,6 +138,34 @@ resumeを省略してしまう事故が発生した）。そのため発動条�
 `comments` / `describe` サブコマンドの「現在のブランチに紐づくMR番号を取得する」手順は、
 重複実装を避けるため `Get-MrForBranch` に統一する。
 
+### セッション開始時の自動コンテキスト注入（SessionStart hook）
+
+`resume` は人間・AIエージェントが明示的に呼び出す必要があり、機械的に実行されない
+（issue #5指摘）。これをClaude CodeのSessionStart hookとして自動化し、セッション開始・
+resume・clear時に毎回、現在ブランチのissue/MR状態をコンテキストへ自動注入する。
+
+- **コンポーネント**: `.claude/hooks/session-start.ps1`（新規）＋ `.claude/settings.json` の
+  `hooks.SessionStart` 設定。
+- **matcher**: `startup|resume|clear` に限定する。`compact`（コンテキスト圧縮のたびに`gh` API
+  呼び出しが走るのを避ける）と `fork`（今回はスコープ外）は対象外とする。
+- **実行シェル**: Windowsのシェル自動判定（Git Bash優先、無ければpowershell）に依存せず、
+  exec form（`args`指定）で `powershell.exe` を明示的に呼ぶ。
+- **サブエージェントでの抑止**: 公式ドキュメント上、SessionStart hookはTask tool経由の
+  サブエージェント内でも発火する（`agent_id`/`agent_type`がstdin JSONに追加される場合のみ
+  判別可能）。そのためmatcherでは実現できず、スクリプト冒頭でstdinの`agent_id`の有無を見て
+  即終了する実装とした（受け入れ条件「サブエージェント起動時には実行されず」に対応）。
+- **情報収集**: `resume`（`issue-mr-resume`サブエージェント）と同じ`Provider.ps1`の関数
+  （`Get-IssueNumberFromBranch` / `Get-Issue` / `Get-MrForBranch` / `Get-MrUnresolvedComments`）を
+  再利用する。hookはサブエージェントを起動できないため、同種の情報収集ロジックを持つ独立スクリプト
+  として実装した。表示内容は「ブランチ／issue／PR（Draft状態含む）／未解決レビューコメント件数」に
+  絞り、`Get-BranchWorkFiles`によるplan/worklogファイル一覧や`HANDOFF.md`の内容表示は含めない
+  （それらは`resume`の役割のまま維持し、hookは軽量な自動通知に留める）。
+- **出力形式**: `{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"<text>"}}`
+  形式のJSONをstdoutへ返す。
+- **フォールバック方針**: `main`ブランチ上（作業ブランチ未チェックアウト）では注入しない。
+  `gh`未認証・API失敗等、情報収集に失敗した場合もセッション開始をブロックせず、短い失敗メッセージ
+  のみを返す（best-effort。詳細な原因調査は人間が手動で行う）。
+
 ### ブランチ命名
 
 `<branchPrefixTemplate>`（既定 `feature-{issue}-{slug}`）に従い、issue番号をそのまま連番として使う
@@ -214,6 +242,25 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
 - `.claude/skills/issue-mr-flow/SKILL.md`（`resume` サブコマンドを新設。`comments` / `describe` の
   MR番号取得手順を `Get-MrForBranch` に統一）
 
+新規（追加分・issue #5 SessionStart hook対応）:
+- `.claude/hooks/session-start.ps1`（セッション開始時の自動コンテキスト注入スクリプト）
+
+変更（追加分・issue #5 SessionStart hook対応）:
+- `.claude/settings.json`（`hooks.SessionStart` を追加）
+- `dev-tools/docs/spec/issue-mr-workflow.md`（本セクション追加）
+- `.claude/skills/issue-mr-flow/SKILL.md`（全体フローを再構成。`docs/spec/`への設計ドキュメント
+  作成・承認を独立ステップとして持つのをやめ、Planモードでの実行手順作成に一本化。plan合意〜実装
+  着手の間にコンテキスト削減のためのセッションclearステップを新設。ステップ数は23のまま。
+  「フローが進むごとにHANDOFF.mdに現在の状況を反映する」運用ルールを追加）
+
+新規（追加分・issue #5 レビュー対応時の文字コード修正）:
+- `.claude/rules/powershell-encoding.md`（PowerShellスクリプト・コマンドの文字コード注意事項）
+
+変更（追加分・issue #5 レビュー対応時の文字コード修正）:
+- `dev-tools/src/vcs/Provider.ps1`（dot-source直後にコンソール入出力エンコーディングをUTF-8へ切り替え）
+- `.claude/skills/issue-mr-flow/SKILL.md`（「詳細ルールへのポインタ」に
+  `.claude/rules/powershell-encoding.md` を追加）
+
 ## 設定項目
 
 `.mrworkflow.json`（nagame-ahk向けの初期値）
@@ -251,6 +298,29 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
   投稿者分離は規模超過のため見送り。背景・却下案は
   [dev-tools/docs/adr/0004-AI返信は署名で識別しbotアカウント分離は見送る.md](../adr/0004-AI返信は署名で識別しbotアカウント分離は見送る.md)
   参照。
+- **SessionStart hookの実装言語はPowerShell**: Bashスクリプトへの置き換え（`gh`/`git`/`jq`が
+  UTF-8をそのまま扱えるため、Windows PowerShell 5.1特有のコードページ問題を根本的に回避できる）も
+  レビューで検討したが、`Provider.ps1`が持つGitHub/GitLab差異吸収ロジックを別言語で二重実装する
+  コストが見合わないと判断し却下した。コードページ問題自体は`Provider.ps1`側の対策（後述）で解消
+  している。
+- **SessionStart hookでのサブエージェント抑止方法**: 公式ドキュメント確認の結果、SessionStart hookは
+  matcher（`startup`/`resume`/`clear`等）で区別してもTask tool経由のサブエージェント内で発火する
+  ことが判明した。そのためmatcherでの抑止は不可能と判断し、スクリプト側でstdin JSONの`agent_id`
+  フィールドの有無を見て早期終了する実装とした。
+- **SessionStart hookのmatcher範囲**: `startup|resume|clear` に限定し、`compact`（頻度が高く`gh` API
+  呼び出しのコストが無視できない）と `fork`（今回のissueのスコープ外）は対象外とした。
+- **Windows PowerShell 5.1の文字コード対策はルールでなくスクリプト側で強制する**: issue #5対応中に、
+  日本語Windowsのシステムコードページ（cp932）起因の文字化け・構文エラーを2種類実機で確認した
+  （`gh`出力の誤読によるJSON構文エラー、`Get-Content`のエンコーディング未指定によるレビュー返信の
+  文字化け）。当初は「呼び出し側が`-Encoding UTF8`を書く」という運用ルールでの対応を考えたが、
+  書き忘れに依存する対策は同じ事故を再発させかねないとの指摘を受け、`Provider.ps1`側で機械的に
+  保証する方式に変更した。`Provider.ps1`のdot-source直後に、(1) `[Console]::OutputEncoding`/
+  `InputEncoding`をUTF-8へ切り替え（外部コマンドとのI/Oを保護）、(2) `$PSDefaultParameterValues`で
+  `Get-Content`/`Set-Content`/`Add-Content`/`Out-File`の既定エンコーディングをUTF-8へ切り替え
+  （呼び出し側が`-Encoding`を省略しても安全）を行う。ワイルドカード`'*:Encoding'`は他コマンドレットの
+  `-Encoding`パラメータ定義と衝突し警告が出たため、対象コマンドレットを個別に指定した。
+  `Provider.ps1`をdot-sourceしない独立スクリプト（`.claude/hooks/session-start.ps1`等）向けの
+  注意事項のみ、`.claude/rules/powershell-encoding.md` に残した。
 
 ## 未決定事項・懸念点
 
@@ -272,3 +342,17 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
   plan/worklogファイルを推定するヒューリスティックであり、複数issueを1ブランチで扱う等の
   変則的な運用では正しく機能しない可能性がある。本プロジェクトの通常運用（1ブランチ1issue）を
   前提とする。
+- **`New-DraftMergeRequest` はbaseとの差分（コミット）が無いブランチでは失敗する**: `New-IssueBranch`
+  直後はbaseとの差分がまだ無いため、`gh pr create` / `glab mr create` が失敗する（issue #5対応時に
+  実機確認。空コミットを挟むことで回避した）。`New-IssueBranch`側で空コミットを含める等の対応は
+  今回のスコープ外としたため、次にissueを起票する際は同じ回避策が必要になる。
+- **`GitHub-GetIssue` は `gh` 失敗時に分かりにくい例外を出す**: `gh issue view` が失敗した場合の
+  `$LASTEXITCODE` チェックが無く、`ConvertFrom-Json` に空入力が渡って `$issue` が `$null` のまま
+  `ConvertTo-Slug -Text $issue.title` が呼ばれ、`ParameterBindingValidationException`
+  （`Cannot bind argument to parameter 'Text' because it is an empty string.`）という原因の分かりにくい
+  例外になる（issue #5対応時のSessionStart hook検証で実機確認）。呼び出し側（今回はhookのtry/catch）で
+  握りつぶせば実害は無いが、`GitHub-GetMrForBranch` 同様に `$LASTEXITCODE` を確認して分かりやすい
+  エラーメッセージを出す改修の余地がある。
+- **SessionStart hookの実機（新規Claude Codeセッション）での動作確認が未実施**: 疑似stdin JSONを
+  使った単体テストでは期待通りの挙動を確認したが、実際のセッション開始時にコンテキストへ反映される
+  ことは本対応内では未確認。次回以降のセッション開始時に確認する。

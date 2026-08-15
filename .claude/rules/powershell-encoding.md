@@ -1,0 +1,37 @@
+# PowerShellスクリプト・コマンドの文字コード注意事項
+
+Windows PowerShell 5.1（`powershell.exe`。本プロジェクトの実行環境）は既定で、コンソール入出力・
+`Get-Content`/`Set-Content`/`Out-File`等のファイルI/Oを**システムのANSI/OEMコードページ**
+（日本語Windowsでは通常cp932）で扱う。UTF-8を前提とする`gh`/`glab` CLIとのやり取りや、日本語を含む
+テキストファイルの読み書きでこれを踏まえないと、実機でのみ再現する文字化け・構文エラーが発生する
+（issue #5対応時に2種類の実例で確認済み。詳細は
+[dev-tools/docs/spec/issue-mr-workflow.md](../../dev-tools/docs/spec/issue-mr-workflow.md)
+「セッション開始時の自動コンテキスト注入」節参照）。
+
+## `dev-tools/src/vcs/Provider.ps1`をdot-sourceしていれば自動的に安全
+
+`Provider.ps1`はdot-source直後に以下を設定し、呼び出し側が個別に`-Encoding UTF8`を書かなくても
+安全になるようにしている（呼び出し側の書き忘れに依存しない、スクリプト側だけで完結する対策）。
+
+- `[Console]::OutputEncoding` / `[Console]::InputEncoding` をUTF-8へ切り替え（`gh`/`glab`等の
+  外部コマンドとのI/Oを保護）。
+- `$PSDefaultParameterValues` で `Get-Content` / `Set-Content` / `Add-Content` / `Out-File` の
+  既定エンコーディングをUTF-8へ切り替え（ファイル読み書きを保護。ワイルドカード`'*:Encoding'`は
+  他コマンドレットの`-Encoding`パラメータ定義と衝突して警告が出たため、対象コマンドレットを
+  個別に指定している）。
+
+`.claude/skills/issue-mr-flow/SKILL.md` のサブコマンド手順（`comments`/`reply`/`describe`等）は
+すべて `Provider.ps1` のdot-sourceを前提としているため、通常はこのルールを意識する必要はない。
+
+## `Provider.ps1`をdot-sourceしない場合のみ注意が必要
+
+- `Provider.ps1`をdot-sourceせずに新規のPowerShellスクリプトから直接`gh`/`git`を呼ぶ、または
+  日本語を含むテキストファイルを読み書きする場合は、上記と同じ設定（コンソールエンコーディングの
+  切り替え、必要なら`$PSDefaultParameterValues`）をそのスクリプト側で行う。実例:
+  `.claude/hooks/session-start.ps1`（独立プロセスとして起動されるhookのため、`Provider.ps1`とは
+  別に`[Console]::OutputEncoding`/`InputEncoding`の切り替えを自前で持つ）。
+- `.ps1`ファイル自体は**BOM付きUTF-8で保存する**。BOM無しUTF-8で保存すると、Windows PowerShell 5.1が
+  日本語コメント等を正しく解釈できず、離れた箇所で構文エラーになることがある（実例: hookスクリプトを
+  新規作成した際、BOM無しUTF-8で保存され`[Draft]`のような無関係な箇所でパースエラーになった）。
+  これはランタイムの設定では防げない、ファイル保存時の性質のため、新規`.ps1`作成時は既存の
+  `dev-tools/src/build.ps1`と同じくBOM付きUTF-8で保存する。
