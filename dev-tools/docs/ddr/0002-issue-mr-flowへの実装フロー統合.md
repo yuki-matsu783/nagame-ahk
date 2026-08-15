@@ -33,7 +33,7 @@ issue-mr-flowの「設計ドキュメント作成〜実装」ステップから�
 
 従来の「reflect」は実際には2つの異なる作業を指していた。
 
-- **設計反映**: `plans/` `worklog/` の内容を `docs/spec/` `docs/adr/` へ反映する（従来のreflectの主内容）
+- **設計反映**: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する（従来のreflectの主内容）
 - **AIアセット改善**: 作業中に気づいたルール・スキルの不備を `.claude/rules/` `.claude/skills/`
   `CLAUDE.md` `AGENTS.md` に反映する（今回のこの変更自体が該当する。従来は無名だった）
 

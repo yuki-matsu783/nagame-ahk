@@ -42,13 +42,13 @@ description: nagame-ahkの開発フロー全体（issue起票〜マージ）の�
 | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
 | 14 | MRでレビュー・コメントする | 人間 |
 | 15 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（11〜15の作業ループを合意まで繰り返す） | `comments` / `reply` |
-| 16 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/adr/` へ反映する | エージェント |
+| 16 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
 | 17 | AIアセット改善: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
 | 18 | commit, push する | エージェント |
 | 19 | MRでレビュー・コメントする | 人間 |
 | 20 | レビュー内容を取得し、設計反映・AIアセットの内容を修正する。対応が完了したコメントには対応内容を返信する（16〜20を合意まで繰り返す） | `comments` / `reply` |
 | 21 | `plans/` `worklog/` を削除し、`HANDOFF.md` を次タスクへリセットする | エージェント |
-| 22 | commit, push する | エージェント |
+| 22 | commit, push して Draftを解除する | エージェント |
 | 23 | マージする（squash merge。ブランチは削除してよい） | 人間 |
 
 **`start` から着手する場合を除き、このセッションでこのフローのサブコマンドを初めて使う前には、
@@ -160,7 +160,7 @@ HANDOFF.mdとの矛盾など、ブランチ名だけでは分からない「こ�
 全体フローの各ステップに関わる詳細は、以下の既存ルールを参照する（このファイルは順序立った
 フローの定義に専念し、内容の重複は避ける）。
 
-- ドキュメントの置き場所・ライフサイクル（`plans/` `worklog/` `docs/spec/` `docs/adr/` `HANDOFF.md`）:
+- ドキュメントの置き場所・ライフサイクル（`plans/` `worklog/` `docs/spec/` `docs/ddr/` `HANDOFF.md`）:
   `.claude/rules/docs-workflow.md` の「ドキュメント運用」表
 - ブランチ命名規則・squash mergeの方針: `.claude/rules/git-workflow.md`
 - AHKコーディング規約・設計ドキュメントの章立て・実装時のコメント作法:

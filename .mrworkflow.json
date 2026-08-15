@@ -4,5 +4,5 @@
   "plansDir": "plans",
   "worklogDir": "worklog",
   "specDirs": ["docs/spec", "dev-tools/docs/spec"],
-  "adrDirs": ["docs/adr", "dev-tools/docs/adr"]
+  "ddrDirs": ["docs/ddr", "dev-tools/docs/ddr"]
 }

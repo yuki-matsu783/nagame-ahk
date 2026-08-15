@@ -14,7 +14,7 @@ Ahk2Exe（AutoHotkey v2付属のコンパイラ）で単体のexeを生成し、
   AutoHotkey v2 本体（Ahk2Exeを含む）がインストール済みであることを前提とする。
   Ahk2Exeの `/base` にAutoHotkey v2本体（`AutoHotkey64.exe`）を明示的に指定してコンパイルする
   （環境によっては既定のbaseがv1系になっていることがあるため。経緯は
-  [docs/adr/0001-ahk2exeビルドの環境依存対応.md](../../../docs/adr/0001-ahk2exeビルドの環境依存対応.md)参照）。
+  [dev-tools/docs/ddr/0001-ahk2exeビルドの環境依存対応.md](../ddr/0001-ahk2exeビルドの環境依存対応.md)参照）。
 - **ビルドスクリプト**: `dev-tools/src/build.ps1`（PowerShell、実機で動作確認済み）。実行すると
   ローカルのAhk2Exeを呼び出し、`build/nagame-ahk-vX.Y.Z.exe`（バージョン付きファイル名）を生成する。
   `build/` はリポジトリ直下に生成し、`.gitignore` の `/build/` 指定によりコミット対象外とする。

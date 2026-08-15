@@ -5,7 +5,7 @@
 [.claude/rules/docs-workflow.md](../.claude/rules/docs-workflow.md) の「ドキュメント運用」表を参照。
 
 - `spec/` ── 機能ごとの正史仕様（最新の仕様を上書き更新）
-- `adr/` ── 過去の設計決断のログ（追記のみ・変更不可）
+- `ddr/` ── 過去の設計決断のログ（DDR: Design Decision Record。追記のみ・変更不可）
 
 ## spec（機能仕様）
 
@@ -16,6 +16,9 @@
 - [pdf-file-watcher.md](spec/pdf-file-watcher.md) ── PDFファイル監視・情報表示（PdfFileWatcher）
 - [recent-docs-watcher.md](spec/recent-docs-watcher.md) ── 最近使ったファイル監視・通知（RecentDocsWatcher）
 
-## adr（意思決定ログ）
+## ddr（意思決定ログ）
 
-- [0001-ahk2exeビルドの環境依存対応.md](adr/0001-ahk2exeビルドの環境依存対応.md) ── `/base`指定・BOM必須・出力ファイルでの成否判定
+DDR（Design Decision Record）はADR（Architecture Decision Record）の考え方を拡張し、
+architectureに限らない意思決定（運用ルールの決定等）も記録対象とする。
+
+- [0001-意思決定ログをADRからDDRへ改称.md](ddr/0001-意思決定ログをADRからDDRへ改称.md) ── adr→ddr改称の経緯
