@@ -11,9 +11,18 @@
     注意: SessionStart hookはTask tool経由のサブエージェント内でも発火する（公式ドキュメント確認済み）。
     サブエージェント実行時はstdinのJSONに`agent_id`が含まれるため、これを見て即終了する
     （メインセッションのコンテキストのみを汚す設計）。
+
+    注意（文字コード）: Windows PowerShell 5.1は既定でシステムのANSI/OEMコードページ
+    （日本語Windowsではcp932）でコンソール入出力を扱う。これに合わせると、UTF-8で出力する
+    `gh`コマンドの結果（issue本文の日本語等）を誤って解釈してしまい、`ConvertFrom-Json`が
+    構文エラーになる、またはClaude Codeへ返す追加コンテキストが文字化けする、といった問題が
+    実機で発生することを確認済み。そのため起動直後にコンソールの入出力エンコーディングを
+    明示的にUTF-8へ切り替える。
 #>
 
 $ErrorActionPreference = "Stop"
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::InputEncoding = [System.Text.Encoding]::UTF8
 
 function Write-AdditionalContext {
     param([Parameter(Mandatory)][string]$Text)
