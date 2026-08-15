@@ -10,23 +10,24 @@ AIセッション間・AI⇔人間の状況引継ぎメモ。常に「このブ�
   （https://github.com/yuki-matsu783/nagame-ahk/pull/4）。
 - 全体フロー15〜16（設計反映・AIアセット改善）実施後、PR #4レビューで追加要望
   「途中引き継ぎ対応」を受けて `resume` サブコマンド + `issue-mr-resume` サブエージェントを
-  実装済み（未commit）:
+  実装・commit・push済み（commit `2cb9871`）:
   - `Get-IssueNumberFromBranch` / `Get-MrForBranch` / `Get-BranchWorkFiles`（Provider.ps1）
   - `.claude/agents/issue-mr-resume.md`（状態調査専用の読み取り専用サブエージェント）
   - `.claude/skills/issue-mr-flow/SKILL.md` に `resume` サブコマンドを追加、
     `comments`/`describe` のMR番号取得を `Get-MrForBranch` に統一
   - plan: `plans/misty-foraging-torvalds.md`、worklog: `worklog/20260815_misty-foraging-torvalds.md`
-- **注意**: `issue-mr-resume` サブエージェントは今セッション内では起動確認できていない
-  （エージェント定義はセッション開始時読み込みのため、新規作成分はホットリロードされない）。
-  次回セッションで `/issue-mr-flow resume` を実際に呼び出して確認すること。
+- 次セッションで `/issue-mr-flow resume` → `issue-mr-resume` サブエージェント起動を実機確認済み。
+  正常に現在地サマリ（ブランチ・issue・PR・未解決コメント・plan/worklogファイル・HANDOFF.mdの内容と
+  矛盾点）を返すことを確認できた。前回の「未commit」「起動未確認」の注意書きは解消済み。
+- 上記実機確認の結果を受け、PR #4の未解決コメント（threadId `PRRT_kwDOT4Y-5s6Ze4iq`,
+  `.claude/skills/issue-mr-flow/SKILL.md:23`）に対応完了として返信済み（スレッド自体は
+  レビュアーが解決するまでunresolvedのまま残る仕様）。
 
 ## 次回やること
 
-- 変更をcommit, pushする。
-- 次回セッション開始時、`/issue-mr-flow resume` を実行してサブエージェントの起動・
-  現在地サマリの内容を実機確認する。
-- 人間のレビューを受け、合意まで繰り返す（完了合図後は必ず `Get-MrUnresolvedComments` /
-  `/issue-mr-flow comments all` で再確認してから次に進む。ADR 0003参照）。
+- 人間のレビュー・合意を受ける。合意まで9〜14の実装ループを繰り返す（完了合図後は必ず
+  `Get-MrUnresolvedComments` / `/issue-mr-flow comments all` で unresolved が残っていないか
+  再確認してから次に進む。ADR 0003参照）。
 - 合意後、全体フロー18〜19: `plans/misty-foraging-torvalds.md` と
   `worklog/20260815_misty-foraging-torvalds.md` を削除し、本HANDOFF.mdを次タスクへリセットする。
   その後commit, push。
