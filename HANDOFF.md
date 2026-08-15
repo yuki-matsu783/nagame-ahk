@@ -26,11 +26,13 @@ AIセッション間・AI⇔人間の状況引継ぎメモ。常に「このブ�
 
 ## 次回やること
 
-- **hookの実地E2E確認は完了済み**（2026-08-16、2回実施）。1回目: ターン終了→`Stop` hookが状態ファイルへ
-  実データを蓄積→空コミットでのgit push→`PostToolUse` hookが実際に発火しPR #17へ自動投稿されることを確認。
-  2回目: `gitBranch`混入バグ修正後、状態ファイルを削除した状態から実セッションの`session_id`で
-  `post-push-usage-report.ps1`を実行し、Stop未発火（ターン途中）でも実データが反映されることを確認
-  （いずれもテスト投稿は確認後に削除済み）。
+- **hookの実地E2E確認は完了済み**（2026-08-16、3回実施、うち1回は手動実行なしの本番動作）。
+  1回目: ターン終了→`Stop` hookが状態ファイルへ実データを蓄積→空コミットでのgit push→`PostToolUse` hook
+  が実際に発火しPR #17へ自動投稿されることを確認。2回目: `gitBranch`混入バグ修正後、状態ファイルを
+  削除した状態から実セッションの`session_id`で`post-push-usage-report.ps1`を実行し、Stop未発火
+  （ターン途中）でも実データが反映されることを確認（1・2回目のテスト投稿は確認後に削除済み）。
+  3回目: 修正一式をcommit・pushした際、**手動実行を挟まず**hookが自然発火し、PR #17へ実データの
+  コメント（comment id 5303251381）が投稿された。これは削除せず作業ログとして残している。
 - issue-mr-flowの残りステップを継続: MRレビュー→設計反映（`dev-tools/docs/spec/issue-mr-workflow.md`へ
   「Draft PR空コミット自動リトライ」「セッション使用量レポート」の節を追加、`docs/ddr/`へtranscript
   パース方式を採用した経緯・gitBranchフィルタの理由を記録）→ plans/worklog削除→Draft解除。
