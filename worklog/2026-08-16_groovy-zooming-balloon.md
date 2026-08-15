@@ -110,3 +110,7 @@
 - **実機検証**: 状態ファイルを削除した状態から、実セッションの`session_id`/`transcript_path`で
   `post-push-usage-report.ps1`を実行し、「assistant応答回数: 359」等、0にならず妥当な値が算出される
   ことを確認した（テスト投稿は確認後に削除）。
+- **本番フローでの最終確認**: `hooks.Stop`を削除した設計反映一式をcommit・pushしたところ、手動実行を
+  挟まず`post-push-usage-report.ps1`（Stop無し・PostToolUse単体）が発火し、PR #17へ
+  「assistant応答回数: 19」を含む実データのコメント（comment id 5303347701）が投稿された。
+  Stop hookを完全に削除しても機能が壊れていないことを本番フローで確認できた。

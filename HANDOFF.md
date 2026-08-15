@@ -30,12 +30,12 @@ AIセッション間・AI⇔人間の状況引継ぎメモ。常に「このブ�
 
 ## 次回やること
 
-- **hookの実地E2E確認は完了済み**（2026-08-16、複数回実施、うち1回は手動実行を挟まない本番動作）。
-  最終構成（PostToolUseのみ、Stopなし）でのドライラン確認で、assistant応答回数が0にならず
-  正しく計算されることを確認済み（テスト投稿は削除済み）。**次回のcommit・pushで、Stop無しの
-  最終構成でも本番動作として正しく発火するか、念のため再確認する**（settings.jsonの変更は
-  同一セッション内で即時反映されることは既に確認済みのため、大きな懸念は無い）。
-- issue-mr-flowの残りステップを継続: 上記commit・push→MRレビュー→plans/worklog削除→Draft解除。
+- **hookの実地E2E確認は完了済み**（2026-08-16、最終構成＝PostToolUseのみ・Stop無しでの本番動作まで
+  確認済み）。`hooks.Stop`削除後の設計反映一式をcommit・pushした際、手動実行を挟まず
+  `post-push-usage-report.ps1`が発火し、PR #17へ「assistant応答回数: 19」等の実データを含む
+  コメント（comment id 5303347701）が投稿された。
+- issue-mr-flowの残りステップを継続: MRレビュー→（レビュー指摘があれば対応）→plans/worklog削除→
+  Draft解除。
 
 ## 判断が分かれるポイント
 
