@@ -10,22 +10,26 @@ description: nagame-ahkの開発フロー全体（issue起票〜マージ）の�
 ごく小さな変更（誤字修正等。`.claude/rules/git-workflow.md` 参照）を除くあらゆるタスクは、
 このファイルの手順で進める。
 
-裏側の実処理は `dev-tools/src/vcs/Provider.ps1`（GitHub/GitLabの差異を吸収する共通関数群）に実装されている。
-各ステップの手順内で、必要に応じて以下でdot-sourceして使う。
+裏側の実処理は `dev-tools/src/vcs/Provider.sh`（GitHub/GitLabの差異を吸収する共通関数群。bash版。
+設計: `dev-tools/docs/spec/shell-scripts.md`）に実装されている。各ステップの手順内で、必要に応じて
+Bashツールで以下のようにsourceして使う。
 
-```powershell
-. dev-tools\src\vcs\Provider.ps1
+```bash
+source dev-tools/src/vcs/Provider.sh
 ```
 
+各関数はJSON文字列をstdoutへ出力する設計のため、`jq`でフィールドを取り出す
+（例: `get_issue 6 | jq -r '.title'`）。
+
 プロジェクト固有のパス設定（ブランチ命名規則・`plans/` 等の場所）はリポジトリ直下の `.mrworkflow.json`
-から読む（`Get-WorkflowConfig`）。他リポジトリへ移植する場合はこのファイルの値を書き換えるだけでよい。
+から読む（`get_workflow_config`）。他リポジトリへ移植する場合はこのファイルの値を書き換えるだけでよい。
 
 ## 全体フロー
 
 担当列: 「人間」＝人間の作業／「サブコマンド」＝下記「サブコマンド」節の `/issue-mr-flow <名前>`／
 「エージェント」＝AIエージェントの通常操作（git操作・ファイル編集等）。
 
-| # | ステップ | 担当 |
+| flow-id | ステップ | 担当 |
 |---|---|---|
 | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間 |
 | 2 | issueの内容を取得する | `start <issue番号>` |
@@ -57,7 +61,7 @@ description: nagame-ahkの開発フロー全体（issue起票〜マージ）の�
 目的はブランチ名の特定ではなく、PR/MRの状態・未解決コメント件数・plan/worklogファイル・
 HANDOFF.mdとの矛盾など、ブランチ名だけでは分からない「このセッションでまだ確認していない現在地
 情報」を集約することにある。
-**全体フローの各ステップが進むごとにHANDOFF.mdに現在の状況を反映する**
+**全体フローのflow-idが進むごとに、必ずどのflow-idまで完了したかをHANDOFF.mdに記載する**
 
 ## サブコマンド
 
@@ -65,24 +69,24 @@ HANDOFF.mdとの矛盾など、ブランチ名だけでは分からない「こ�
 
 ### `start <issue番号>` — issue取得・ブランチ/MR作成（全体フロー2〜3）
 
-1. `Get-Issue -Number <issue番号>` でissueのtitle/body/urlを取得し、内容をユーザーに提示する。
-   続けて `Test-IssueSections -Body <issue.Body>` を呼び、標準4見出し
+1. `get_issue <issue番号>` でissueのtitle/body/urlを取得し、内容をユーザーに提示する。
+   続けて `test_issue_sections "$(get_issue <issue番号> | jq -r '.body')"` を呼び、標準4見出し
    （目的・現状・期待する動作・受け入れ条件。`.github/ISSUE_TEMPLATE/task.md` /
    `.gitlab/issue_templates/task.md` 参照）の過不足を確認する。欠けている見出しがあれば
    「issue本文に以下の見出しがありません: ...」とユーザーに警告する（処理は止めず、そのまま次へ進む）。
 2. `.mrworkflow.json` の `branchPrefixTemplate` から算出されるブランチ名
    （既定 `feature-<issue番号>-<slug>`）が既にローカル/リモートに存在するか確認する。
-   - 存在しなければ: `New-IssueBranch -IssueNumber <n> -Title <issue.Title>` でブランチを作成・checkout・push、
-     続けて `New-DraftMergeRequest -IssueNumber <n> -Branch <branch> -Title <issue.Title>` でDraft MRを作成する。
-   - 既に存在すれば（セッション再開）: `Sync-Branch -Branch <branch>` でfetch・checkoutのみ行う。
+   - 存在しなければ: `new_issue_branch <n> "<issue.Title>"` でブランチを作成・checkout・push、
+     続けて `new_draft_merge_request <n> "<branch>" "<issue.Title>"` でDraft MRを作成する。
+   - 既に存在すれば（セッション再開）: `sync_branch "<branch>"` でfetch・checkoutのみ行う。
 3. 取得したissue内容をもとに、全体フロー4（Planモードでの実行手順作成）に進む旨をユーザーに案内する。
 
 ### `comments [all]` — MRレビューコメントの取得（全体フロー8・15）
 
-1. `Get-MrForBranch -Branch (git branch --show-current)` で現在のブランチに紐づくMR番号を取得する。
-2. `Get-MrUnresolvedComments -MrNumber <n>` で未解決コメントを取得し、そのまま提示する
+1. `get_mr_for_branch "$(git branch --show-current)"` で現在のブランチに紐づくMR番号を取得する。
+2. `get_mr_unresolved_comments <n>` で未解決コメントを取得し、そのまま提示する
    （ファイルパス・行番号・スレッドID・該当diffを含む）。対応済み（解決済み）のスレッドは既定で
-   機械的に除外される。引数に `all` が指定された場合は `-IncludeResolved` を付けて呼び、
+   機械的に除外される。引数に `all` が指定された場合は `get_mr_unresolved_comments <n> true` で呼び、
    解決済みも含めた全件を取得する。
 3. 新たなコメントが0件でユーザがプロンプトで指摘を行った場合は、MRにコメントすることを促す。
 4. 提示した内容をもとに、`plans/<plan名>.md` を修正する、または設計・実装を修正する
@@ -91,14 +95,14 @@ HANDOFF.mdとの矛盾など、ブランチ名だけでは分からない「こ�
 
 ### `reply <threadId> <対応内容>` — レビューコメントへの返信（全体フロー8・15）
 
-1. `Get-MrForBranch -Branch (git branch --show-current)` で現在のブランチに紐づくMR番号を取得する
+1. `get_mr_for_branch "$(git branch --show-current)"` で現在のブランチに紐づくMR番号を取得する
    （`comments` の手順1と同じ）。
 2. 返信本文を組み立てる。**AIエージェントが返信する場合は、本文の先頭に必ず
    `Claude Codeより:` の署名行を付ける。** `gh` / `glab` CLIは人間のアカウントで認証
    されているため、GitHub/GitLab上の投稿者アカウントは人間のものとして表示される。誰が書いた
-   返信かをレビュアーが判別できるよう、本文側で明示する（`Add-MrThreadReply` 関数は自由文を
+   返信かをレビュアーが判別できるよう、本文側で明示する（`add_mr_thread_reply` 関数は自由文を
    そのまま渡す設計のため、署名の付与は呼び出し側であるこの手順の責務とする）。
-3. `Add-MrThreadReply -MrNumber <n> -ThreadId <threadId> -ReplyBody <署名付きの対応内容>` で、
+3. `add_mr_thread_reply <n> "<threadId>" "<署名付きの対応内容>"` で、
    指定したスレッドに返信する。`threadId` は `comments` の出力に含まれる `threadId=...` を使う。
 4. スレッドの解決（resolved）はレビュアー側の操作であり、本サブコマンドでは行わない。
 
@@ -119,12 +123,12 @@ HANDOFF.mdとの矛盾など、ブランチ名だけでは分からない「こ�
    <worklogの「うまくいったこと」等から、現時点までの実装内容の要約。plan段階では「未着手」>
    ```
 
-3. `Get-MrForBranch -Branch (git branch --show-current)` で現在のブランチに紐づくMR番号を取得し
-   （`comments` の手順1と同じ）、`Set-MrDescription -MrNumber <n> -BodyFile <一時ファイル>` で反映する。
+3. `get_mr_for_branch "$(git branch --show-current)"` で現在のブランチに紐づくMR番号を取得し
+   （`comments` の手順1と同じ）、`set_mr_description <n> <一時ファイル>` で反映する。
 
 ### `sync` — セッション再開（全体フロー3の再開版）
 
-対象ブランチ名を引数に取り、`Sync-Branch -Branch <branch>` を呼ぶだけの単純なコマンド。
+対象ブランチ名を引数に取り、`sync_branch "<branch>"` を呼ぶだけの単純なコマンド。
 引数省略時は現在のブランチ名を使う。`resume` や `start` で既にこのセッションの現在地確認が
 済んでいる状態で、ブランチを最新化したいだけの場合に使う。**新しいセッションで最初に使う
 サブコマンドとしては使わない**（新しいセッションの最初の一手は必ず `resume` から入る）。
@@ -148,7 +152,7 @@ HANDOFF.mdとの矛盾など、ブランチ名だけでは分からない「こ�
 
 人間から「レビューOK」「合意」等、レビューループを終えて次のステップに進んでよいという合図を
 受けても、それだけを根拠に次のステップへ進んではいけない。**必ず `comments all`
-（`Get-MrUnresolvedComments -IncludeResolved`）でスレッドを再取得し、`unresolved` のスレッドが
+（`get_mr_unresolved_comments <n> true`）でスレッドを再取得し、`unresolved` のスレッドが
 残っていないか確認する。**
 
 - 残っていなければ、そのまま次のステップに進む。
@@ -166,14 +170,16 @@ HANDOFF.mdとの矛盾など、ブランチ名だけでは分からない「こ�
 - ブランチ命名規則・squash mergeの方針: `.claude/rules/git-workflow.md`
 - AHKコーディング規約・設計ドキュメントの章立て・実装時のコメント作法:
   `.claude/skills/ahk-implement/SKILL.md`, `.claude/rules/ahk-style.md`
-- `Provider.ps1`経由のコマンド実行や`Get-Content`等でのテキストファイル読み書き時の文字コード注意事項:
-  `.claude/rules/powershell-encoding.md`
+- bashスクリプトの規約（`set -euo pipefail`・jq前提・改行/エンコーディング等）:
+  `.claude/rules/shell-script-style.md`
+- `Provider.sh`の設計・スクリプト言語選定方針（bash化できる/できない判断基準）:
+  `dev-tools/docs/spec/shell-scripts.md`
 
 ## 前提
 
-- `gh` CLI（GitHubの場合）または `glab` CLI（GitLabの場合）がインストール・認証済みであること。
-  認証情報自体は各CLIの既存ログイン状態に依存し、本スキル側では管理しない。
-- リポジトリ直下に `.mrworkflow.json` があること（無い場合は `dev-tools/src/vcs/Provider.ps1` の
+- `gh` CLI（GitHubの場合）または `glab` CLI（GitLabの場合）、および `jq` がインストール・認証済みで
+  あること。認証情報自体は各CLIの既存ログイン状態に依存し、本スキル側では管理しない。
+- リポジトリ直下に `.mrworkflow.json` があること（無い場合は `dev-tools/src/vcs/Provider.sh` の
   既定値が使われる）。
 - issueは `.github/ISSUE_TEMPLATE/task.md`（GitHub）/ `.gitlab/issue_templates/task.md`（GitLab）の
   テンプレートに沿って「目的・現状・期待する動作・受け入れ条件」を記載しておくことが望ましい

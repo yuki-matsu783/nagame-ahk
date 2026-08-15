@@ -13,6 +13,7 @@
 
 - [distribution.md](spec/distribution.md) ── Windows用exe配布方法
 - [issue-mr-workflow.md](spec/issue-mr-workflow.md) ── issue駆動MRワークフロー支援
+- [shell-scripts.md](spec/shell-scripts.md) ── 開発補助スクリプトのシェル言語方針（PowerShell→bash）
 
 ## ddr（意思決定ログ）
 

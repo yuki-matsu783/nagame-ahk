@@ -15,10 +15,13 @@ Ahk2Exe（AutoHotkey v2付属のコンパイラ）で単体のexeを生成し、
   Ahk2Exeの `/base` にAutoHotkey v2本体（`AutoHotkey64.exe`）を明示的に指定してコンパイルする
   （環境によっては既定のbaseがv1系になっていることがあるため。経緯は
   [dev-tools/docs/ddr/0001-ahk2exeビルドの環境依存対応.md](../ddr/0001-ahk2exeビルドの環境依存対応.md)参照）。
-- **ビルドスクリプト**: `dev-tools/src/build.ps1`（PowerShell、実機で動作確認済み）。実行すると
-  ローカルのAhk2Exeを呼び出し、`build/nagame-ahk-vX.Y.Z.exe`（バージョン付きファイル名）を生成する。
-  `build/` はリポジトリ直下に生成し、`.gitignore` の `/build/` 指定によりコミット対象外とする。
-  Ahk2Exe本体・AutoHotkey v2本体のパスは環境変数 `AHK2EXE_PATH` / `AHK_V2_EXE_PATH` で上書きできる。
+- **ビルドスクリプト**: `dev-tools/src/build.sh`（bash、実機で動作確認済み。git bash経由で実行する）。
+  実行するとローカルのAhk2Exeを呼び出し、`build/nagame-ahk-vX.Y.Z.exe`（バージョン付きファイル名）を
+  生成する。`build/` はリポジトリ直下に生成し、`.gitignore` の `/build/` 指定によりコミット対象外と
+  する。Ahk2Exe本体・AutoHotkey v2本体のパスは環境変数 `AHK2EXE_PATH` / `AHK_V2_EXE_PATH` で
+  上書きできる。Ahk2Exeへ渡す`/in` `/out` `/base` `/icon`はDOS形式の単一スラッシュ引数のため、
+  git bashのパス自動変換を避けるために`//in`のように先頭を`//`にしている（詳細:
+  `dev-tools/docs/spec/shell-scripts.md`「git bashのパス変換」節）。
 - **バージョン・アプリ名の埋め込み**: `src/main.ahk` の先頭にAhk2Exeディレクティブ
   （`;@Ahk2Exe-SetName`, `;@Ahk2Exe-SetVersion`, `;@Ahk2Exe-SetProductName` 等）を追加し、
   `src/config/Settings.ahk` の `AppName` / `Version` の値と一致させる（自動連携はせず、
@@ -35,7 +38,7 @@ Ahk2Exe（AutoHotkey v2付属のコンパイラ）で単体のexeを生成し、
 
 ## 影響範囲
 
-- 新規: `dev-tools/src/build.ps1`（Ahk2Exe呼び出しビルドスクリプト）
+- 新規: `dev-tools/src/build.sh`（Ahk2Exe呼び出しビルドスクリプト）
 - 新規: `dev-tools/docs/README.md`（dev-tools配下の目次）
 - 新規: `dev-tools/docs/spec/distribution.md`（本ドキュメント）
 - 変更: `.claude/rules/directory-structure.md`（`dev-tools/` の追記・完了済み）
