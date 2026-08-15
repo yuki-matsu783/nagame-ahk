@@ -253,6 +253,14 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
   着手の間にコンテキスト削減のためのセッションclearステップを新設。ステップ数は23のまま。
   「フローが進むごとにHANDOFF.mdに現在の状況を反映する」運用ルールを追加）
 
+新規（追加分・issue #5 レビュー対応時の文字コード修正）:
+- `.claude/rules/powershell-encoding.md`（PowerShellスクリプト・コマンドの文字コード注意事項）
+
+変更（追加分・issue #5 レビュー対応時の文字コード修正）:
+- `dev-tools/src/vcs/Provider.ps1`（dot-source直後にコンソール入出力エンコーディングをUTF-8へ切り替え）
+- `.claude/skills/issue-mr-flow/SKILL.md`（「詳細ルールへのポインタ」に
+  `.claude/rules/powershell-encoding.md` を追加）
+
 ## 設定項目
 
 `.mrworkflow.json`（nagame-ahk向けの初期値）
@@ -296,6 +304,14 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
   フィールドの有無を見て早期終了する実装とした。
 - **SessionStart hookのmatcher範囲**: `startup|resume|clear` に限定し、`compact`（頻度が高く`gh` API
   呼び出しのコストが無視できない）と `fork`（今回のissueのスコープ外）は対象外とした。
+- **Windows PowerShell 5.1の文字コード対策**: issue #5対応中に、日本語Windowsのシステムコードページ
+  （cp932）起因の文字化け・構文エラーを2種類実機で確認した（`gh`出力の誤読によるJSON構文エラー、
+  `Get-Content`のエンコーディング未指定によるレビュー返信の文字化け）。恒久対策として
+  `Provider.ps1`のdot-source直後に`[Console]::OutputEncoding`/`InputEncoding`をUTF-8へ切り替え
+  （外部コマンドとのI/Oを保護）、加えて呼び出し側の注意事項を
+  [.claude/rules/powershell-encoding.md](../../../.claude/rules/powershell-encoding.md)
+  にまとめた（`Get-Content`/`Set-Content`は個別に`-Encoding UTF8`が必要、`.ps1`ファイルはBOM付き
+  UTF-8で保存する等）。
 
 ## 未決定事項・懸念点
 

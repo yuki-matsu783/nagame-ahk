@@ -10,9 +10,20 @@
     プロバイダ依存の関数（Get-Issue, New-DraftMergeRequest, Get-MrUnresolvedComments,
     Set-MrDescription）は Get-Provider の判定結果に応じて Github.ps1 / Gitlab.ps1 の
     対応関数（GitHub-Xxx / GitLab-Xxx）へディスパッチする。
+
+    注意（文字コード）: Windows PowerShell 5.1は既定でシステムのANSI/OEMコードページ
+    （日本語Windowsではcp932）でコンソール入出力を扱う。これに合わせると、UTF-8でやり取りする
+    `gh`/`glab`コマンドの結果（issue本文の日本語等）を誤って解釈したり、`gh api graphql`へ渡す
+    引数（返信本文の日本語等）が文字化けしたりする不具合が実機で発生することを確認済み
+    （issue #5対応時）。そのためdot-source直後にコンソールの入出力エンコーディングを明示的に
+    UTF-8へ切り替える。ただし、これは「PowerShellプロセスと外部コマンド間のI/O」のみを保護する。
+    `Get-Content`/`Set-Content`等でテキストファイルを読み書きする呼び出し側のコードは、別途
+    `-Encoding UTF8`を明示すること（既定はこれもANSI/OEMコードページになるため）。
 #>
 
 $ErrorActionPreference = "Stop"
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::InputEncoding = [System.Text.Encoding]::UTF8
 
 . (Join-Path $PSScriptRoot "Github.ps1")
 . (Join-Path $PSScriptRoot "Gitlab.ps1")

@@ -165,6 +165,8 @@ HANDOFF.mdとの矛盾など、ブランチ名だけでは分からない「こ�
 - ブランチ命名規則・squash mergeの方針: `.claude/rules/git-workflow.md`
 - AHKコーディング規約・設計ドキュメントの章立て・実装時のコメント作法:
   `.claude/skills/ahk-implement/SKILL.md`, `.claude/rules/ahk-style.md`
+- `Provider.ps1`経由のコマンド実行や`Get-Content`等でのテキストファイル読み書き時の文字コード注意事項:
+  `.claude/rules/powershell-encoding.md`
 
 ## 前提
 

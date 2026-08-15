@@ -64,3 +64,16 @@
     `Add-MrThreadReply`で署名付き返信を投稿（参考ドキュメントリンク付き、ユーザー指定）。
     コードは現状維持（`${CLAUDE_PROJECT_DIR}`のまま、`agent_id`判定もそのまま）。
   - スレッドの解決（resolved）自体はレビュアー側の操作のため、返信後もレビュアーの確認待ち。
+- ユーザーから「MRについたコメントが文字化けしている」と指摘を受け確認したところ、上記の返信
+  自体もGitHub上で文字化けしていた（`.claude/hooks/session-start.ps1`の文字化けとは別原因）。
+  - **原因**: 返信本文を書いた一時ファイル（`reply1.txt`/`reply2.txt`）をBOM無しUTF-8で作成し、
+    `Get-Content -Raw`（`-Encoding`未指定）で読み込んでいた。Windows PowerShell 5.1は
+    `Get-Content`のエンコーディング未指定時にシステムのANSIコードページ（cp932）を使うため、
+    読み込んだ時点で文字列が壊れ、そのまま`gh api graphql`経由でGitHubへ投稿されていた。
+  - **対処**: `Get-Content -Raw -Encoding UTF8`で読み直し、各スレッドに「直前の返信は文字化けして
+    いた」旨の断り書き付きで正しい内容を再投稿し、正しく表示されることを確認した。
+  - **恒久対策**: 同種の問題が`Provider.ps1`を使う他の場面（`gh`出力の読み取り等）でも起きうるため、
+    `Provider.ps1`のdot-source直後に`[Console]::OutputEncoding`/`InputEncoding`をUTF-8へ切り替える
+    処理を追加。あわせて`Get-Content`/`Set-Content`は個別に`-Encoding UTF8`が必要である旨を含め、
+    新規ルール`.claude/rules/powershell-encoding.md`にまとめ、`issue-mr-flow/SKILL.md`の
+    「詳細ルールへのポインタ」から参照させた。
