@@ -6,6 +6,6 @@ AutoHotkey v2 で実装する常駐ホットキー／自動化スクリプトで
 
 `src/main.ahk` を AutoHotkey v2 で実行してください。
 
-## ディレクトリ構成・コーディングルール
+## 開発者向けガイドライン
 
-[CLAUDE.md](CLAUDE.md) を参照してください。
+[DEVELOPERS.md](DEVELOPERS.md) を参照してください。
