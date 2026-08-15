@@ -31,9 +31,9 @@ nagame-ahk/
 ├── tests/                    # 手動/自動テスト用スクリプト
 ├── .claude/
 │   ├── rules/                 # AI向け詳細ルール（このファイルもここにある）
-│   └── skills/                 # /ahk-implement などのスキル定義
+│   └── skills/                 # /issue-mr-flow（唯一の実装フロー定義）・/ahk-implement などのスキル定義
 ├── plans/                    # AIエージェントのplanモードが出力する計画ファイル。タスクごとに新規生成し、そのままコミットして履歴として残す
-├── worklog/                  # 実装中の詳細な試行錯誤ログ（日付_<planファイル名>.md）。PR作成前のreflectでspec/adrへ反映し削除する（.claude/rules/git-workflow.md参照）
+├── worklog/                  # 実装中の詳細な試行錯誤ログ（日付_<planファイル名>.md）。PR作成前の設計反映でspec/adrへ反映し削除する（.claude/skills/issue-mr-flow/SKILL.md参照）
 ├── .gitignore
 ├── CLAUDE.md                    # プロジェクト概要・開発実行・.claude/rules/ へのポインタ
 ├── HANDOFF.md                   # セッション間・作業者間の軽量な引継ぎメモ（ブランチの現在地・次回やること等。詳細な試行錯誤はworklog/へ）

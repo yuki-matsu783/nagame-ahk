@@ -40,14 +40,19 @@ function GitHub-NewDraftMergeRequest {
 function GitHub-GetMrUnresolvedComments {
     param([Parameter(Mandatory)][int]$MrNumber)
 
+    # gh api graphqlの{owner}/{repo}プレースホルダはクエリ文字列中には展開されず、
+    # -F フィールドの値としてのみ機能する（`gh api graphql --help` のGraphQL例を参照）。
+    # そのため owner/repo もGraphQL変数として宣言し、-F 経由で渡す。
     $query = @'
-query($number: Int!) {
-  repository(owner: "{owner}", name: "{repo}") {
+query($owner: String!, $repo: String!, $number: Int!) {
+  repository(owner: $owner, name: $repo) {
     pullRequest(number: $number) {
       reviewThreads(first: 100) {
         nodes {
           isResolved
-          comments(first: 50) { nodes { author { login } body } }
+          path
+          line
+          comments(first: 50) { nodes { author { login } body diffHunk } }
         }
       }
       comments(first: 100) { nodes { author { login } body } }
@@ -56,14 +61,19 @@ query($number: Int!) {
 }
 '@
 
-    $result = gh api graphql -f query=$query -F "number=$MrNumber" | ConvertFrom-Json
+    $result = gh api graphql -F "owner={owner}" -F "repo={repo}" -F "number=$MrNumber" -f "query=$query" | ConvertFrom-Json
     $pr = $result.data.repository.pullRequest
 
     $lines = @()
     foreach ($thread in $pr.reviewThreads.nodes) {
         if ($thread.isResolved) { continue }
+        $location = if ($thread.path) { "$($thread.path):$($thread.line)" } else { "(場所不明)" }
         foreach ($comment in $thread.comments.nodes) {
-            $lines += "[review] $($comment.author.login): $($comment.body)"
+            $entry = "[review $location] $($comment.author.login): $($comment.body)"
+            if ($comment.diffHunk) {
+                $entry += "`n--- diff ---`n$($comment.diffHunk)"
+            }
+            $lines += $entry
         }
     }
     foreach ($comment in $pr.comments.nodes) {

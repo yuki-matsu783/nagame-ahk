@@ -1,17 +1,17 @@
 ---
 name: issue-mr-flow
-description: GitHub/GitLabのissueを起点に開発を進めるときに使う。issue内容の取得、feature-<issue番号>-<内容>ブランチとDraft MRの作成、MRレビューコメントの取得、plan/worklogをもとにしたMR description更新をステップ単位のサブコマンドで行う。plan作成・実装・reflectそのものは既存の実装フロー（docs-workflow.md, ahk-implement）に委ねる。
+description: nagame-ahkの開発フロー全体（issue起票〜マージ）の唯一の実装フロー定義。新機能追加・既存動作の変更など、あらゆるタスクをissue起点で進めるときに使う。issue取得、feature-<issue番号>-<内容>ブランチとDraft MRの作成、レビューコメント取得、MR description更新をサブコマンドで行いつつ、設計ドキュメント作成・plan・実装・設計反映・AIアセット改善までの全ステップをこのファイルが定義する。
 ---
 
-# issue駆動MRワークフロー支援
+# issue駆動 開発フロー（唯一の実装フロー定義）
 
-このスキルは `dev-tools/docs/spec/issue-mr-workflow.md` の実装であり、`.claude/rules/docs-workflow.md`
-の「実装フロー（必須）」・`.claude/rules/git-workflow.md` を置き換えるものではない。issue取得・
-ブランチ/MR作成・レビューコメント取得・MR description更新という、フローの「起点」と「MRとのやり取り」
-だけを自動化する。plan作成・設計・実装・reflectそのものは既存ルールにそのまま従うこと。
+このファイルは `dev-tools/docs/spec/issue-mr-workflow.md` の実装であり、nagame-ahkにおける
+**issue起票からマージまでの唯一の実装フロー定義**である。新機能追加・既存動作の変更など、
+ごく小さな変更（誤字修正等。`.claude/rules/git-workflow.md` 参照）を除くあらゆるタスクは、
+このファイルの手順で進める。
 
 裏側の実処理は `dev-tools/src/vcs/Provider.ps1`（GitHub/GitLabの差異を吸収する共通関数群）に実装されている。
-各サブコマンドの手順内で、必要に応じて以下でdot-sourceして使う。
+各ステップの手順内で、必要に応じて以下でdot-sourceして使う。
 
 ```powershell
 . dev-tools\src\vcs\Provider.ps1
@@ -20,11 +20,39 @@ description: GitHub/GitLabのissueを起点に開発を進めるときに使う�
 プロジェクト固有のパス設定（ブランチ命名規則・`plans/` 等の場所）はリポジトリ直下の `.mrworkflow.json`
 から読む（`Get-WorkflowConfig`）。他リポジトリへ移植する場合はこのファイルの値を書き換えるだけでよい。
 
+## 全体フロー
+
+担当列: 「人間」＝人間の作業／「サブコマンド」＝下記「サブコマンド」節の `/issue-mr-flow <名前>`／
+「エージェント」＝AIエージェントの通常操作（git操作・ファイル編集等）。
+
+| # | ステップ | 担当 |
+|---|---|---|
+| 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間 |
+| 2 | issueの内容を取得する | `start <issue番号>` |
+| 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
+| 4 | `docs/spec/機能名.md` に設計ドキュメントを作成する（AHK機能実装は `.claude/skills/ahk-implement/SKILL.md` の詳細手順に従う） | エージェント |
+| 5 | 設計ドキュメントの承認を得る（**承認まで実装に着手しない**） | 人間 |
+| 6 | Planモードで実行手順に合意する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント＋人間 |
+| 7 | commit, push する | エージェント |
+| 8 | MRでレビュー・コメントする | 人間 |
+| 9 | レビュー内容を取得し、planを修正する（8〜9を合意まで繰り返す） | `comments` |
+| 10 | planをもとにMR descriptionを更新する | `describe` |
+| 11 | 設計・実装を進め、ドキュメントを更新する（`.claude/rules/ahk-style.md` 等の規約に従う。worklogに書き足す） | エージェント |
+| 12 | commit, push する | エージェント |
+| 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
+| 14 | MRでレビュー・コメントする（8〜14の実装ループを合意まで繰り返す） | 人間 |
+| 15 | **設計反映**: `plans/` `worklog/` の内容を `docs/spec/` `docs/adr/` へ反映する | エージェント |
+| 16 | **AIアセット改善**: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
+| 17 | commit, push → レビュー（15〜17を合意まで繰り返す） | エージェント＋人間 |
+| 18 | `plans/` `worklog/` を削除し、`HANDOFF.md` を次タスクへリセットする | エージェント |
+| 19 | commit, push する | エージェント |
+| 20 | マージする（squash merge。ブランチは削除してよい） | 人間 |
+
 ## サブコマンド
 
 呼び出しは `/issue-mr-flow <サブコマンド> [引数]` の形。
 
-### `start <issue番号>` — issue取得・ブランチ/MR作成（ワークフロー手順2〜4）
+### `start <issue番号>` — issue取得・ブランチ/MR作成（全体フロー2〜3）
 
 1. `Get-Issue -Number <issue番号>` でissueのtitle/body/urlを取得し、内容をユーザーに提示する。
    続けて `Test-IssueSections -Body <issue.Body>` を呼び、標準4見出し
@@ -36,18 +64,18 @@ description: GitHub/GitLabのissueを起点に開発を進めるときに使う�
    - 存在しなければ: `New-IssueBranch -IssueNumber <n> -Title <issue.Title>` でブランチを作成・checkout・push、
      続けて `New-DraftMergeRequest -IssueNumber <n> -Branch <branch> -Title <issue.Title>` でDraft MRを作成する。
    - 既に存在すれば（セッション再開）: `Sync-Branch -Branch <branch>` でfetch・checkoutのみ行う。
-3. 取得したissue内容をもとに、ここから先は `.claude/rules/docs-workflow.md` の実装フロー（設計ドキュメント
-   作成→承認→planモード）に進む旨をユーザーに案内する。
+3. 取得したissue内容をもとに、全体フロー4（設計ドキュメント作成）に進む旨をユーザーに案内する。
 
-### `comments` — MRレビューコメントの取得（ワークフロー手順8）
+### `comments` — MRレビューコメントの取得（全体フロー9・14）
 
 1. 現在のブランチに紐づくMR番号を取得する（GitHub: `gh pr view --json number --jq .number`、
    GitLab: `glab mr view --output json --jq .iid`）。
-2. `Get-MrUnresolvedComments -MrNumber <n>` で未解決コメントを取得し、そのまま提示する。
-3. 提示した内容をもとに、既存の実装フローに従って `plans/<plan名>.md` を修正する（この修正作業自体は
-   本スキルの対象外。通常の編集で行う）。
+2. `Get-MrUnresolvedComments -MrNumber <n>` で未解決コメントを取得し、そのまま提示する
+   （ファイルパス・行番号・該当diffを含む）。
+3. 提示した内容をもとに、`plans/<plan名>.md` を修正する、または設計・実装を修正する
+   （この修正作業自体は本スキルの対象外。通常の編集で行う）。
 
-### `describe` — MR descriptionの更新（ワークフロー手順10・13）
+### `describe` — MR descriptionの更新（全体フロー10・13）
 
 1. 現在のブランチに対応する `plans/<plan名>.md`（と、あれば `worklog/日付_<plan名>.md` の要点）を読む。
 2. 以下のテンプレートでMR description本文を組み立て、一時ファイルへ書き出す。
@@ -67,10 +95,21 @@ description: GitHub/GitLabのissueを起点に開発を進めるときに使う�
 3. 現在のブランチに紐づくMR番号を取得し（`comments` の手順1と同じ）、
    `Set-MrDescription -MrNumber <n> -BodyFile <一時ファイル>` で反映する。
 
-### `sync` — セッション再開（ワークフロー手順4の再開版）
+### `sync` — セッション再開（全体フロー3の再開版）
 
 新しいセッションで作業を再開するときに使う。対象ブランチ名を引数に取り、
 `Sync-Branch -Branch <branch>` を呼ぶだけの単純なコマンド。引数省略時は現在のブランチ名を使う。
+
+## 詳細ルールへのポインタ
+
+全体フローの各ステップに関わる詳細は、以下の既存ルールを参照する（このファイルは順序立った
+フローの定義に専念し、内容の重複は避ける）。
+
+- ドキュメントの置き場所・ライフサイクル（`plans/` `worklog/` `docs/spec/` `docs/adr/` `HANDOFF.md`）:
+  `.claude/rules/docs-workflow.md` の「ドキュメント運用」表
+- ブランチ命名規則・squash mergeの方針: `.claude/rules/git-workflow.md`
+- AHKコーディング規約・設計ドキュメントの章立て・実装時のコメント作法:
+  `.claude/skills/ahk-implement/SKILL.md`, `.claude/rules/ahk-style.md`
 
 ## 前提
 

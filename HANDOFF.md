@@ -6,30 +6,32 @@ AIセッション間・AI⇔人間の状況引継ぎメモ。常に「このブ�
 
 ## 現在地
 
-- issue #3「開発フローを変える」対応ブランチ（現ブランチ `3-開発フローを変える`）で、
-  issue駆動MRワークフロー支援を実装済み（Phase 1: 基本機能、Phase 2: issueテンプレート標準化）。
-  - 設計doc: `dev-tools/docs/spec/issue-mr-workflow.md`（承認済み・実装差分反映済み）
-  - plan: `plans/misty-foraging-torvalds.md`（Phase 1・Phase 2両方を記載）
-  - 実装（Phase 1）: `.mrworkflow.json`, `dev-tools/src/vcs/{Provider,Github,Gitlab}.ps1`,
-    `.claude/skills/issue-mr-flow/SKILL.md`, `dev-tools/docs/README.md`（リンク追加）
-  - 実装（Phase 2）: `.github/ISSUE_TEMPLATE/task.md`, `.gitlab/issue_templates/task.md`,
-    `Provider.ps1` に `Test-IssueSections` 追加, `SKILL.md` の `start` に警告ステップ追加
-  - 実機確認: `gh` インストール・認証済み。`Get-Issue -Number 3` / `Get-Provider` /
-    `Get-WorkflowConfig` / `Test-IssueSections` を確認済み（詳細は
-    `worklog/20260815_misty-foraging-torvalds.md`）。
-  - write系関数（ブランチ/MR作成、description更新）とGitLab側は未検証のまま（意図的。詳細はworklog参照）。
+- issue #3「開発フローを変える」対応ブランチ（現ブランチ `3-開発フローを変える`）、PR #4作成済み
+  （https://github.com/yuki-matsu783/nagame-ahk/pull/4）。
+- issue駆動MRワークフロー支援（`.claude/skills/issue-mr-flow`）を実装し、PR #4のレビュー3件を受けて
+  さらに以下を実施済み（未commit）:
+  - `.claude/skills/issue-mr-flow/SKILL.md` を、issue起票〜マージの**唯一の実装フロー定義**に統合
+    （`docs-workflow.md` / `git-workflow.md` の手順部分を移動。今後は全タスクをissue起点で進める前提）
+  - 「reflect」を「設計反映」（docs/spec, docs/adr）／「AIアセット改善」（.claude/rules等）に分割
+  - `dev-tools/docs/adr/0002-issue-mr-flowへの実装フロー統合.md` を新規起票
+  - `Github.ps1` の `gh api graphql` 不具合を修正（`{owner}`/`{repo}` はクエリ文字列でなく `-F` で渡す）、
+    `path`/`line`/`diffHunk` も取得するよう拡張
+  - plan: `plans/misty-foraging-torvalds.md`、worklog: `worklog/20260815_misty-foraging-torvalds.md`
 
 ## 次回やること
 
-- ユーザーの指示があればcommit/pushする。
-- その後、実際に `/issue-mr-flow` を使って本ワークフローの後続ステップ（レビューコメント取得・
-  description更新等）を回してみる。GitHub UI上でissueテンプレートが選択できるかもpush後に確認する。
-- reflect（plan/worklogの内容をspec/adrへ最終反映し、worklogを削除）はPR作成前に行う。
+- 変更をcommit, pushする。
+- `/issue-mr-flow describe` でPR #4のdescriptionに今回の対応内容を反映する。
+- PR #4上で3件のレビューコメントに対応した旨を伝え、再レビューを依頼する。
+- 合意が得られたら「設計反映」（plan/worklogをdocs/spec, docs/adrへ反映）→「AIアセット改善」の
+  ステップへ進む（`.claude/skills/issue-mr-flow/SKILL.md` の全体フロー15〜19）。
 
 ## 判断が分かれるポイント
 
 - `ConvertTo-Slug` が全角文字のみのissueタイトルで `issue` にフォールバックする件（実害なしとして
-  今回は許容。設計docの未決定事項に記載済み）。
+  許容済み。設計docの未決定事項に記載）。
+- `ahk-implement` スキルが独立エントリーポイントでなくなったことで、非issueタスクの需要が
+  実際に無くなるかは運用しながら見極める（`dev-tools/docs/spec/issue-mr-workflow.md` 未決定事項参照）。
 
 ## 未解決の質問
 
@@ -38,4 +40,4 @@ AIセッション間・AI⇔人間の状況引継ぎメモ。常に「このブ�
 ## 守るべき条件・触ってはいけない範囲
 
 - write系関数（`New-IssueBranch` / `New-DraftMergeRequest` / `Set-MrDescription`）を、この
-  issue #3ブランチに対して誤って再実行しない（重複ブランチ/MR作成のおそれ）。実機確認は別issueで行う。
+  issue #3ブランチ・PR #4に対して誤って再実行しない（重複ブランチ/MR作成のおそれ）。

@@ -1,12 +1,13 @@
 ---
 name: ahk-implement
-description: nagame-ahk（AutoHotkey v2）で新機能の追加や既存動作の変更を行うときに使う。.claude/rules/docs-workflow.md の「実装フロー（必須）」——docs/ への設計ドキュメント作成 → 人間の承認 → 設計ドキュメント参照コメント/Debugログ付きでの実装 ——を順番に進める。
+description: nagame-ahk（AutoHotkey v2）で新機能の追加や既存動作の変更を行うときに使う。.claude/skills/issue-mr-flow/SKILL.md（唯一の実装フロー定義）から呼ばれるサブフローで、docs/ への設計ドキュメント作成 → 人間の承認 → 設計ドキュメント参照コメント/Debugログ付きでの実装 ——を順番に進める。
 ---
 
 # nagame-ahk 実装フロー
 
-このスキルは `.claude/rules/docs-workflow.md` の「実装フロー（必須）」を実行手順に落とし込んだものです。
-`nagame-ahk` で新機能の追加・既存動作の変更を行うときは、必ずこの手順で進めてください。
+このスキルは `.claude/skills/issue-mr-flow/SKILL.md`（唯一の実装フロー定義）の全体フローのうち、
+「設計ドキュメント作成〜実装」ステップ（AHK機能実装の場合）を実行手順に落とし込んだものです。
+issue-mr-flowから呼ばれるサブフローという位置づけであり、単独の最上位エントリーポイントではありません。
 コーディングの詳細ルール（命名規則、v2固有の注意点など）は `.claude/rules/ahk-style.md` を参照します。
 
 ## 手順
@@ -48,7 +49,7 @@ description: nagame-ahk（AutoHotkey v2）で新機能の追加や既存動作�
 
 - 実装中に設計と異なる判断をした場合は、設計ドキュメント側も合わせて更新する。
 - ソースコード側の参照コメントのパスも、ドキュメントのリネーム等に追従させる。
-- 実装が完了したらPR作成前に「reflect」を行う（詳細は `.claude/rules/git-workflow.md`）:
+- 実装が完了したらPR作成前に「設計反映」を行う（詳細は `.claude/skills/issue-mr-flow/SKILL.md`）:
   - `docs/spec/機能名.md` を最終仕様に合わせて上書きし、`docs/README.md` にリンクを追記する。
   - 「後で『なぜこうなってるんだっけ』と聞かれそうな決定」をした場合は `docs/adr/000N-タイトル.md` に記録し、spec側の該当する未決定事項は削除する。
   - 反映済みの `worklog/日付_<planファイル名>.md` を削除し、`HANDOFF.md` を次のタスクに向けてリセットする。

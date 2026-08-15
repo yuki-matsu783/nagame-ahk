@@ -69,3 +69,45 @@ plan: `plans/misty-foraging-torvalds.md`「追加実装: Issueテンプレート
   （このセッションでは未確認）。
 
 ---
+
+## Phase 3: PR #4レビュー対応（実装フロー統合 + reflect分割）
+
+対象: PR #4へのレビューコメント3件への対応。
+plan: `plans/misty-foraging-torvalds.md`「issue-mr-flowへの実装フロー統合 + 「reflect」の分割」節
+（Phase 1/2の内容を上書き。過去の実装内容自体はcommit履歴 8ecc790 に残っている）。
+
+### 試したこと・うまくいったこと
+
+- `/issue-mr-flow comments` を実行 → `gh api graphql` で `{owner}`/`{repo}` プレースホルダが
+  クエリ文字列中に埋め込んでも展開されない不具合を発見。`-F owner='{owner}' -F name='{repo}'` と
+  GraphQL変数化することで解消（`gh api graphql --help` の公式例で確認）。あわせて `path` / `line` /
+  `diffHunk` も取得するようにし、レビューコメントだけでなく対象ファイル・該当diffも一緒に取得できる
+  ようにした（ユーザーからの「行を指定している場合は周辺のコードも取得した方がいい」という
+  フィードバックを反映）。
+- 取得した3件のコメントの意図をAskUserQuestionで確認し、以下の方針を確定:
+  - `docs-workflow.md` / `git-workflow.md` の実装フロー部分を `.claude/skills/issue-mr-flow/SKILL.md`
+    に統合し、唯一の実装フロー定義にする（全タスクをissue起点で進める前提に変更）。
+  - 「reflect」を「設計反映」（docs/spec, docs/adr）と「AIアセット改善」（.claude/rules, .claude/skills,
+    CLAUDE.md, AGENTS.md）の2ステップに分割して命名する。
+- `.claude/skills/issue-mr-flow/SKILL.md` に20ステップの全体フロー表を追加し、唯一の実装フロー定義とした。
+- `.claude/rules/docs-workflow.md` / `.claude/rules/git-workflow.md` を「ドキュメント運用」「ブランチ命名規則」
+  等の参照情報のみに縮小し、冒頭にSKILL.mdへのポインタを追加。
+- `.claude/skills/ahk-implement/SKILL.md` の位置づけをissue-mr-flowから呼ばれるサブフローに変更。
+- `dev-tools/docs/spec/issue-mr-workflow.md` の背景・目的とステップ対応表を全面更新し、
+  `dev-tools/docs/adr/0002-issue-mr-flowへの実装フロー統合.md` を新規起票。
+- `AGENTS.md` にissue-mr-flow/SKILL.mdへのポインタを追加。
+- `grep -ri reflect` で全体を確認し、`.claude/rules/directory-structure.md` / `docs/README.md` /
+  `DEVELOPERS.md` に残っていた古い参照（「実装フロー（必須）」「reflect」）も合わせて修正した
+  （当初のplanには無かったが、grep検証で見つけたため修正）。
+
+### ダメだったこと
+
+- 特になし。
+
+### 次の一歩
+
+- 実装完了。ユーザーのcommit/push指示待ち。
+- `describe` サブコマンドでPR #4のdescriptionに今回の対応内容を反映する。
+- push後、PR #4上で3件のレビューコメントに返信し、レビューを依頼する。
+
+---

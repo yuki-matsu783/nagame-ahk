@@ -37,10 +37,10 @@ AutoHotkey64.exe src\main.ahk
 
 ## 実装フロー
 
-新機能の追加や既存動作の変更を行う前に、必ず設計ドキュメント作成→人間の承認→（必要に応じて）
-planモードでの合意→実装、という手順を踏む。詳細は
-[.claude/rules/docs-workflow.md](.claude/rules/docs-workflow.md) を参照（`/ahk-implement` スキルとして
-手順化されている）。
+新機能の追加や既存動作の変更を行う前に、必ずissueの起票→設計ドキュメント作成→人間の承認→
+（必要に応じて）planモードでの合意→実装、という手順を踏む。詳細は
+[.claude/skills/issue-mr-flow/SKILL.md](.claude/skills/issue-mr-flow/SKILL.md)（唯一の実装フロー定義）を参照
+（AHK機能実装部分は `/ahk-implement` スキルとして手順化されている）。
 
 ## テスト
 

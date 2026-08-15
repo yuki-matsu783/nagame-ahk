@@ -8,15 +8,19 @@ AIエージェント（Claude Code）がissueを起点に開発を進める際�
 - ブランチ・MR（Pull Request / Merge Request）の作成
 - plan〜レビュー往復（人間のコメント取得→plan修正）の繰り返し
 - 作業内容に応じたMR descriptionの更新
-- reflect（`plans/` `worklog/` の内容を `docs/spec/` `docs/adr/` へ反映）後のクリーンアップ
+- 設計反映（`plans/` `worklog/` の内容を `docs/spec/` `docs/adr/` へ反映）後のクリーンアップ
 
 これをGitHub・GitLabどちらのリポジトリでも同じ手順で回せるように、ステップ単位で呼び出す
 Claude Codeスキルと、その裏側でGitHub/GitLabの差異を吸収するスクリプト群を整備する。
 
-既存の実装フロー（[docs-workflow.md](../../../.claude/rules/docs-workflow.md) の「実装フロー（必須）」、
-[git-workflow.md](../../../.claude/rules/git-workflow.md)）はそのまま踏襲し、本機能はその起点（issue取得・
-ブランチ作成）とMRとのやり取り（description更新・レビューコメント取得）を自動化する薄い層を追加するもの。
-plan作成そのもの・設計/実装そのものは、AIエージェントが既存ルールに従って行う（本機能が肩代わりしない）。
+当初は「既存の実装フロー（`docs-workflow.md`, `git-workflow.md`）を踏襲し、本機能はその起点と
+MRとのやり取りだけを自動化する薄い層」として設計したが、PR #4のレビューを経て方針を変更した。
+`docs-workflow.md` の「実装フロー（必須）」と `git-workflow.md` の手順（ブランチ運用・worklogと
+設計反映・PR・マージ）の**順序立ったフロー部分**を `.claude/skills/issue-mr-flow/SKILL.md` に統合し、
+そちらを**唯一の実装フロー定義**とした。今後はごく小さな変更を除くあらゆるタスクをissue起点で
+進める前提とする。`docs-workflow.md` / `git-workflow.md` はドキュメントの置き場所・ライフサイクルや
+ブランチ命名規則といった参照情報のみを残す。詳細は
+[dev-tools/docs/adr/0002-issue-mr-flowへの実装フロー統合.md](../adr/0002-issue-mr-flowへの実装フロー統合.md) 参照。
 
 ## 仕様
 
@@ -48,10 +52,11 @@ dev-tools/src/vcs/
 - **`.mrworkflow.json`**（リポジトリ直下、Git管理下）: ブランチ命名規則やパス（`plans/` 等）など
   プロジェクト固有の値を切り出す。他リポジトリへ移植する場合はこのファイルの値を書き換えるだけで済む
   ようにする。nagame-ahk用の値は以下「設定項目」に記載。
-- **`.claude/skills/issue-mr-flow/SKILL.md`**: 現在のブランチ・issue番号・`plans/` `worklog/` の有無・
-  MRの有無などから「今どの段階か」を判定し、次に何をすべきかをAIエージェントに指示する。実処理は
-  `Provider.ps1` 経由のスクリプト呼び出しに委譲し、plan作成・実装そのものは既存の
-  `docs-workflow.md` / `.claude/skills/ahk-implement/SKILL.md` の手順にそのまま乗る。
+- **`.claude/skills/issue-mr-flow/SKILL.md`**: issue起票からマージまでの**唯一の実装フロー定義**。
+  現在のブランチ・issue番号・`plans/` `worklog/` の有無・MRの有無などから「今どの段階か」を判定し、
+  次に何をすべきかをAIエージェントに指示する。実処理は `Provider.ps1` 経由のスクリプト呼び出しに
+  委譲し、設計ドキュメント作成・plan作成・実装の詳細手順（AHK機能実装の場合）は
+  `.claude/skills/ahk-implement/SKILL.md` に委ねる。
 
 ### 提供関数（`Provider.ps1` 経由の共通インターフェース）
 
@@ -65,37 +70,16 @@ dev-tools/src/vcs/
 | `Sync-Branch` | 現在のブランチをfetch、必要ならcheckout（新しいセッションでの再開用） | `git fetch` + `git checkout` | 同左 |
 | `Test-IssueSections -Body <text>` | issue本文に「目的／現状／期待する動作／受け入れ条件」の4見出しが揃っているか確認し、欠けている見出し名の配列を返す（プロバイダ非依存） | — | — |
 
-### ステップ対応表
+### 全体フロー
 
-ユーザー提示のワークフローと、担当（人間／`/issue-mr-flow <サブコマンド>`／既存ルール）の対応。
+issue起票からマージまでの詳細な手順（担当・順序）は
+[.claude/skills/issue-mr-flow/SKILL.md](../../../.claude/skills/issue-mr-flow/SKILL.md)（唯一の実装フロー定義）
+に一本化した。本specとの内容重複・ドリフトを避けるため、ここでは表を持たない
+（詳細は[0002-issue-mr-flowへの実装フロー統合.md](../adr/0002-issue-mr-flowへの実装フロー統合.md)参照）。
 
-| # | ワークフロー上のステップ | 担当 |
-|---|---|---|
-| 1 | 人間がissueを作る | 人間（GitHub/GitLab UI。issueテンプレートで目的・現状・期待する動作・受け入れ条件を記載） |
-| 2 | 新しいセッションでissueの内容を取得する | `/issue-mr-flow start <issue番号>`（`Get-Issue` → `Test-IssueSections` で標準4項目の有無を警告） |
-| 3 | issueからMRとブランチを作る（`feature-<issue番号>-内容説明`） | 同上（`New-IssueBranch` → `New-DraftMergeRequest`） |
-| 4 | 作成したブランチをfetch, checkout | 同上（新規作成時はそのままcheckout済み。再開時は `Sync-Branch`） |
-| 5 | planする | 既存ルール（Claude Codeのplanモード。`plans/` へ出力） |
-| 6 | git commit, push | 通常のgit操作（AIエージェントが実行） |
-| 7 | MRで人間がレビュー、コメントする | 人間（GitHub/GitLab UI） |
-| 8 | MRのレビュー内容を取得し、planを修正する | `/issue-mr-flow comments`（`Get-MrUnresolvedComments`）→ plan修正は既存ルール |
-| 9 | 5〜8を合意まで繰り返す | 人間が繰り返し呼び出しを判断 |
-| 10 | planをもとにMRのdescriptionを修正する | `/issue-mr-flow describe`（`Set-MrDescription`） |
-| 11 | 設計・開発をしてドキュメントや実装を更新する | 既存ルール（`docs-workflow.md` の実装フロー） |
-| 12 | git commit, push | 通常のgit操作 |
-| 13 | 作業内容をもとにMRのdescriptionを修正する | `/issue-mr-flow describe` |
-| 14 | MRで人間がレビュー、コメントする | 人間 |
-| 15 | 合意まで13〜14を繰り返す | 人間が繰り返し呼び出しを判断 |
-| 16 | plans, worklogsを必要なドキュメントに反映する | 既存ルール（reflect：`docs/spec/` `docs/adr/`） |
-| 17 | git commit, push | 通常のgit操作 |
-| 18 | MRで人間がレビュー、コメントする | 人間 |
-| 19 | 合意まで16〜18を繰り返す | 人間が繰り返し呼び出しを判断 |
-| 20 | plan, worklogを削除する | 既存ルール（reflect） |
-| 21 | git commit, push | 通常のgit操作 |
-| 22 | 人間がマージする | 人間 |
-
-`/issue-mr-flow` のサブコマンドは `start` `comments` `describe` `sync` の4つに絞り、plan作成・実装・reflect
-そのものは既存ルール（スキル `ahk-implement` を含む）に委ねる。
+`/issue-mr-flow` のサブコマンドは `start` `comments` `describe` `sync` の4つに絞り、設計ドキュメント作成・
+plan作成・実装・設計反映・AIアセット改善そのものは `.claude/skills/issue-mr-flow/SKILL.md` の該当ステップ
+（スキル `ahk-implement` を含む）に委ねる。
 
 ### ブランチ命名
 
@@ -141,9 +125,17 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
 - `dev-tools/docs/spec/issue-mr-workflow.md`（本ドキュメント）
 
 変更:
-- `dev-tools/docs/README.md`（本機能のspecへのリンクを追加。reflect時）
-- `dev-tools/src/vcs/Provider.ps1`（`Test-IssueSections` 追加）
-- `.claude/skills/issue-mr-flow/SKILL.md`（`start` サブコマンドに標準4項目の警告ステップを追加）
+- `dev-tools/docs/README.md`（本機能のspecへのリンクを追加。設計反映時）
+- `dev-tools/src/vcs/Provider.ps1`（`Test-IssueSections` 追加、`Github.ps1`のgraphqlクエリ修正）
+- `.claude/skills/issue-mr-flow/SKILL.md`（`start` サブコマンドに標準4項目の警告ステップを追加。
+  その後、docs-workflow.md/git-workflow.mdの実装フロー統合により全体フローの唯一の定義に変更）
+- `.claude/rules/docs-workflow.md` / `.claude/rules/git-workflow.md`（実装フロー部分を削除し、
+  参照情報のみを残す形に縮小）
+- `.claude/skills/ahk-implement/SKILL.md`（issue-mr-flowから呼ばれるサブフローという位置づけに変更）
+- `AGENTS.md`（issue-mr-flow/SKILL.mdへのポインタを追加）
+
+新規（追加分）:
+- `dev-tools/docs/adr/0002-issue-mr-flowへの実装フロー統合.md`
 
 ## 設定項目
 
@@ -180,3 +172,7 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
   （実機確認: issue #3 で確認済み）。ブランチ名は `feature-<issue番号>-issue` のように番号のみで
   区別される形になるが、番号自体が一意なため実害はない。より説明的なスラッグが必要になった場合は
   ローマ字変換等の対応を別途検討する。
+- **`ahk-implement` スキルの非issueタスクでの扱い**: 今回の統合で `ahk-implement` は独立した
+  最上位エントリーポイントではなく `issue-mr-flow` から呼ばれるサブフローという位置づけに変更した。
+  「issueを起票しないごく小さな変更」は `git-workflow.md` の適用範囲の例外（main直接コミット許容）で
+  引き続き扱えるが、実際に非issueタスクの需要が残るかどうかは運用しながら見極める。

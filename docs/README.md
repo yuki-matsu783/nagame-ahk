@@ -1,6 +1,8 @@
 # docs 配下の目次
 
-`nagame-ahk` のドキュメント運用ルールは [.claude/rules/docs-workflow.md](../.claude/rules/docs-workflow.md) の「実装フロー（必須）」を参照。
+`nagame-ahk` の開発フロー全体は [.claude/skills/issue-mr-flow/SKILL.md](../.claude/skills/issue-mr-flow/SKILL.md)
+（唯一の実装フロー定義）、ドキュメントの置き場所・ライフサイクルは
+[.claude/rules/docs-workflow.md](../.claude/rules/docs-workflow.md) の「ドキュメント運用」表を参照。
 
 - `spec/` ── 機能ごとの正史仕様（最新の仕様を上書き更新）
 - `adr/` ── 過去の設計決断のログ（追記のみ・変更不可）
