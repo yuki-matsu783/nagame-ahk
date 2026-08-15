@@ -3,6 +3,15 @@
 
 ; エントリーポイント。#Include の集約とアプリ起動のみを行う。
 ; ロジックはここに書かず、各モジュール（config → lib → core → features）に委譲する。
+
+; Ahk2Exeでコンパイルする際のexeファイル情報。値は config\Settings.ahk の AppName/Version と手動で一致させる。
+; 設計: dev-tools/docs/spec/distribution.md
+;@Ahk2Exe-SetName nagame-ahk
+;@Ahk2Exe-SetDescription nagame-ahk 常駐ホットキー／自動化スクリプト
+;@Ahk2Exe-SetVersion 0.1.0
+;@Ahk2Exe-SetProductName nagame-ahk
+;@Ahk2Exe-SetMainIcon assets\icons\icon.ico
+
 #Include config\Settings.ahk
 #Include config\Macros.ahk
 #Include lib\Logger.ahk
