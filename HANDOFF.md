@@ -27,8 +27,8 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 9 | planをもとにMR descriptionを更新する | `describe` |
 | [] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
 | [x] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
-| [] | 12 | commit, push してレビュー依頼を行う | エージェント |
-| [] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
+| [x] | 12 | commit, push してレビュー依頼を行う | エージェント |
+| [x] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
 | [] | 14 | MRでレビュー・コメントする | 人間 |
 | [] | 15 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（11〜15の作業ループを合意まで繰り返す） | `comments` / `reply` |
 | [] | 16 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
@@ -53,11 +53,11 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 - 計画の実施内容1〜3を実装（SKILL.md, Provider.sh, tests/test_vcs_provider.sh）、検証も完了
   （`bash -n`構文OK、`passed=11 failures=0`、手動確認も想定どおり）
 
+- flow-id 12-13: 実装をcommit・push、MR descriptionを実装状況で更新済み
+
 ## 次にやること
 
-- flow-id 12: commit・pushしてレビュー依頼を行う
-- flow-id 13: `describe`でMR descriptionを実装状況に更新する
-- flow-id 14-15: 実装のレビューを受け、対応する
+- flow-id 14-15: 実装のレビューを受け、対応する（レビュー完了連絡があるまで先へ進まない）
 
 ## 判断を迷った内容
 
