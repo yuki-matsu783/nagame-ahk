@@ -36,7 +36,7 @@ issue #39「コミットSkillを利用するようにルールを記載する」
 | [x] | 15 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（11〜15の作業ループを合意まで繰り返す） | `comments` / `reply` |
 | [x] | 16 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
 | [x] | 17 | AIアセット改善: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
-| [] | 18 | commit, push してレビュー依頼を行う | エージェント |
+| [x] | 18 | commit, push してレビュー依頼を行う | エージェント |
 | [] | 19 | MRでレビュー・コメントする | 人間 |
 | [] | 20 | レビュー内容を取得し、設計反映・AIアセットの内容を修正する。対応が完了したコメントには対応内容を返信する（16〜20を合意まで繰り返す） | `comments` / `reply` |
 | [] | 21 | `plans/` `worklog/` を削除し、`HANDOFF.md` を次タスクへリセットする | エージェント |
@@ -71,10 +71,12 @@ issue #39「コミットSkillを利用するようにルールを記載する」
 - flow-id 17: このセッションで実際に2回発生した「hookの部分文字列マッチがコミットメッセージ・
   PR description中の"git commit"という地の文にも誤反応する」実例を、
   `.claude/rules/git-workflow.md`のコミット運用節へAIエージェント向け注記として追記。
+- flow-id 18: 上記flow-id 13-17の変更を1コミット（`a089cdd`）にまとめてcommit・push済み。
 
 ## 次にやること
 
-flow-id 18（`commit`スキル経由でcommit・push、レビュー依頼）→ flow-id 19（人間レビュー待ち）。
+flow-id 19（人間レビュー待ち）。レビュー完了の合図を受けたら`comments all`で再確認してから
+flow-id 21（plans/worklog削除・HANDOFF.mdリセット）へ進む。
 
 ## 判断を迷った内容
 
