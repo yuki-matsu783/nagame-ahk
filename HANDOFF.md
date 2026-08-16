@@ -16,11 +16,11 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 | 進捗 | flow-id | ステップ | 担当 |
 |----|---|---|---|
-| [] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間 |
-| [] | 2 | issueの内容を取得する | `start <issue番号>` |
-| [] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
-| [] | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
-| [] | 5 | Planに合意する | 人間 |
+| [x] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間 |
+| [x] | 2 | issueの内容を取得する | `start <issue番号>` |
+| [x] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
+| [x] | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
+| [x] | 5 | Planに合意する | 人間 |
 | [] | 6 | commit, push してレビュー依頼を行う | エージェント |
 | [] | 7 | MRで再度planについてレビュー・コメントする | 人間 |
 | [] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
@@ -42,20 +42,26 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## やったこと
 
-（次タスク着手時に記載）
+- issue #26取得、ブランチ`feature-26-plan`・Draft PR #27作成。
+- plan `plans/groovy-twirling-puffin.md` 作成・承認、worklog `worklog/20260816_groovy-twirling-puffin.md` 作成。
 
 ## 次にやること
 
-（次タスク着手時に記載）
+- plan承認後の実装（flow-id 11〜）: `dev-tools/src/archive-reentrant-plan.sh`、
+  `tests/test_archive_reentrant_plan.sh`、`.claude/rules/plan-mode-safety.md`規則6の改訂。
+- 詳細は`plans/groovy-twirling-puffin.md`参照。
 
 ## 判断を迷った内容
 
-（次タスク着手時に記載）
+- EnterPlanMode/ExitPlanModeをhookで自動フックする案は見送り、規則6は引き続き
+  エージェントが手順として読んで実行する運用のままとした（`plans/groovy-twirling-puffin.md`
+  「対象外」節参照）。
 
 ## 未解決の内容
 
-（次タスク着手時に記載）
+- なし（plan承認まで完了。実装はこれから）。
 
 ## 守るべき条件・触ってはいけない範囲
 
-（次タスク着手時に記載）
+- `.claude/rules/plan-mode-safety.md`の「背景」節（2026-08-15事故の記録）は変更しない
+  （規則6本文のみ改訂）。
