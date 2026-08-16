@@ -107,6 +107,28 @@ keywords: [対応工数, 経過時間, transcript, timestamp, usage-tracking, my
 - コミット・push（flow-id 12）→ `describe`でMR descriptionを更新（flow-id 13）→
   人間レビュー待ち（flow-id 14）に進む。
 
+## レビュー往復（flow-id 14〜15, 1回目）
+
+- ユーザーから「レビューOK」の合図を受けたが、`get_mr_unresolved_comments 29 true`で確認したところ
+  未解決スレッドが1件残っていた（`.claude/hooks/post-push-usage-report.sh:131`,
+  yuki-matsu783）: 「下記の問題があることをドキュメントなども併せて反映する
+  https://gille.ai/en/blog/claude-code-jsonl-logs-undercount-tokens/」
+- ルール通り、この合図だけでは次へ進まず内容を確認して対応した。記事の要旨:
+  transcript JSONLはストリーミング応答開始時点で`usage.input_tokens`等にプレースホルダー値
+  （0または1）を書き込み、応答完了後も更新されないケースがあり、input側で最大100〜174倍、
+  output側で最大10〜17倍の過小カウントが観測される。
+- 対応: 3箇所に反映した。
+  - `dev-tools/docs/spec/issue-mr-workflow.md`: 「対応工数レポート」節の記録範囲・
+    「未決定事項・懸念点」に機序・引用元URLを追記。稼働時間（`activeSeconds`）はこの問題の
+    影響を受けないことも明記。
+  - `dev-tools/docs/ddr/0006-対応工数レポートはtranscript自前パースで実装する.md`:
+    マージ済みDDRのため既存内容は変更せず「追記」セクションを追加。
+  - `.claude/hooks/post-push-usage-report.sh`: 自動投稿コメントのフッターに過小カウント要因と
+    参照URLを追記（実際に次回push時のレポートへ反映されることを確認済み）。
+- 署名付きでスレッドへ返信済み（`add_mr_thread_reply`）。ただしスレッドの解決（resolved）は
+  レビュアー側の操作のため、返信後も`get_mr_unresolved_comments`では`unresolved`のまま
+  表示される（DDR 0003の既定動作どおり）。ユーザーへ再確認を依頼する。
+
 ## レビュー往復（flow-id 7〜8, 1回目）
 
 - 指摘（yuki-matsu783, PR #29 `plans/noble-painting-waffle.md:25`）: 計測したいのは
