@@ -37,7 +37,7 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 15 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（11〜15の作業ループを合意まで繰り返す） | `comments` / `reply` |
 | [x] | 16 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
 | [x] | 17 | AIアセット改善: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
-| [] | 18 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
+| [x] | 18 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | [] | 19 | MRでレビュー・コメントする。レビュー済み連絡をするまで以降の作業は行わない。 | 人間 |
 | [] | 20 | レビュー内容を取得し、設計反映・AIアセットの内容を修正する。対応が完了したコメントには対応内容を返信する（16〜20を合意まで繰り返す） | `comments` / `reply` |
 | [] | 21 | `plans/` `worklog/` を削除し、`HANDOFF.md` を次タスクへリセットする | エージェント |
@@ -90,10 +90,12 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
   - `.claude/rules/directory-structure.md`のツリーへ`usage/`（gitignore対象）を追加
 - flow-id 17完了: 今回の作業を振り返り、既存ルール・スキル自体（`.claude/rules/`,
   `.claude/skills/`, `AGENTS.md`, `CLAUDE.md`）に不備・改善点は見つからなかったため対応なし
+- flow-id 18完了: 設計反映分（directory-structure.md, DDR 0006追記, issue-mr-workflow.md,
+  HANDOFF.md, worklog）を`docs:`コミットとしてcommit・push済み（973fefe）
 
 ## 次にやること
 
-- flow-id 18: `commit`スキル経由でドキュメント反映分をcommit・pushし、レビュー依頼を行う
+- flow-id 19: MRでの設計反映レビューを待つ（レビュー完了済み連絡があるまで以降の作業は行わない）
 
 ## 判断を迷った内容
 
