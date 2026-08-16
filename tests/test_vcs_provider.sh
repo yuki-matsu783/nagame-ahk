@@ -48,6 +48,7 @@ assert_equal "$(to_slug '###')" "issue" "to_slug: 記号のみは既定値issue�
 long_title="$(printf 'a%.0s' $(seq 1 80))"
 slug_result="$(to_slug "$long_title")"
 assert_true "$([ ${#slug_result} -le 50 ] && echo true || echo false)" "to_slug: 50文字を超えるタイトルは50文字以内に切り詰められる"
+assert_equal "$(to_slug 'enrich branch slug')" "enrich-branch-slug" "to_slug: スペース区切りの英語意訳フレーズはそのままkebab-caseになる（AIエージェント生成想定・issue #22）"
 
 # --- test_issue_sections ---
 full_body=$'## 目的\nfoo\n\n## 現状\nbar\n\n## 期待する動作\nbaz\n\n## 受け入れ条件\nqux'
