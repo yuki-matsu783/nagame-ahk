@@ -25,7 +25,7 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
 | [x] | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
 | [x] | 5 | Planに合意する | 人間 |
-| [] | 6 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
+| [x] | 6 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | [] | 7 | MRで再度planについてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
 | [] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
 | [] | 9 | planをもとにMR descriptionを更新する | `describe` |
@@ -62,12 +62,16 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
     全件再パース方式を維持
   - あわせてskill/AskUserQuestion/Agent呼び出しの詳細テーブルも同issueで実装することを確認
 - Plan承認済み（`plans/inherited-gathering-biscuit.md`）
+- flow-id 6完了: plan・worklog・HANDOFF.mdをcommit・push済み
+- push直後、ユーザーから追加指示: session-logs/usage-stateを`.claude/`配下から`usage/`
+  ディレクトリへ移設してほしい → 実装未着手だったためplan（対応方針A、E、G、H）へ反映し、
+  追加commit・push済み
 
 ## 次にやること
 
-- flow-id 4のworklog作成（`worklog/日付_inherited-gathering-biscuit.md`）
-- flow-id 6: `commit`スキルでplanをcommit・push（レビュー依頼）
-- 承認後、flow-id 11: `plans/inherited-gathering-biscuit.md`の対応方針A〜Gに沿って実装
+- flow-id 7: MRでのplanレビューを待つ（レビュー完了済み連絡があるまで実装に進まない）
+- レビュー完了後、flow-id 9でMR descriptionを更新（`describe`）→flow-id 11で
+  `plans/inherited-gathering-biscuit.md`の対応方針A〜Hに沿って実装
 
 ## 判断を迷った内容
 
