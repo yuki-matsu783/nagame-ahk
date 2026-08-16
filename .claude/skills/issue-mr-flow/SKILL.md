@@ -164,6 +164,29 @@ HANDOFF.mdとの矛盾など、ブランチ名だけでは分からない「こ�
   ステップには進まない（GitHub/GitLabのスレッド解決自体はレビュアー側の操作であり、`reply` は
   解決を行わないため、返信済みでも `unresolved` のまま残ることがある）。
 
+## PRがflow-id 21実施前にマージされてしまった場合の対処
+
+人間がレビュー後にそのままMR/PRをマージするなど、flow-id 21（`plans/` `worklog/`の削除・
+`HANDOFF.md`のリセット）を実施する前に**先にマージが完了してしまう**ことがある（issue #28,
+PR #29のセッションで実際に発生）。この場合、タスク固有の`plans/<plan名>.md`・
+`worklog/日付_<plan名>.md`・作業途中のままの`HANDOFF.md`が、そのまま`main`へ残ってしまう
+（本来`worklog/`はsquash mergeの対象からflow-id 21で除外され`main`に残らない設計であり、
+このズレはdocs-workflow.mdの運用と矛盾する）。
+
+マージ後にこのズレに気づいた場合、**`main`へ直接コミットせず**、以下の手順で対処する
+（`main`は共有の正史であり、レビューを経ないままの直接変更は避ける）。
+
+1. `git fetch origin main` 等で最新の`main`を確認し、残ってしまった`plans/`・`worklog/`ファイル・
+   `HANDOFF.md`の状態を特定する。
+2. 新しいクリーンアップ用ブランチを`main`から作成する（対象のissue番号が無いことが多いため、
+   `.mrworkflow.json`の`branchPrefixTemplate`に従う必要はなく、`chore/cleanup-<簡潔な説明>`の
+   ような分かりやすい名前でよい）。
+3. そのブランチ上で、該当する`plans/`・`worklog/`ファイルを削除し、`HANDOFF.md`を次タスク向けの
+   空テンプレートへリセットする（内容はflow-id 21で行うものと同じ）。
+4. commit・pushし、`main`を対象にPRを作成する。PR作成・マージの実行は、他のPR操作と同様
+   ユーザーから明示的な指示を受けてから行う（`.claude/rules/git-workflow.md`の原則どおり、
+   マージ自体は人間が行う）。
+
 ## 詳細ルールへのポインタ
 
 全体フローの各ステップに関わる詳細は、以下の既存ルールを参照する（このファイルは順序立った
