@@ -3,10 +3,12 @@
 # dev-tools/src/extract-frontmatter.sh の単体テスト。
 # 設計反映時に dev-tools/docs/spec/ へ記録予定（issue #7 PR #23レビュー対応）。
 #
-# 対象: 外部プロセス起動を伴わない純粋ロジック（frontmatter_to_json のYAML→JSON変換、
-# concept_id・directory・frontmatter無しの扱い）。find/stat/date を使った実ディレクトリ走査
-# （main関数本体）はここでは検証しない（実データでの動作確認は本スクリプトの通常利用を兼ねる。
-# tests/test_vcs_provider.sh と同じ方針）。
+# 対象: ネットワークを伴わない純粋ロジック（frontmatter_to_json のYAML→JSON変換、
+# resolve_repo_root によるリポジトリルート解決、concept_id・directory・frontmatter無しの扱い）。
+# resolve_repo_root はローカルの `git rev-parse` を呼ぶが、tests/test_vcs_provider.sh が
+# gh/glab（ネットワークAPI）呼び出しのみを対象外とし、ローカルgit呼び出しは検証対象に含めている
+# のと同じ方針。find/stat/date を使った実ディレクトリ走査（main関数本体）はここでは検証しない
+# （実データでの動作確認は本スクリプトの通常利用を兼ねる）。
 #
 # 使い方:
 #     bash tests/test_extract_frontmatter.sh
@@ -81,20 +83,29 @@ frontmatterの無いファイル。
 EOF
 assert_equal "$(frontmatter_to_json "$no_frontmatter_file")" "null" "frontmatter_to_json: frontmatterが無ければnullを返す"
 
+# --- resolve_repo_root: 実行時の指定ディレクトリに関わらず、常にgitリポジトリのルートを返す ---
+# （PR #23レビュー対応: concept_id/directoryは指定ディレクトリではなくrepo root基準にする）
+assert_equal "$(resolve_repo_root "$REPO_ROOT")" "$REPO_ROOT" "resolve_repo_root: リポジトリルート自身を指定した場合"
+assert_equal "$(resolve_repo_root "$REPO_ROOT/docs")" "$REPO_ROOT" "resolve_repo_root: サブディレクトリを指定してもリポジトリルートを返す"
+
 # --- concept_id・directory の導出（main関数と同じ計算式をここで直接検証） ---
-target_dir="${WORK_DIR}/target"
-mkdir -p "${target_dir}/sub"
-touch "${target_dir}/root.md" "${target_dir}/sub/nested.md"
+# concept_id/directoryは実行時の指定ディレクトリではなく、repo_root（resolve_repo_rootの戻り値）
+# からの相対パスを基準にする。
+repo_root="$(resolve_repo_root "$REPO_ROOT")"
 
-rel_root="${target_dir}/root.md"
-rel_root="${rel_root#"$target_dir"/}"
-assert_equal "${rel_root%.md}" "root" "concept_id: ルート直下のファイルは拡張子を除いたファイル名になる"
-assert_equal "$(dirname "$rel_root")" "." "directory: ルート直下のファイルは'.'になる"
+rel_root_level="$(realpath --relative-to="$repo_root" "$REPO_ROOT/README.md")"
+assert_equal "${rel_root_level%.md}" "README" "concept_id: リポジトリルート直下のファイルは拡張子を除いたファイル名になる"
+assert_equal "$(dirname "$rel_root_level")" "." "directory: リポジトリルート直下のファイルは'.'になる"
 
-rel_nested="${target_dir}/sub/nested.md"
-rel_nested="${rel_nested#"$target_dir"/}"
-assert_equal "${rel_nested%.md}" "sub/nested" "concept_id: サブディレクトリのファイルは相対パスから.mdを除いたものになる"
-assert_equal "$(dirname "$rel_nested")" "sub" "directory: サブディレクトリのファイルはそのディレクトリ名になる"
+rel_nested="$(realpath --relative-to="$repo_root" "$REPO_ROOT/docs/spec/activity-status.md")"
+assert_equal "${rel_nested%.md}" "docs/spec/activity-status" "concept_id: サブディレクトリのファイルはリポジトリルートからの相対パスから.mdを除いたものになる"
+assert_equal "$(dirname "$rel_nested")" "docs/spec" "directory: サブディレクトリのファイルはリポジトリルートからの相対ディレクトリパスになる"
+
+# docs/ を指定して実行した場合でも、concept_id/directoryはリポジトリルート基準のまま
+# （docs/spec/ からの相対 "activity-status" にはならない）ことを確認する。
+repo_root_from_subdir="$(resolve_repo_root "$REPO_ROOT/docs")"
+rel_from_subdir="$(realpath --relative-to="$repo_root_from_subdir" "$REPO_ROOT/docs/spec/activity-status.md")"
+assert_equal "${rel_from_subdir%.md}" "docs/spec/activity-status" "concept_id: docs/を指定して実行してもリポジトリルート基準のまま"
 
 echo "----"
 echo "passed=${PASSED} failures=${FAILURES}"

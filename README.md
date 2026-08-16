@@ -1,5 +1,5 @@
 ---
-title: nagame-ahk
+title: アプリ利用者向けガイド
 type: guide
 description: nagame-ahk（配布exeを使うエンドユーザー向け）の入手方法・使い方を説明するガイド
 tags: [readme, user-guide]

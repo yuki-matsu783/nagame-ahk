@@ -1,0 +1,1 @@
+{"concept_id":"docs/ddr/0001-意思決定ログをADRからDDRへ改称","directory":"docs/ddr","frontmatter":{"title":"0001. 意思決定ログのディレクトリ・呼称をADRからDDR（Design Decision Record）へ改称する","type":"ddr","description":"意思決定ログのディレクトリ・呼称をADRからDDRへ改称した経緯を記録したDDR","tags":["ddr","docs","naming"],"keywords":["adr","ddr","意思決定ログ","改称","docs-readme","issue-12"]},"mtime":"2026-08-16T09:42:58"}

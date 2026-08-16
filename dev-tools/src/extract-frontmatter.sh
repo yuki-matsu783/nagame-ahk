@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
-# 指定ディレクトリ配下のmarkdownファイルからYAML frontmatterのみを抽出し、
-# 1行1JSONの index.jsonl として出力する（既存があれば上書き）。
+# 指定ディレクトリ配下を再帰的に走査し、YAML frontmatterのみを抽出する。
+# markdownファイルが直下に存在するディレクトリ毎に、そのディレクトリ自身へ1行1JSONの
+# index.jsonl を出力する（既存があれば上書き。1回の実行で複数ファイルになりうる）。
+# concept_id/directoryは、実行時に指定したディレクトリではなく常にgitリポジトリのルートからの
+# 相対パスを基準にする（例: リポジトリルートで実行しても docs/ を指定して実行しても、
+# docs/spec/activity-status.md のconcept_idは常に "docs/spec/activity-status"）。
+# 使い方: extract-frontmatter.sh <directory>（リポジトリルートで "." を指定すると、
+# markdownを含む全ディレクトリのindex.jsonlを一括生成できる）。
 # YAML→JSON変換は、PATH上に`yq`（https://github.com/mikefarah/yq）があれば優先的に使い、
 # 無ければ本リポジトリのfrontmatterスキーマに絞った自前の軽量パーサーへフォールバックする
 # （yqを新規の必須外部依存にはしない）。
@@ -139,6 +145,16 @@ frontmatter_to_json() {
   printf '%s\n' "$block" | frontmatter_block_to_json
 }
 
+# gitリポジトリのルートを、MSYS形式（/c/...）に正規化して返す。
+# `git rev-parse --show-toplevel`はWindowsドライブレター形式（C:/...）で返るため、
+# `realpath --relative-to`の基準に使うと表記が一致せず相対パス計算が失敗する
+# （実機確認済み）。`cd`はどちらの表記も受け付けるため、一度cdしてから`pwd`で
+# 一貫したMSYS形式を取得する。
+resolve_repo_root() {
+  local start_dir="$1"
+  (cd "$start_dir" && cd "$(git rev-parse --show-toplevel)" && pwd)
+}
+
 main() {
   local target_dir="${1:-}"
   if [[ -z "$target_dir" ]]; then
@@ -151,15 +167,26 @@ main() {
   fi
   target_dir="${target_dir%/}"
 
-  local out_file="$target_dir/index.jsonl"
-  : >"$out_file"
+  local repo_root
+  repo_root="$(resolve_repo_root "$target_dir")"
 
+  # markdownが直下に存在するディレクトリごとにindex.jsonlを生成する（1回の実行で複数ファイルに
+  # なりうる）。concept_id/directoryは実行時の指定ディレクトリではなく、常にgitリポジトリの
+  # ルートからの相対パスを基準にする（PR #23レビュー対応）。
+  local -A seen_out_files=()
   local file
   while IFS= read -r -d '' file; do
-    local rel="${file#"$target_dir"/}"
+    local rel
+    rel="$(realpath --relative-to="$repo_root" "$file")"
     local concept_id="${rel%.md}"
     local dir
     dir="$(dirname "$rel")"
+    local out_file
+    out_file="$(dirname "$file")/index.jsonl"
+    if [[ -z "${seen_out_files[$out_file]:-}" ]]; then
+      : >"$out_file"
+      seen_out_files[$out_file]=1
+    fi
     local fm
     fm="$(frontmatter_to_json "$file")"
     local epoch
@@ -178,7 +205,10 @@ main() {
       | tr -d '\r' >>"$out_file"
   done < <(find "$target_dir" -type f -name '*.md' -print0 | sort -z)
 
-  echo "wrote: $out_file" >&2
+  local out_file
+  for out_file in "${!seen_out_files[@]}"; do
+    echo "wrote: $out_file" >&2
+  done
 }
 
 # 単体テスト（tests/test_extract_frontmatter.sh）からsourceして関数のみ再利用できるよう、

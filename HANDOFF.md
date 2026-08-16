@@ -86,6 +86,16 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
   （`docs/`, `dev-tools/`, `tests/`, `.claude/`, `plans/`, `worklog/`, `.github/ISSUE_TEMPLATE/`,
   `.gitlab/issue_templates/`）で`extract-frontmatter.sh`を実行、生成された`index.jsonl`をgit管理下に
   置いた（`src/`, `assets/icons/`, `.gemini/`, `build/`はmarkdownが無いため対象外）。
+  commit・push済み（`82823cd`, CR除去修正`7de9063`）。
+- レビューで「イメージが違った」との指摘（出力は指定ディレクトリ1箇所への集約ではなく、markdownが
+  存在する各ディレクトリごとに分散させ、concept_idは常にリポジトリルート基準の相対パスにすべき）を
+  受領。plan（`plans/velvet-copper-lynx.md`）を作成・承認を得て`extract-frontmatter.sh`を再設計。
+- `resolve_repo_root`関数を新設（`git rev-parse --show-toplevel`のWindowsドライブレター表記と
+  `realpath`のMSYS表記が一致しない問題を、`cd`経由で吸収）。`main()`を、markdownが直下に存在する
+  ディレクトリ毎にそのディレクトリ自身へ`index.jsonl`を出力し、concept_id/directoryは常に
+  リポジトリルート基準の相対パスにする設計へ変更。誤った旧仕様の8ファイルを削除し、
+  リポジトリルートで1回実行して16ファイルへ再生成。`tests/test_extract_frontmatter.sh`も
+  `resolve_repo_root`・repo_root基準のconcept_id導出テストへ更新（15アサーション成功）。
 
 ## 次にやること
 
@@ -94,10 +104,11 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
   確認してから設計反映（flow-id 16）へ進む。
 - 設計反映: `plans/purrfect-churning-oasis.md`（round2、`plans/immutable-painting-kitten.md`同様
   上書きしない） / `plans/ember-quilted-narwhal.md`（round3） / `plans/gilded-tundra-sparrow.md`
-  （index.jsonl管理化） / 対応するworklog3件の内容を`dev-tools/docs/spec/`
-  （`extract-frontmatter.sh`の正史仕様。生成物`index.jsonl`を各ディレクトリで手動管理する運用や
-  再生成のタイミングも記載する）・`.claude/rules/markdown-frontmatter.md`・
-  `.claude/rules/directory-structure.md`（既に反映済み）へ反映する。
+  （index.jsonl管理化） / `plans/velvet-copper-lynx.md`（出力仕様の再設計） / 対応するworklog4件の
+  内容を`dev-tools/docs/spec/`（`extract-frontmatter.sh`の正史仕様。ディレクトリ分散出力・
+  repo root基準concept_id・生成物`index.jsonl`を手動管理する運用や再生成のタイミングを記載する）・
+  `.claude/rules/markdown-frontmatter.md`・`.claude/rules/directory-structure.md`（既に反映済み）
+  へ反映する。
 
 ## 判断を迷った内容
 
