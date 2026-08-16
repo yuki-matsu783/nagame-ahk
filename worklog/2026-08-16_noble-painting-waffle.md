@@ -150,6 +150,22 @@ keywords: [対応工数, 経過時間, transcript, timestamp, usage-tracking, my
   目安として扱ってください。」への簡略化）。この編集はそのまま活かし、上書きしていない。
 - `bash -n`構文チェック・`tests/test_usage_tracking.sh`/`tests/test_vcs_provider.sh`の回帰確認済み。
   push後の実際のレポート投稿で、2回目以降フッターが省略されることを実地確認する。
+- `get_mr_unresolved_comments 29`で未解決スレッド0件を確認済み（flow-id 14〜15ループ終了）。
+
+## 設計反映・AIアセット改善（flow-id 16〜17）
+
+- 実装を進めながら`dev-tools/docs/spec/issue-mr-workflow.md`（稼働時間の算出方法、
+  トークン数の過小カウント要因、フッター初回投稿限定の挙動、影響範囲）と
+  `dev-tools/docs/ddr/0006-...md`（追記セクション）へ都度反映していたため、flow-id 16時点での
+  追加反映はほぼ無かった。差分確認のうえ、影響範囲セクションにレビュー往復2回分の変更ファイルを
+  追記した。
+- AIアセット改善: 今回のセッションで得られた再利用可能な知見を2件反映した。
+  - `.claude/rules/shell-script-style.md`「JSON操作」節: Windowsネイティブjqの`strptime`/`mktime`
+    未実装、および`try/catch`との組み合わせでエラーが握りつぶされる現象（issue #28以外の
+    将来のスクリプトにも関わる一般的な注意事項のため）。
+  - `.claude/rules/directory-structure.md`「配置の指針」: `参考ディレクトリ/`（`.gitignore`対象、
+    ローカルにcloneした参考OSSの置き場所）という新しい局所的な慣習を、将来のセッションが
+    混乱しないよう明記した。
 
 ## レビュー往復（flow-id 7〜8, 1回目）
 

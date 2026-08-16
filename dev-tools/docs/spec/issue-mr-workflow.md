@@ -441,9 +441,13 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
   gapベースの`activeSeconds`集計ロジック、`strptime`/`mktime`に依存しない自前実装
   `epoch_from_iso8601`を追加）
 - `.claude/hooks/post-push-usage-report.sh`（`fmt_duration`、レポート本文への
-  「対応工数（目安・入力待ち時間を除く）」行を追加）
+  「対応工数（目安・入力待ち時間を除く）」行を追加。レビュー往復で、トークン数の既知の過小カウント
+  要因を説明するフッター文の追加、および`is_first_post`判定によるフッター表示の初回投稿限定化も追加）
 - `dev-tools/docs/spec/issue-mr-workflow.md`（本セクション「稼働時間の算出方法」を追加、
-  「未決定事項・懸念点」に稼働時間の誤差要因・overlap dedup未対応を追記）
+  「未決定事項・懸念点」に稼働時間の誤差要因・overlap dedup未対応・トークン数の過小カウント要因を
+  追記、「投稿内容の位置づけ」にフッター初回投稿限定の挙動を追記）
+- `dev-tools/docs/ddr/0006-対応工数レポートはtranscript自前パースで実装する.md`（マージ済みDDRの
+  ため既存内容は変更せず、トークン数の過小カウント問題に関する「追記」セクションを追加）
 - `tests/README.md`（`test_usage_tracking.sh`の行を追加）
 - `.claude/rules/shell-script-style.md`（Windowsネイティブjqの`strptime`/`mktime`未実装という
   一般的な制約を「JSON操作」節に追記）

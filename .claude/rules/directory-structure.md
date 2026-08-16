@@ -67,3 +67,8 @@ nagame-ahk/
   git bash経由で実行可能な範囲でbash（`.sh`）を使う。bash化できない場合のみPowerShell（`.ps1`）と
   する。bashスクリプトは`jq`（JSON操作）を前提とする。詳細な判断基準・規約は
   `dev-tools/docs/spec/shell-scripts.md`, `.claude/rules/shell-script-style.md` を参照。
+- `参考ディレクトリ/`（リポジトリ直下、`.gitignore`対象）: 設計・実装の参考にするため作業者が
+  ローカルへcloneした外部OSS等を置く場所（issue #28対応時に導入）。リポジトリ本体には含めない
+  ため、上記ツリーには登場しない。存在する場合、中身の調査は問題ないが、その配下のファイルを
+  コミット対象に含めたり、そのリポジトリ自体の構成をnagame-ahk側へ流用したりしないこと
+  （あくまで参照専用）。

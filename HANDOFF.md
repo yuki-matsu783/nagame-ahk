@@ -29,10 +29,10 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
 | [x] | 12 | commit, push してレビュー依頼を行う | エージェント |
 | [x] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
-| [x] | 14 | MRでレビュー・コメントする | 人間 |
-| [x] | 15 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（11〜15の作業ループを合意まで繰り返す） | `comments` / `reply` |
-| [] | 16 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
-| [] | 17 | AIアセット改善: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
+| [x][x] | 14 | MRでレビュー・コメントする | 人間 |
+| [x][x] | 15 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（11〜15の作業ループを合意まで繰り返す） | `comments` / `reply` |
+| [x] | 16 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
+| [x] | 17 | AIアセット改善: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
 | [] | 18 | commit, push してレビュー依頼を行う | エージェント |
 | [] | 19 | MRでレビュー・コメントする | 人間 |
 | [] | 20 | レビュー内容を取得し、設計反映・AIアセットの内容を修正する。対応が完了したコメントには対応内容を返信する（16〜20を合意まで繰り返す） | `comments` / `reply` |
@@ -44,41 +44,33 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 - issue #28（対応工数レポートの日本語修正・経過時間記録追加）を起票内容から着手。
   `feature-28-issue` ブランチ・Draft PR #29 を作成。
-- ブランチ作成直後、出所不明の未コミット差分（7ファイル、issue #28の意図と一致する文言統一）を
-  発見。ユーザーに確認し、活用する方針で合意（詳細は `worklog/2026-08-16_noble-painting-waffle.md`）。
-  この7ファイルはその後 `ff702e7 タイトルを修正` コミットで既にコミット済みになっていることを
-  flow-id 11着手時に確認した（コミット済みのため実装コミットへ含める対応は不要になった）。
-- Planを作成・承認済み（`plans/noble-painting-waffle.md`）。
-- Planレビュー1回目: 「入力待ち時間を稼働時間から除外するロジックになっているか」の指摘を受け、
-  gapベースの除外方式にPlanを修正・返信・再レビューOKまで完了（flow-id 7〜8ループ終了）。
+- ブランチ作成直後の出所不明の未コミット差分（7ファイル、issue #28の意図と一致する文言統一）は
+  ユーザー確認の上で活用する方針とし、その後 `ff702e7 タイトルを修正` コミットで既にコミット
+  済みになっていることを確認した（詳細は `worklog/2026-08-16_noble-painting-waffle.md`）。
+- Planを作成・承認・レビュー1回目対応済み（`plans/noble-painting-waffle.md`。flow-id 4〜9完了）。
 - flow-id 11: ユーザー用意の参考実装2件（`参考ディレクトリ/claude-work-timer`,
-  `claude-code-time-tracking`。いずれもローカルclone、`.gitignore`で除外済み）を調査し、
-  tail buffer（既定30秒）をPlanへ追加。実装中に、開発機のjq（Windowsネイティブ版jq 1.6）が
-  `strptime`/`mktime`未実装で`fromdateiso8601`が使えないことが判明したため、自前実装
-  （`days_from_civil`アルゴリズム）で代替した。`.claude/hooks/lib/UsageTracking.sh` /
-  `post-push-usage-report.sh` の実装、`tests/test_usage_tracking.sh`（新設、12アサーション
-  全合格）、ドキュメント（`dev-tools/docs/spec/issue-mr-workflow.md`, `tests/README.md`,
-  `.claude/rules/shell-script-style.md`）を更新済み。詳細は
-  `worklog/2026-08-16_noble-painting-waffle.md` 参照。
+  `claude-code-time-tracking`）を調査し、tail buffer（既定30秒）をPlanへ追加。実装中に、開発機の
+  jq（Windowsネイティブ版jq 1.6）が`strptime`/`mktime`未実装で`fromdateiso8601`が使えないことが
+  判明したため、自前実装（`days_from_civil`アルゴリズム）で代替した。
+  `.claude/hooks/lib/UsageTracking.sh` / `post-push-usage-report.sh` の実装、
+  `tests/test_usage_tracking.sh`（新設、12アサーション全合格）、ドキュメント更新まで完了
+  （commit `028d8c7`）。
+- flow-id 14〜15（レビューループ2往復）: 1往復目はトークン数の既知の過小カウント問題をドキュメントへ
+  反映する指摘（commit `20f8b74`）、2往復目はフッターの免責事項説明文をMRへの初回投稿時のみ表示する
+  よう変更する指摘（commit `0d96d24`）。いずれも対応・署名付き返信済みで、
+  `get_mr_unresolved_comments 29 true`で未解決スレッド0件を確認済み。
+- flow-id 16〜17: 実装中に都度`dev-tools/docs/spec/issue-mr-workflow.md`・DDR 0006へ反映していたため
+  追加反映は少なかった。AIアセット改善として`.claude/rules/shell-script-style.md`
+  （jqのstrptime/mktime制約）・`.claude/rules/directory-structure.md`（`参考ディレクトリ/`の説明）を
+  追加。詳細は `worklog/2026-08-16_noble-painting-waffle.md` 参照。
 
 ## 次にやること
 
-- flow-id 12・13完了（commit `028d8c7` push済み、PR #29 descriptionを実装状況込みで更新済み）。
-  実際のpushでPostToolUse hookが発火し、「対応工数（目安・入力待ち時間を除く）: 36分」の行が
-  自動投稿コメントに表示されることを実地確認済み。
-- flow-id 14〜15（1回目）: トークン数の既知の過小カウント問題をドキュメントへ反映する指摘に対応・
-  返信・push済み（commit `20f8b74`）。この指摘スレッドはユーザーがGitHub上で`resolved`にした。
-- flow-id 14〜15（2回目）: ユーザーから「レビュー指摘を記入した」の合図を受け、
-  `get_mr_unresolved_comments 29 true`で新規未解決スレッド1件を検出（フッターの免責事項説明文を
-  MRへの初回投稿時のみ表示するようにという指摘）。`post-push-usage-report.sh`に
-  `is_first_post`判定を追加して対応・返信・push済み（commit `0d96d24`）。実際のpushで
-  フッターが2回目以降省略されることを実地確認済み。
-  なお、ユーザー（または連携ツール）がフッター文言自体も手動編集していた（簡略化）ため、
-  その編集内容は活かしたまま実装した。
-  **スレッドの解決（resolved）操作はレビュアー側の操作のため、返信しただけでは`unresolved`のまま**。
-  ユーザーに、対応内容の確認とスレッドの解決操作（またはさらなるコメント）を依頼する必要がある。
-  flow-id 16（設計反映）以降には、`get_mr_unresolved_comments 29 true`で未解決スレッドが
-  0件であることを再確認してから進むこと。
+- flow-id 18: 設計反映・AIアセット改善の変更をcommit, pushしてレビュー依頼を行う。
+- flow-id 19〜20: 人間レビュー待ち。レビューOKの合図を受けても`get_mr_unresolved_comments 29 true`
+  で未解決スレッドが無いことを必ず確認してから次へ進む。
+- flow-id 21: `plans/` `worklog/` を削除し、`HANDOFF.md` を次タスクへリセットする。
+- flow-id 22〜23: commit, push してDraft解除（人間がマージ）。
 
 ## 判断を迷った内容
 
