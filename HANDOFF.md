@@ -16,24 +16,24 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 | 進捗 | flow-id | ステップ | 担当 |
 |----|---|---|---|
-| [x] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間 |
-| [x] | 2 | issueの内容を取得する | `start <issue番号>` |
-| [x] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
-| [x] | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
-| [x] | 5 | Planに合意する | 人間 |
-| [x] | 6 | commit, push してレビュー依頼を行う | エージェント |
-| [x] | 7 | MRで再度planについてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
-| [x] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
-| [x] | 9 | planをもとにMR descriptionを更新する | `describe` |
-| [x] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
-| [x] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
-| [x] | 12 | commit, push してレビュー依頼を行う | エージェント |
-| [x] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
-| [x] | 14 | MRでレビュー・コメントする | 人間 |
-| [x] | 15 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（11〜15の作業ループを合意まで繰り返す） | `comments` / `reply` |
-| [x] | 16 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
-| [x] | 17 | AIアセット改善: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
-| [x] | 18 | commit, push してレビュー依頼を行う | エージェント |
+| [] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間 |
+| [] | 2 | issueの内容を取得する | `start <issue番号>` |
+| [] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
+| [] | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
+| [] | 5 | Planに合意する | 人間 |
+| [] | 6 | commit, push してレビュー依頼を行う | エージェント |
+| [] | 7 | MRで再度planについてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
+| [] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
+| [] | 9 | planをもとにMR descriptionを更新する | `describe` |
+| [] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
+| [] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
+| [] | 12 | commit, push してレビュー依頼を行う | エージェント |
+| [] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
+| [] | 14 | MRでレビュー・コメントする | 人間 |
+| [] | 15 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（11〜15の作業ループを合意まで繰り返す） | `comments` / `reply` |
+| [] | 16 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
+| [] | 17 | AIアセット改善: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
+| [] | 18 | commit, push してレビュー依頼を行う | エージェント |
 | [] | 19 | MRでレビュー・コメントする | 人間 |
 | [] | 20 | レビュー内容を取得し、設計反映・AIアセットの内容を修正する。対応が完了したコメントには対応内容を返信する（16〜20を合意まで繰り返す） | `comments` / `reply` |
 | [] | 21 | `plans/` `worklog/` を削除し、`HANDOFF.md` を次タスクへリセットする | エージェント |
@@ -42,33 +42,11 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## やったこと
 
-- issue #11「git pushイベントを検知してcompactする」を取得
-- `feature-11-prompt-compact-after-push` ブランチ・Draft PR #33 を作成
-- origin/main（PR #32マージ分）を取り込みmerge・push済み
-- Planモードで実装方針を作成しユーザー承認済み（`plans/silly-puzzling-ember.md`）。
-  詳細な調査ログは `worklog/2026-08-16_silly-puzzling-ember.md` 参照
-- plan/worklog/HANDOFFをcommit, push済み（flow-id 6完了）
-- PR #33 でplanレビューOKの連絡を受領。未解決レビュースレッド0件を確認済み（flow-id 7-8完了）
-- planをもとにPR #33のdescriptionを更新済み（flow-id 9完了）
-- セッションをcompact済み（flow-id 10完了）
-- `.claude/hooks/post-push-compact-prompt.sh` を新規作成し `.claude/settings.json` へ登録。
-  疑似stdin JSONでの動作確認・実機確認（PostToolUseでの`additionalContext`注入）とも完了
-  （flow-id 11完了。詳細はworklog参照）
-- 実装をcommit・push済み（commit `ef7310a`、flow-id 12完了）。実際のgit pushでもhookが
-  期待通り発火し実機確認できた
-- PR #33のdescriptionを実装完了内容に更新済み（flow-id 13完了）
-- PR #33でレビューOKの連絡を受領。`comments all`で未解決スレッド0件を再確認済み
-  （自動投稿の対応工数レポートコメントのみ、指摘コメント無し。flow-id 14-15完了）
-- `dev-tools/docs/spec/issue-mr-workflow.md`へ設計反映済み（新規セクション
-  「/compact実施の呼びかけ」追加、コンポーネント構成ツリー・影響範囲を更新。flow-id 16完了）
-- `new_issue_branch`（`dev-tools/src/vcs/Provider.sh`）のstdout汚染バグを修正
-  （`git fetch`/`git switch`/`git push`の出力を`/dev/null`へ捨てるよう変更。flow-id 17完了）
-- flow-id 16-17の変更をcommit・push済み（commit `fca555f`、flow-id 18完了）。
-  PR #33のdescriptionも設計反映完了内容に更新済み
+（このタスクではまだ何もしていない）
 
 ## 次にやること
 
-- PR #33の設計反映レビュー完了の連絡を待つ（flow-id 19）
+（次のissueに着手する場合は `start <issue番号>` から）
 
 ## 判断を迷った内容
 
@@ -76,7 +54,7 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## 未解決の内容
 
-（無し。`new_issue_branch`のstdout汚染バグはflow-id 17で修正済み）
+（無し）
 
 ## 守るべき条件・触ってはいけない範囲
 
