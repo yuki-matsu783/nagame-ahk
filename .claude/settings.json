@@ -41,6 +41,24 @@
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/post-push-usage-report.sh"
             ],
             "timeout": 20
+          },
+          {
+            "type": "command",
+            "if": "Bash(git push*)",
+            "command": "bash",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/post-push-compact-prompt.sh"
+            ],
+            "timeout": 20
+          },
+          {
+            "type": "command",
+            "if": "PowerShell(git push*)",
+            "command": "bash",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/post-push-compact-prompt.sh"
+            ],
+            "timeout": 20
           }
         ]
       }

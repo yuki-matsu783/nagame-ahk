@@ -57,6 +57,7 @@ dev-tools/src/vcs/
 .claude/hooks/
 ├── session-start.sh                 # セッション開始時のissue/MR状態自動注入（SessionStart hook）
 ├── post-push-usage-report.sh        # git push検知時のトークン使用量集計＋MR自動コメント投稿（PostToolUse hook）
+├── post-push-compact-prompt.sh      # git push検知時に/compact実施を促すメッセージ注入（PostToolUse hook）
 └── lib/
     └── UsageTracking.sh              # 集計ロジック（sync_usage_state）
 ```
@@ -361,6 +362,37 @@ Claude Codeの対応工数（モデル別トークン数・ツール実行回数
   [0006-対応工数レポートはtranscript自前パースで実装する.md](../ddr/0006-対応工数レポートはtranscript自前パースで実装する.md)
   参照。
 
+### /compact実施の呼びかけ（PostToolUse hook, git push検知）
+
+issue #11「git pushイベントを検知してcompactする」への対応として、MRレビュー待ちに入るタイミング
+（`git push`後）でコンテキストが肥大化しがちという課題に対し、`/compact`実施のタイミングを
+逃さないよう気づきを与える。
+
+- **検知ロジック**: 「対応工数レポート」節の`post-push-usage-report.sh`と同一パターン
+  （`agent_id`/`tool_name`/`tool_input.command`の`git[[:space:]]+push`判定、
+  `CLAUDE_PROJECT_DIR`確認、`get_workflow_config`でbase branch上のpushを除外、
+  `get_mr_for_branch`でMRが無いブランチ（レビュー対象が無い）を除外）を流用する。
+- **伝達手段は対応工数レポートと異なる**: 投稿先がMRコメントの対応工数レポートに対し、本機能は
+  「セッション開始時の自動コンテキスト注入（SessionStart hook）」節の`session-start.sh`と同じ
+  `hookSpecificOutput.additionalContext`方式（stdoutへJSON出力→コンテキストへ注入→エージェントが
+  応答に反映）を使い、対話中のユーザーへ直接呼びかける。出力形式:
+  `{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"<text>"}}`。
+  メッセージは固定文（「MRのレビューをお願いします。/compactを実施をしていただくと、レビュー中に
+  コンテキストを圧縮して今後の作業が効率化になる可能性があります」）で、動的な値は使わない。
+- **`post-push-usage-report.sh`とは別ファイル**（`.claude/hooks/post-push-compact-prompt.sh`）とし、
+  責務を混在させない（使用量集計とcompact促しは関心事が異なる）。`.claude/settings.json`の
+  `hooks.PostToolUse[0].hooks`へ、既存の対応工数レポート用エントリと並べて2エントリ
+  （`if: "Bash(git push*)"` / `"PowerShell(git push*)"`）を追加した。
+- **エラー方針・実行シェルは既存hookと同様**: `main`関数＋`( main ) || true`＋`exit 0`
+  （git push自体をブロックしない）、起動コマンドは`"bash"`（PATH解決に依存する制約は
+  「セッション開始時の自動コンテキスト注入」節と同じ）。
+- **`PostToolUse`での`additionalContext`実地検証**: このリポジトリで`additionalContext`方式の
+  前例は`SessionStart`のみだったため実装後に実地検証した。実際の`git push`実行により、次のターンで
+  `<system-reminder>PostToolUse:Bash hook additional context: ...</system-reminder>`が注入され
+  期待通り動作することを確認済み（issue #11対応セッション）。
+- **制約は「対応工数レポート」節と共通**: 「スクリプト経由の`git push`は検知されない」制約が
+  同様に適用される（検知ロジックを流用しているため）。
+
 ### ブランチ命名
 
 `<branchPrefixTemplate>`（既定 `feature-{issue}-{slug}`）に従い、issue番号をそのまま連番として使う
@@ -545,6 +577,20 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
 - `dev-tools/docs/ddr/0006-対応工数レポートはtranscript自前パースで実装する.md`（マージ済みDDRの
   ため既存内容は変更せず、session-logsコピー方式・`agentId`/`agentType`二段設計に関する
   「追記」セクションを追加）
+
+新規（追加分・issue #11 /compact実施の呼びかけ）:
+- `.claude/hooks/post-push-compact-prompt.sh`（PostToolUse hook）
+
+変更（追加分・issue #11 /compact実施の呼びかけ）:
+- `.claude/settings.json`（`hooks.PostToolUse[0].hooks`へ`post-push-compact-prompt.sh`用の
+  2エントリを追加。既存の対応工数レポート用エントリは維持）
+- `dev-tools/docs/spec/issue-mr-workflow.md`（本セクション「/compact実施の呼びかけ」を追加、
+  「コンポーネント構成」ツリーに`post-push-compact-prompt.sh`を追加）
+- `dev-tools/src/vcs/Provider.sh`（`new_issue_branch`内の`git fetch`/`git switch`/`git push`の
+  標準出力を`/dev/null`へ捨てるよう修正。従来は`git push -u`の出力が呼び出し元の
+  `branch="$(new_issue_branch ...)"`という`$(...)`キャプチャへ混入し、branch変数が複数行文字列に
+  なる不具合があった（本issue対応セッションで実際に踏み、手動リカバリ済み。`add_empty_commit_for_draft_mr`
+  と同じ`>/dev/null`パターンで解消。flow-id 17のAIアセット改善で対応））
 
 ## 設定項目
 
