@@ -56,6 +56,18 @@ issue #6でリポジトリ内の開発補助スクリプトを全てPowerShell�
 - Windows PowerShell 5.1の`ConvertFrom-Json`が`-AsHashtable`を持たないための回避策
   （`ConvertTo-HashtableDeep`等）は、jqのネイティブなJSON操作機能により不要になる。移植の際に
   引き継がないこと。
+- **Windows版jq（`C:\Program Files\jq\jq.exe`等のネイティブ実行ファイル）は`strptime`/`mktime`が
+  未実装**（実機確認: `jq -n '"..." | fromdateiso8601'` が
+  `strptime/1 not implemented on this platform`で失敗する。issue #28対応時に判明）。
+  `fromdateiso8601`/`fromdate`/`strptime`/`mktime`はいずれも内部で`strptime`/`mktime`を使うため
+  **使用不可**（日付文字列→エポック秒の変換に使えない）。`gmtime`/`strftime`（エポック秒→日付文字列の
+  向き）は問題なく動作する。日付文字列→エポック秒の変換が必要な場合は、`strptime`に依存しない
+  自前実装（`days_from_civil`アルゴリズムによる四則演算のみの変換）を使う。実装例・境界値検証は
+  `.claude/hooks/lib/UsageTracking.sh`の`epoch_from_iso8601`を参照。
+  - 加えて、この`strptime`未実装エラーが、直前段階の`try ... catch empty`と組み合わさると、
+    jqがエラーメッセージを一切出さず出力全体が`null`になるという実機確認済みの現象があった
+    （原因調査が非常に困難だったため記録に残す）。日付変換を含むjqフィルタを`try/catch`と
+    組み合わせる場合は、この現象を疑ってまず日付変換部分だけを単体で動作確認すること。
 
 ## 命名規則
 

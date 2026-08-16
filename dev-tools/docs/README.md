@@ -35,7 +35,7 @@ architectureに限らない意思決定も記録対象とする（詳細は
 - [0003-レビュースレッド解決は自動化しない.md](ddr/0003-レビュースレッド解決は自動化しない.md)
 - [0004-AI返信は署名で識別しbotアカウント分離は見送る.md](ddr/0004-AI返信は署名で識別しbotアカウント分離は見送る.md)
 - [0005-DraftPR作成失敗時は空コミットで自動リトライする.md](ddr/0005-DraftPR作成失敗時は空コミットで自動リトライする.md)
-- [0006-セッション使用量レポートはtranscript自前パースで実装する.md](ddr/0006-セッション使用量レポートはtranscript自前パースで実装する.md)
+- [0006-対応工数レポートはtranscript自前パースで実装する.md](ddr/0006-対応工数レポートはtranscript自前パースで実装する.md)
 - [0007-hookのcommandはbashのPATH解決方式へ変更.md](ddr/0007-hookのcommandはbashのPATH解決方式へ変更.md)
 - [0008-frontmatter抽出スクリプトの設計判断.md](ddr/0008-frontmatter抽出スクリプトの設計判断.md)
 - [0009-Planモードre-entry時はgit checkout復元でなくarchiveスクリプトで対処する.md](ddr/0009-Planモードre-entry時はgit checkout復元でなくarchiveスクリプトで対処する.md)

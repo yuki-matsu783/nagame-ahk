@@ -156,7 +156,7 @@ set_mr_description() {
 }
 
 # MRへ新規コメントを1件投稿する（スレッド返信ではなく、レビューでもない通常コメント。
-# レビュー合否判定には影響しない）。呼び出し元想定: セッション使用量レポート（post-push-usage-report.sh）。
+# レビュー合否判定には影響しない）。呼び出し元想定: 対応工数レポート（post-push-usage-report.sh）。
 add_mr_comment() {
   local mr_number="$1" body_file="$2"
   case "$(get_provider)" in

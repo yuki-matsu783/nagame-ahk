@@ -198,36 +198,124 @@ resume・clear時に毎回、現在ブランチのissue/MR状態をコンテキ�
 [0005-DraftPR作成失敗時は空コミットで自動リトライする.md](../ddr/0005-DraftPR作成失敗時は空コミットで自動リトライする.md)
 参照。
 
-### セッション使用量レポート（PostToolUse hook, git push検知）
+### 対応工数レポート（PostToolUse hook, git push検知）
 
 issue #15「作業にかかったトークンなどの情報をMRのコメントに記載する」への対応として、
-Claude Codeのセッション使用量（モデル別トークン数・ツール実行回数・assistant応答回数）をMRへ
-自動投稿する。
+Claude Codeの対応工数（モデル別トークン数・ツール実行回数・assistant応答回数・稼働時間）をMRへ
+自動投稿する。issue #28で、稼働時間（かかった時間）の記録・表示を追加した。
 
 - **投稿トリガー**: `git push` 成功時に、前回投稿からの差分をMRへ新規コメントとして投稿する
   （毎ターン投稿やコメントのupsertではない）。
-- **記録範囲**: モデル別トークン数（input/output/cache write/cache read）＋ツール実行回数＋
-  assistant応答回数。推定コスト(USD)・ファイルdiff・プロンプト本文・サブエージェント詳細往復は対象外。
+- **記録範囲**: モデル別トークン数（input/output/cache write/cache read。**既知の過小カウント要因
+  あり**。詳細は「未決定事項・懸念点」参照）＋ツール実行回数＋assistant応答回数＋稼働時間
+  （`activeSeconds`。下記「稼働時間の算出方法」参照）。推定コスト(USD)・ファイルdiff・プロンプト本文は
+  対象外。
+  - **ツール実行回数は「実際に呼び出されたツールの集計」であり、利用可能な全ツール種別の固定
+    カタログではない**（PR #29レビュー指摘）。[ツールリファレンス](https://code.claude.com/docs/en/tools-reference)
+    に載っている多数のツールのうち、そのpush間隔で一度も呼び出されなかったツールは単純に
+    行として現れない（0件のツールを列挙する設計にはしていない。トークン数のモデル別テーブルで
+    全項目0の行を表示しないようにした対応と同じ考え方）。
+  - **直接の子（depth 1）サブエージェント（`Task`/`Agent`ツール等で起動される別セッション）の
+    使用量は別集計として反映する**（PR #29レビュー指摘。当初は対象外としていたが後日追加対応した。
+    詳細は下記「サブエージェントの使用量記録」参照）。サブエージェントがさらに起動するネストした
+    サブエージェント（depth 2以降）は対象外。
+- **稼働時間の算出方法（gapベースのidle検出＋tail buffer）**: 単純な「セッション開始〜最終メッセージ」
+  の経過時間では、`AskUserQuestion`等での人間の回答待ちや応答終了後の次指示待ちのような
+  「作業していない時間」を含んでしまう（PR #29レビュー指摘）。同種の課題を扱う参考実装
+  （`claude-work-timer`, `claude-code-time-tracking`。いずれもClaude Code transcriptから実働時間を
+  算出するOSS）を調査し、共通して採用されている「gapベースのidle検出＋セグメント末尾のtail buffer」
+  方式を採用した。
+  - `IDLE_GAP_THRESHOLD_SECONDS`（既定300秒=5分）: 集計対象entry（`gitBranch`一致・assistant）を
+    時系列順に走査し、直前entryとの`.timestamp`差（gap）がこの閾値**未満**なら稼働時間へそのまま
+    加算する。閾値**以上**（ちょうど閾値も含む）のgapは「人間の入力待ち」とみなし、gap自体は
+    加算しない（区間＝セグメントが1つ閉じる）。
+  - `TAIL_BUFFER_SECONDS`（既定30秒。`claude-work-timer`の既定値を踏襲）: セグメントが閉じるたびに
+    末尾へこの秒数を加算する（応答を読む・確認する等、次のgapとしては現れない実作業時間の補完）。
+    走査完了時点で、集計対象entryが1件以上あれば「現在末尾の（まだ閉じていない）セグメント」に対し
+    同様に1回加算する。これにより、entryが1件しかないセッションでも稼働時間が0にならない。
+    - この「末尾セグメントの暫定クローズ」による加算は、次回pushで同じセッションのtranscriptが
+      伸びて再集計されると「実際のgap＋新しい末尾へのtail buffer」に置き換わる。置き換え後の値は
+      常に元の値以上になるため、`activeSeconds`（セッション開始からの累計稼働秒数）は再集計を
+      繰り返しても単調非減少であり続け、既存の累計差分パターン（後述）に影響しない。
+  - **`fromdateiso8601`は使わない**（開発機のjq（Windowsネイティブ版jq 1.6）が`strptime`/`mktime`を
+    実装しておらず`strptime/1 not implemented on this platform`で失敗するため。実機確認済み）。
+    代わりに`strptime`/`mktime`に依存しない自前実装（`days_from_civil`アルゴリズムによる
+    四則演算のみのISO8601→epoch秒変換、`UsageTracking.sh`の`epoch_from_iso8601`）を使う。
+    一般的な注意事項として`.claude/rules/shell-script-style.md`「JSON操作」節にも追記した。
+  - **既知の制約（目安であることの根拠）**: 閾値未満の短い待機（人間がすぐ返信した場合等）は
+    稼働時間に混入しうる、閾値以上の長時間ツール実行（大きめのビルド等）は稼働時間から漏れうる、
+    tail bufferは固定値のため実際の読了時間との過不足がありうる。「目安」である旨をレポート・
+    このドキュメントに明記する（既存のトークン集計と同じ扱い）。
+  - `activeSeconds`は`assistantCount`と同じ「0始まりの累計値」という性質を持つため、
+    `_usage_merge_state`側は既存の`turns`と全く同じ差分計算パターン（`current - prevSession値`、
+    前回スナップショット無しなら`current - 0`、下限0）をそのまま流用する。セッションごとの永続状態
+    （`sessions[<sessionId>]`）には`lastActiveSeconds`を`lastTokens`等と同様に保存する。
+  - 複数セッション・複数プロジェクトが同時進行した場合の区間重複除去（overlap dedup。参考実装が
+    持つ機能）は、本対応のスコープ外（単一ブランチ・単一セッションの範囲で完結する対応工数レポート
+    のため）。将来必要になった場合に別issueで検討する。
+- **サブエージェントの使用量記録**（PR #29レビュー指摘）: `Task`/`Agent`ツール等で起動される
+  サブエージェント（直接の子、depth 1）のトークン・ツール使用量を、メインセッションとは独立した
+  レポートセクションとして記録する。
+  - **発見方法**: 実機調査により、サブエージェントを起動したセッションでは、メインtranscript
+    （`<sessionId>.jsonl`）と同階層に**同名ディレクトリ**（`<sessionId>/`）が作られ、その中の
+    `subagents/agent-<agentId>.jsonl`（＋同名`.meta.json`。`agentType`等を含む）にメインtranscript
+    と同一スキーマ（`type`, `gitBranch`, `message.usage`, `message.content[].type=="tool_use"`,
+    `timestamp`）でサブエージェントの活動が記録されていることを確認した。`${transcript_path%.jsonl}/subagents/`
+    を列挙することで発見する。
+  - **session-logsローカルコピー方式**（PR #29レビュー指摘）: 集計対象を毎回`~/.claude/projects`
+    配下の外部パスから直接読むのではなく、`git push`検知のたびにメイン・サブエージェント両方の
+    transcriptを`.claude/session-logs/<safeBranch>/<sessionId>/`（gitignore対象）へコピーしてから、
+    そのローカルコピーを対象に集計する。`~/.claude/projects`という非公開・ユーザープロファイル配下の
+    揮発性のあるパスへ直接依存し続けるのを避け、pushのたびにリポジトリ内へスナップショットを
+    退避しておくことで、調査・デバッグ時に状態ファイル（`.claude/usage-state/`）と同じ場所で
+    生ログを参照できるようにする狙い。**全件再パース＋スナップショット差分方式そのものは変更しない**
+    （集計対象パスを差し替えるだけに留める）。行オフセットベースの差分パースへは踏み込まなかった
+    （`activeSeconds`のgapベースtail buffer計算・単調性保証が「毎回全件を時系列で走査し直す」ことを
+    前提にしており、オフセット方式にすると単調性証明が崩れるリスクが大きいと判断したため。
+    詳細はDDR 0006の追記を参照）。
+  - **スナップショット単位（`agentId`）と表示集約単位（`agentType`）の二段設計**: 累計スナップショットは
+    `agentId`単位で状態ファイルの`agents[<agentId>]`に保存し、既存の`sessions[<sessionId>]`と全く同じ
+    「current - prevSnapshot（下限0）」ロジックを適用する（バックグラウンドで複数pushをまたいで
+    追記され続けるサブエージェントがあっても二重計上・過小計上が起きない）。レポートへの表示・
+    `sinceLastPush.subagentsByType`への集約は`agentType`単位で行い、同じ`agentType`を持つ複数の
+    `agentId`（例: `Explore`を複数回起動）分は自然に合算される。
+  - **稼働時間はメインの「対応工数」行には合算しない**: サブエージェント自身のgapベース稼働時間は
+    メインの`activeSeconds`とは別集計とし、レポートには参考値として別行で表示する（Taskツールの
+    完了待ち区間とサブエージェント内の稼働区間が重複しうるため、単純合算するとwall clock時間より
+    過大になりうる。この重複除去自体は未対応、詳細は「未決定事項・懸念点」参照）。
+  - **ネストしたサブエージェント（depth 2以降）は対象外**: `meta.json`に`spawnDepth`フィールドが
+    存在し理論上ネストがありうるが、実データでは`depth 1`のみ観測され、ネスト時のディレクトリ構造・
+    スキーマも未確認のため対象外とした。
 - **コンポーネント**:
   - `.claude/hooks/lib/UsageTracking.sh`（共有ライブラリ、bash版。issue #6でPowerShell版から移行）:
-    `sync_usage_state <repoRoot> <branch> <sessionId> <transcriptPath>` が集計本体。`transcript_path`
-    のJSONLをjqで1行ずつパースし（不正な行・空行は無視するベストエフォート）、
-    `.gitBranch == <branch>` のエントリのみを対象に、`message.usage`（モデル別トークン数）、
+    `sync_usage_state <repoRoot> <branch> <sessionId> <transcriptPath>` が集計本体。まず
+    `_usage_sync_session_logs` で対象transcriptを`.claude/session-logs/`へコピーし、コピー先を
+    `_usage_aggregate_transcript`（jqで1行ずつパース。不正な行・空行は無視するベストエフォート）へ
+    渡す。`.gitBranch == <branch>` のエントリのみを対象に、`message.usage`（モデル別トークン数）、
     `message.content[].type=="tool_use"`（ツール名別呼び出し回数）、該当エントリ件数
-    （assistant応答回数）を集計する。前回このセッションで記録した累計との**差分**を、ブランチ単位の
-    状態ファイル（`.claude/usage-state/<branch>.json`、gitignore対象）の `sinceLastPush` へ
-    加算する（トークン・ツール回数・応答回数のいずれも同じ「差分を加算」方式）。
+    （assistant応答回数）、および`.timestamp`のgapベース算出による稼働時間（`activeSeconds`。
+    算出方法は上記「稼働時間の算出方法」参照）を集計する。前回このセッションで記録した累計との
+    **差分**を、ブランチ単位の状態ファイル（`.claude/usage-state/<branch>.json`、gitignore対象）の
+    `sinceLastPush` へ加算する（トークン・ツール回数・応答回数・稼働時間のいずれも同じ
+    「差分を加算」方式）。続けて`_usage_aggregate_and_merge_subagents`が`subagents/agent-*.jsonl`を
+    列挙し、1ファイルずつ`_usage_aggregate_transcript`（無改造で再利用）→
+    `_usage_merge_agent_state`（`agentId`単位のスナップショット差分を`sinceLastPush.subagentsByType[agentType]`
+    へ合算）で畳み込む。`_usage_safe_branch_name`はブランチ名のサニタイズ（状態ファイル名・
+    session-logsディレクトリ名に使用）を担う共通ヘルパー。
   - `.claude/hooks/post-push-usage-report.sh`（`PostToolUse` hook、bash版）: `.claude/settings.json` の
     matcher `Bash|PowerShell` と `if: "Bash(git push*)"` / `if: "PowerShell(git push*)"` により
     `git push` を含むコマンド実行後のみ発火する（マッチしなければプロセス起動自体が行われず、
     通常のBash/PowerShell利用への性能影響は無い）。投稿要否判定の前に自分で `sync_usage_state` を
     呼んで状態を最新化してから投稿する（ターンの途中でのpushでも記録漏れが起きないようにするため）。
-    `sinceLastPush` が全て0なら投稿しない。`get_mr_for_branch` でMRが無ければ投稿しない。
-    投稿成功後のみ `sinceLastPush` をリセットする（失敗時は次回pushへ繰り越す。git push自体は
-    ブロックしない）。hookの起動コマンドは`"bash"`（PATH解決に依存。詳細:
-    [shell-scripts.md](shell-scripts.md)）。
+    `sinceLastPush` が全て0（メイン＋サブエージェント双方のトークン合計で判定）なら投稿しない。
+    `get_mr_for_branch` でMRが無ければ投稿しない。投稿成功後のみ `sinceLastPush` をリセットする
+    （失敗時は次回pushへ繰り越す。git push自体はブロックしない）。hookの起動コマンドは`"bash"`
+    （PATH解決に依存。詳細: [shell-scripts.md](shell-scripts.md)）。コメント本文には`fmt_duration`
+    （秒→`H時間M分`/`M分`形式）で整形した「対応工数（目安・入力待ち時間を除く）」の行、および
+    サブエージェント分が1件以上あれば「### サブエージェント」セクション（`agentType`×モデルの
+    トークンテーブル・ツール実行回数合計・稼働時間参考値）を含める。
   - `.claude/settings.json`: `hooks.PostToolUse` を追加。
-  - `.gitignore`: `/.claude/usage-state/` を追加。
+  - `.gitignore`: `/.claude/usage-state/`, `/.claude/session-logs/` を追加。
 - **`Stop` hookは使わない**: 当初は `Stop`（1ターン完了時に発火）でも同じ集計処理を呼び、
   ターン数カウント専用の役割を持たせていたが、(1) `post-push-usage-report.sh` 自身が呼ぶだけで
   十分、(2) `Stop`依存のカウントは「そのターンのStopがまだ発火していない状態でのpush」で
@@ -236,6 +324,13 @@ Claude Codeのセッション使用量（モデル別トークン数・ツール
 - **投稿内容の位置づけ**: コメント本文冒頭に「このコメントはClaude Codeによる自動投稿です。
   レビューの合否判定には使用しないでください。」と明記する（`add_mr_comment` は通常コメントであり
   レビューではないため、そもそも承認状態に影響しない。issue #15の受け入れ条件に対応）。
+- **フッターの免責事項説明文は初回投稿のみ表示**（issue #28, PR #29レビュー指摘）: 集計方法や
+  既知の過小カウント要因（トークン数の項参照）を説明する詳しめのフッター文（`Claude Codeより:
+  自動投稿（post-push-usage-report.sh による集計。...）`の段落）は、同じMRへ毎回のpushで
+  繰り返し投稿されると冗長になるため、そのブランチ（MR）に対して**過去に投稿成功したことがあるか**
+  （状態ファイルの`lastPostedAt`の有無、投稿前時点の値で判定）で分岐し、初回投稿時のみ表示する。
+  冒頭の「レビューの合否判定には使用しないでください」という短い注記は、投稿ごとの判別のために
+  必要なため毎回表示する。
 - **制約: スクリプト経由の`git push`は検知されない**: 投稿トリガーの判定は、Bash/PowerShell
   ツールへ渡された`tool_input.command`文字列が`git push`で始まるかどうかの前方一致マッチ
   （`.claude/settings.json`の`if: "Bash(git push*)"` / `if: "PowerShell(git push*)"`）に依存する。
@@ -248,7 +343,7 @@ Claude Codeのセッション使用量（モデル別トークン数・ツール
   追加され性能影響とのトレードオフになるため、対応しない。
 - **設計判断の詳細・却下案**（`transcript` JSONL自前パースの採用理由、`gitBranch` フィルタの理由、
   `Stop` hookを廃止した経緯）は
-  [0006-セッション使用量レポートはtranscript自前パースで実装する.md](../ddr/0006-セッション使用量レポートはtranscript自前パースで実装する.md)
+  [0006-対応工数レポートはtranscript自前パースで実装する.md](../ddr/0006-対応工数レポートはtranscript自前パースで実装する.md)
   参照。
 
 ### ブランチ命名
@@ -346,13 +441,13 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
 - `.claude/skills/issue-mr-flow/SKILL.md`（「詳細ルールへのポインタ」に
   `.claude/rules/powershell-encoding.md` を追加）
 
-新規（追加分・issue #15 Draft PR自動リトライ＋セッション使用量レポート）:
+新規（追加分・issue #15 Draft PR自動リトライ＋対応工数レポート）:
 - `.claude/hooks/lib/UsageTracking.ps1`（集計ロジック）
 - `.claude/hooks/post-push-usage-report.ps1`（PostToolUse hook）
 - `dev-tools/docs/ddr/0005-DraftPR作成失敗時は空コミットで自動リトライする.md`
-- `dev-tools/docs/ddr/0006-セッション使用量レポートはtranscript自前パースで実装する.md`
+- `dev-tools/docs/ddr/0006-対応工数レポートはtranscript自前パースで実装する.md`
 
-変更（追加分・issue #15 Draft PR自動リトライ＋セッション使用量レポート）:
+変更（追加分・issue #15 Draft PR自動リトライ＋対応工数レポート）:
 - `dev-tools/src/vcs/Provider.ps1`（`Add-EmptyCommitForDraftMr`, `Add-MrComment` を追加）
 - `dev-tools/src/vcs/Github.ps1` / `Gitlab.ps1`（`New-DraftMergeRequest` 実装に失敗時リトライを追加、
   `GitHub-AddMrComment` / `GitLab-AddMrComment` を追加）
@@ -385,6 +480,56 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
 - `tests/README.md`（対象スクリプトの更新、単体テストの追加）
 - `.claude/rules/directory-structure.md`（`.sh`配置ルール・jq前提を追記）
 - `.claude/rules/powershell-encoding.md`（「PowerShellを直接書く場合のみ適用」である旨を明確化）
+
+新規（追加分・issue #28 対応工数レポートの稼働時間記録）:
+- `tests/test_usage_tracking.sh`（`UsageTracking.sh`の`_usage_aggregate_transcript`/
+  `_usage_merge_state`に対する単体テスト。新設）
+
+変更（追加分・issue #28 対応工数レポートの稼働時間記録）:
+- `.claude/hooks/lib/UsageTracking.sh`（`IDLE_GAP_THRESHOLD_SECONDS`/`TAIL_BUFFER_SECONDS`定数、
+  gapベースの`activeSeconds`集計ロジック、`strptime`/`mktime`に依存しない自前実装
+  `epoch_from_iso8601`を追加）
+- `.claude/hooks/post-push-usage-report.sh`（`fmt_duration`、レポート本文への
+  「対応工数（目安・入力待ち時間を除く）」行を追加。レビュー往復で、トークン数の既知の過小カウント
+  要因を説明するフッター文の追加、および`is_first_post`判定によるフッター表示の初回投稿限定化も追加）
+- `dev-tools/docs/spec/issue-mr-workflow.md`（本セクション「稼働時間の算出方法」を追加、
+  「未決定事項・懸念点」に稼働時間の誤差要因・overlap dedup未対応・トークン数の過小カウント要因を
+  追記、「投稿内容の位置づけ」にフッター初回投稿限定の挙動を追記）
+- `dev-tools/docs/ddr/0006-対応工数レポートはtranscript自前パースで実装する.md`（マージ済みDDRの
+  ため既存内容は変更せず、トークン数の過小カウント問題に関する「追記」セクションを追加）
+- `tests/README.md`（`test_usage_tracking.sh`の行を追加）
+- `.claude/rules/shell-script-style.md`（Windowsネイティブjqの`strptime`/`mktime`未実装という
+  一般的な制約を「JSON操作」節に追記）
+- `.claude/hooks/post-push-usage-report.sh`（レビュー往復で、モデル別トークンテーブルから
+  `<synthetic>`等の全項目0の行を除外する対応を追加）
+- `dev-tools/docs/spec/issue-mr-workflow.md`（本セクション「記録範囲」に、ツール実行回数が
+  「実際に呼び出されたツールのみの集計」であり全ツール種別の固定カタログではない旨、および
+  サブエージェント内部の呼び出しは含まれない旨を追記）
+
+新規（追加分・PR #29レビュー指摘: サブエージェント使用量記録＋session-logsコピー方式）:
+- `.claude/session-logs/`（`git push`検知時にメイン・サブエージェントtranscriptをコピーする先。
+  gitignore対象のためリポジトリには含まれない）
+
+変更（追加分・PR #29レビュー指摘: サブエージェント使用量記録＋session-logsコピー方式）:
+- `.claude/hooks/lib/UsageTracking.sh`（`_usage_safe_branch_name`ヘルパー切り出し、
+  `_usage_sync_session_logs`（メイン・サブエージェントtranscriptのローカルコピー）、
+  `_usage_merge_agent_state`（`agentId`単位のスナップショット差分を`agentType`単位で集約）、
+  `_usage_aggregate_and_merge_subagents`（コピー済みディレクトリからの集計・マージ）を追加。
+  `_usage_aggregate_transcript`/`_usage_merge_state`本体は無改造のまま再利用）
+- `.claude/hooks/post-push-usage-report.sh`（投稿要否判定の`total`計算にサブエージェント分を
+  含める、「### サブエージェント」セクションの追加、`sinceLastPush`リセット時の
+  `subagentsByType: {}`追加）
+- `.gitignore`（`/.claude/session-logs/`を追加）
+- `tests/test_usage_tracking.sh`（`_usage_merge_agent_state`/`_usage_sync_session_logs`/
+  `_usage_aggregate_and_merge_subagents`の単体テストを追加。疑似`~/.claude/projects`ツリーを
+  `$TMPDIR`配下に自作して検証、実ホームディレクトリには触れない）
+- `tests/README.md`（対象関数の追記）
+- `dev-tools/docs/spec/issue-mr-workflow.md`（本セクション「記録範囲」の更新、新規サブセクション
+  「サブエージェントの使用量記録」追加、「コンポーネント」の関数一覧更新、「未決定事項・懸念点」の
+  追記）
+- `dev-tools/docs/ddr/0006-対応工数レポートはtranscript自前パースで実装する.md`（マージ済みDDRの
+  ため既存内容は変更せず、session-logsコピー方式・`agentId`/`agentType`二段設計に関する
+  「追記」セクションを追加）
 
 ## 設定項目
 
@@ -457,11 +602,11 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
   解消した。背景・却下案は
   [0005-DraftPR作成失敗時は空コミットで自動リトライする.md](../ddr/0005-DraftPR作成失敗時は空コミットで自動リトライする.md)
   参照。
-- **セッション使用量のトークン集計方式**: transcript JSONLの自前パース以外に確実な取得手段が
+- **対応工数のトークン集計方式**: transcript JSONLの自前パース以外に確実な取得手段が
   無いことを確認した上で採用した。非公開フォーマットへの依存リスクは、失敗の握りつぶし・
   「目安」である旨の明記で吸収する。`entry.gitBranch`でのフィルタにより、複数ブランチを跨いだ
   セッションでの他ブランチ分混入を防ぐ。詳細・却下案は
-  [0006-セッション使用量レポートはtranscript自前パースで実装する.md](../ddr/0006-セッション使用量レポートはtranscript自前パースで実装する.md)
+  [0006-対応工数レポートはtranscript自前パースで実装する.md](../ddr/0006-対応工数レポートはtranscript自前パースで実装する.md)
   参照。
 
 ## 未決定事項・懸念点
@@ -496,12 +641,25 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
 - **SessionStart hookの実機（新規Claude Codeセッション）での動作確認が未実施**: 疑似stdin JSONを
   使った単体テストでは期待通りの挙動を確認したが、実際のセッション開始時にコンテキストへ反映される
   ことは本対応内では未確認。次回以降のセッション開始時に確認する。
-- **transcript JSONLの非公開フォーマット依存**: セッション使用量レポート機能は、Claude Code非公開の
+- **transcript JSONLの非公開フォーマット依存**: 対応工数レポート機能は、Claude Code非公開の
   内部フォーマットである`transcript_path`のJSONLを自前パースしている。将来のバージョンで形式が
-  変わった場合、集計が0件になる（ベストエフォート設計のため実害はセッション使用量が記録されなく
+  変わった場合、集計が0件になる（ベストエフォート設計のため実害は対応工数が記録されなく
   なるのみ）。詳細は
-  [0006-セッション使用量レポートはtranscript自前パースで実装する.md](../ddr/0006-セッション使用量レポートはtranscript自前パースで実装する.md)
+  [0006-対応工数レポートはtranscript自前パースで実装する.md](../ddr/0006-対応工数レポートはtranscript自前パースで実装する.md)
   参照。
+- **トークン数（`tokensByModel`）は既知の過小カウント要因を持つ**（PR #29レビュー指摘、issue #28）:
+  外部調査（[Claude Code JSONL logs undercount tokens](https://gille.ai/en/blog/claude-code-jsonl-logs-undercount-tokens/)）
+  によると、Claude Codeのtranscript JSONLはストリーミング応答の開始時点で`usage.input_tokens`等に
+  プレースホルダー値（0または1）を書き込み、応答完了後もその値を実際のトークン数へ更新しない
+  ケースがあり、結果としてinput側で最大100〜174倍、output側で最大10〜17倍の過小カウントが
+  観測されたと報告されている（キャッシュ関連フィールドはAPIレスポンス初期段階で確定するため
+  影響を受けにくいとされる）。本機能はこの`transcript_path`を唯一の情報源として自前パースしている
+  ため、同じ制約をそのまま引き継ぐ。稼働時間（`activeSeconds`）はトークン数ではなく
+  `.timestamp`の差分のみを使うため、この過小カウント問題の影響を受けない（トークン数とは独立した
+  精度特性を持つ）。回避策は確立されていない（ステータスバー等、他の情報源を使う代替案は
+  transcriptの自前パースという設計方針自体を変えることになり、本機能のスコープ外）。レポート・
+  ドキュメント双方で「目安」である旨を明記することで対応する（下記コンポーネント節、
+  および`post-push-usage-report.sh`のコメント本文フッター参照）。
 - **セッション（transcriptファイル）を跨いだ集計は未対応**: `/resume`等で新しいtranscriptファイルに
   切り替わった場合、旧セッション分の使用量との合算は行わない（新しい`session_id`として
   ゼロから集計が始まる）。
@@ -509,8 +667,30 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
   同時にhookを発火させた場合、`.claude/usage-state/<branch>.json`への読み書きにロックが無いため、
   一方の更新が失われる可能性がある（レースコンディション）。単一開発者が同一作業ディレクトリで
   複数セッションを同時実行する運用は想定しにくいため許容している。
+- **ネストしたサブエージェント（depth 2以降）は未対応・未検証**（PR #29レビュー指摘）:
+  サブエージェントの`meta.json`には`spawnDepth`フィールドが存在し、理論上サブエージェントが
+  さらにサブエージェントを起動するネストがありうるが、このリポジトリの実データでは`depth 1`のみ
+  観測され、ネスト時のディレクトリ構造・スキーマ自体が未確認のため対象外とした。将来ネストした
+  構造が実際に使われるようになった場合、`_usage_aggregate_and_merge_subagents`の再帰的な拡張を
+  別途検討する。
+- **サブエージェントの`activeSeconds`はメインと別集計であり重複除去はしていない**（PR #29レビュー
+  指摘）: サブエージェント自身のgapベース稼働時間と、メインセッション側の「Taskツール完了待ち」の
+  区間（閾値未満なら稼働時間としてそのまま加算される）が時間的に重複しうる。単純合算するとwall
+  clock時間より過大になるため、レポート上は両者を合算せず、サブエージェント分は参考値として
+  別行に表示するに留めている。
 - **（issue #6でbash化に伴い解消）投稿コメント本文へのBOM混入**: PowerShell版では`Add-MrComment`が
   読む一時ファイルを`Set-Content -Encoding UTF8`（Windows PowerShell 5.1既定でBOM付与）で書き出して
   いたため、GitHub上のコメント本文先頭に不可視のBOM文字が入っていた（表示上の実害は無く許容して
   いた）。bash版（`add_mr_comment`）はheredoc/printfでファイルを書き出しBOMが付与されないため、
   この問題は発生しない。
+- **稼働時間（`activeSeconds`）は目安であり、2方向の誤差要因がある**（issue #28）:
+  `IDLE_GAP_THRESHOLD_SECONDS`（既定300秒）未満の短い待機（人間がすぐ返信した場合等）は稼働時間に
+  混入しうる一方、閾値以上の長時間ツール実行（大きめのビルド等）は逆に稼働時間から漏れる。
+  加えて`TAIL_BUFFER_SECONDS`（既定30秒）は固定値のため、実際の読了・確認時間との過不足が生じる。
+  いずれもgapベースの閾値判定という設計上の単純化によるもので、トークン集計と同様「目安」として
+  扱う（レポート本文のラベルにも明記）。
+- **複数セッション・複数プロジェクト同時進行時の稼働時間の重複除去（overlap dedup）は未対応**
+  （issue #28）: 参考実装（`claude-work-timer`/`claude-code-time-tracking`）は複数セッションが
+  並行した場合の区間重複を除去する機能を持つが、本対応のスコープ（単一ブランチ・単一セッション）
+  では扱わない。仮に同一ブランチで複数セッションを並行実行した場合、それぞれの`activeSeconds`が
+  単純合算され、実際の稼働時間より過大になりうる。
