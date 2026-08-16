@@ -25,8 +25,8 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 7 | MRで再度planについてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
 | [x] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
 | [x] | 9 | planをもとにMR descriptionを更新する | `describe` |
-| [] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
-| [] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
+| [x] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
+| [x] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
 | [] | 12 | commit, push してレビュー依頼を行う | エージェント |
 | [] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
 | [] | 14 | MRでレビュー・コメントする | 人間 |
@@ -50,10 +50,14 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 - plan/worklog/HANDOFFをcommit, push済み（flow-id 6完了）
 - PR #33 でplanレビューOKの連絡を受領。未解決レビュースレッド0件を確認済み（flow-id 7-8完了）
 - planをもとにPR #33のdescriptionを更新済み（flow-id 9完了）
+- セッションをcompact済み（flow-id 10完了）
+- `.claude/hooks/post-push-compact-prompt.sh` を新規作成し `.claude/settings.json` へ登録。
+  疑似stdin JSONでの動作確認・実機確認（PostToolUseでの`additionalContext`注入）とも完了
+  （flow-id 11完了。詳細はworklog参照）
 
 ## 次にやること
 
-- セッションをcompactしてから実装に着手する（flow-id 10-11）
+- flow-id 12（commit, push してレビュー依頼）を実施する
 
 ## 判断を迷った内容
 

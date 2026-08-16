@@ -48,6 +48,34 @@ keywords: [PostToolUse, additionalContext, session-start.sh, post-push-usage-rep
 - 新規スクリプトとして `.claude/hooks/post-push-compact-prompt.sh` を追加する方針でPlanを作成し、
   ユーザー承認を得た（`post-push-usage-report.sh`自体の改造は責務混在を避けるため見送り）。
 
+### 実装（flow-id 11）
+
+- `.claude/hooks/post-push-compact-prompt.sh` を新規作成。検知ロジックは
+  `post-push-usage-report.sh` と同一パターン（agent_id/tool_name/tool_input.commandの
+  `git[[:space:]]+push`判定、`CLAUDE_PROJECT_DIR`確認、`get_workflow_config`でbase branch除外、
+  `get_mr_for_branch`でMR存在確認）。出力は`session-start.sh`の`write_additional_context`と
+  同じ形の`hookSpecificOutput.additionalContext`（`hookEventName: "PostToolUse"`）。
+  固定メッセージ「MRのレビューをお願いします。/compactを実施をしていただくと、レビュー中に
+  コンテキストを圧縮して今後の作業が効率化になる可能性があります」を注入する。
+  `main`関数 + `( main ) || true` + `exit 0`のエラー方針、BOM無しUTF-8・LF改行（Write後に
+  `file`/`xxd`/CR有無で確認済み）。
+- `.claude/settings.json` の `hooks.PostToolUse[0].hooks` へ、新スクリプトを指す2エントリ
+  （`if: "Bash(git push*)"` / `"PowerShell(git push*)"`）を追加。既存の
+  `post-push-usage-report.sh`用エントリはそのまま維持。
+- `bash -n` 構文チェックOK。
+- 疑似stdin JSONでの動作確認: 正常系（現ブランチ・Bashツール・git push検知）で
+  `additionalContext`付きJSONが出力されることを確認。異常系（agent_id有り／git push以外の
+  コマンド／Bash・PowerShell以外のツール）ではいずれも何も出力されずexit 0のみになることを確認。
+  最初の試行では`CLAUDE_PROJECT_DIR`を手動シェルにexportし忘れており「何も出力されない」状態に
+  なったが、原因を特定しexport後に再実行して解消（実際のhook実行時はClaude Code側が
+  `CLAUDE_PROJECT_DIR`を設定するため問題にならない）。
+- **実機確認**: フィクスチャ検証用のBashコマンド文字列自体に`git push`という文字列が
+  含まれていたため、`.claude/settings.json`に登録済みの本スクリプトが実際にPostToolUse hookとして
+  発火し、次のターンで`<system-reminder>PostToolUse:Bash hook additional context: ...</system-reminder>`
+  が実際に注入されることを確認できた。`PostToolUse`での`hookSpecificOutput.additionalContext`は
+  このリポジトリに前例が無かったが、`SessionStart`と同様に機能することを実地検証できた。
+
 ## 次にやること
 
-- Plan承認後、flow-id 6（commit, push してレビュー依頼）を実施 → flow-id 7（人間によるplanレビュー）待ち。
+- flow-id 12（commit, push してレビュー依頼）を実施 → flow-id 13（describe）→
+  flow-id 14（人間による実装レビュー）待ち。
