@@ -65,18 +65,51 @@ plan: `plans/cheeky-sprouting-pine.md`
   テーブル・稼働時間参考値等から除外する（該当agentのみで構成されるサブエージェントセクション自体も
   非表示にする）方針で実装に反映する。
 
+## 実装（flow-id 11）
+
+計画どおり以下を実装した:
+
+1. `.claude/hooks/lib/UsageTracking.sh` の `_usage_merge_state` に `.agents` passthroughを追加
+   （push差分バグの直接の修正）。
+2. `_usage_merge_agent_state` を `subagentsByType`（agentType合算）から
+   `subagents`（agentId単位、`agentType`・`description`付き）へスキーマ変更。
+   `_usage_aggregate_and_merge_subagents` が `meta.json` の `.description // ""` を読み取って渡すよう変更。
+3. `_usage_reset_since_last_push(state)` を切り出し、`post-push-usage-report.sh` の投稿成功後の
+   リセット処理から呼ぶ形に変更（対象フィールドも`subagents`へ）。
+4. `_usage_filter_nonzero_subagents(subagentsJson)` を追加し、差分0のagentをレポートから除外。
+5. `post-push-usage-report.sh`のサブエージェントテーブルを「エージェント種別｜説明｜モデル｜...」の
+   agentId単位1行表示に変更（表示順は`agentType`→`description`でソート）。
+6. `tests/test_usage_tracking.sh` を新スキーマに合わせて更新し、`sync_usage_state`通しの回帰テスト
+   （push#1→リセット→push#2は差分0→リセット→push#3は追記分のみ）を追加。既存25件＋新規14件、
+   計39件が全passすることを確認。
+
+## 実装中に判明した追加の不具合・修正
+
+- **Windows版jqのCR混入バグ（新発見）**: このマシンのWindowsネイティブjq
+  （`C:\Program Files\jq\jq.exe`, jq-1.6）は`jq -r`の出力の各行末に`\r`を付与する
+  （`printf '%s' '{"a":1,"b":2}' | jq -r 'keys[]' | od -c`で確認）。
+  `for x in $(... | jq -r ... | sort)`のようなループでは、コマンド置換が最後の行の末尾改行のみを
+  取り除くため、要素が2件以上ある場合、最後の要素以外はループ変数に`\r`が付いたまま渡り、
+  後続の`--arg`によるキー参照（`.[$id]`）が一致せずnullになることを実機再現で確認した
+  （3要素のsubagentsで検証: 最後の1件だけ正常表示され、残り2件がjqエラーとともに欠落した）。
+  1件しか無い場合は表面化しないため、既存の主トークンテーブルのモデルループでは潜在化していた
+  （実運用のMRコメントでモデルが1種類のみだったため気づかれていなかった）。今回のagent単位表示化
+  は必然的に複数行になるため顕在化した。対象の3ループ（主トークンテーブルのモデルループ、
+  サブエージェントのagentIdループ、サブエージェント内モデルループ）に`| tr -d '\r'`を追加して対応。
+  検証時、Bashツールのヒアドキュメント経由でテストスクリプトを作ると別の文字化け（バックスラッシュが
+  消える現象）に遭遇し混同しかけたが、Writeツールでスクリプトファイルを作成して検証し直した結果、
+  それはテスト手法側の問題（ヒアドキュメント転送の癖）であり実装（sedのpipeエスケープ）自体は
+  正しいことを切り分けて確認した。
+- **ツール実行回数の0件フィルタ**（ユーザーからの追加指示）: `_usage_merge_state`のtoolCalls集計は、
+  過去に一度でも使われたツールであれば当該push分の差分が0でもキー自体を作ってしまう仕様のため、
+  「過去に使ったが前回push以降は未使用のツール」が「XXXツール: 0」として表示され続けていた。
+  トークンテーブルの0行除外と同じ考え方で、`tool_summary`／`subagent_tool_summary`の算出に
+  `map(select(.value > 0))`を追加し、差分0のツールはキーごと非表示にした
+  （状態ファイル側のスキーマ・集計ロジックは変更せず表示層のみで対応）。
+
 ## 次の一歩
 
-- 承認されたplan（`plans/cheeky-sprouting-pine.md`）＋上記の追加指示に沿って実装:
-  1. `.claude/hooks/lib/UsageTracking.sh` の `_usage_merge_state` に `.agents` passthroughを追加。
-  2. `_usage_merge_agent_state` を `subagentsByType`（agentType合算）から
-     `subagents`（agentId単位、`description`付き）へスキーマ変更。
-  3. リセット処理を `_usage_reset_since_last_push` として切り出し、
-     `post-push-usage-report.sh` から呼ぶ形に変更（対象フィールドも`subagents`へ）。
-  4. `post-push-usage-report.sh`のテーブルを「エージェント種別｜説明｜モデル｜...」の
-     agentId単位1行表示に変更し、**差分が0のagentは表示から除外する**。
-  5. `tests/test_usage_tracking.sh` を新スキーマに合わせて更新し、`sync_usage_state` 通しの
-     回帰テストを追加。
-- commit・pushしてレビュー依頼（flow-id 6）。
+- `bash -n`による構文チェック・`tests/test_usage_tracking.sh`の全pass確認は完了。
+- commit・pushしてレビュー依頼（flow-id 12）。
 
 ---

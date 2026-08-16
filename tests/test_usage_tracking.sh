@@ -162,28 +162,36 @@ assert_equal "$(printf '%s' "$result" | jq -r '.assistantCount')" "1" \
 assert_equal "$(printf '%s' "$result" | jq -r '.tools.Bash')" "1" \
   "_usage_aggregate_transcript: agentId等の余分なフィールドがあってもtool_use集計は正しく動く"
 
-# --- _usage_merge_agent_state: agentId単位のスナップショット・agentType単位の表示集約 ---
+# --- _usage_merge_agent_state: agentId単位のスナップショット・sinceLastPush（issue #34で
+#     agentType単位の合算表示を廃止し、agentIdごとに個別のentryを保持する方式へ変更） ---
 
 current_a1="$(jq -nc '{tokens: {}, tools: {}, assistantCount: 1, activeSeconds: 30}')"
-merged_agent_a="$(_usage_merge_agent_state "{}" "agent1" "Explore" "$current_a1" "feature-x")"
+merged_agent_a="$(_usage_merge_agent_state "{}" "agent1" "Explore" "Explore usage code" "$current_a1" "feature-x")"
 assert_equal "$(printf '%s' "$merged_agent_a" | jq -r '.agents.agent1.agentType')" "Explore" \
   "_usage_merge_agent_state: agentIdごとの累計スナップショットにagentTypeが保存される"
-assert_equal "$(printf '%s' "$merged_agent_a" | jq -r '.sinceLastPush.subagentsByType.Explore.activeSeconds')" "30" \
-  "_usage_merge_agent_state: 初回のagentId分がsubagentsByType[agentType]へ加算される"
+assert_equal "$(printf '%s' "$merged_agent_a" | jq -r '.agents.agent1.description')" "Explore usage code" \
+  "_usage_merge_agent_state: agentIdごとの累計スナップショットにdescriptionが保存される"
+assert_equal "$(printf '%s' "$merged_agent_a" | jq -r '.sinceLastPush.subagents.agent1.activeSeconds')" "30" \
+  "_usage_merge_agent_state: 初回のagentId分がsinceLastPush.subagents[agentId]へ計上される"
+assert_equal "$(printf '%s' "$merged_agent_a" | jq -r '.sinceLastPush.subagents.agent1.description')" "Explore usage code" \
+  "_usage_merge_agent_state: sinceLastPush側のentryにもdescriptionが保存される（表示ラベル用）"
 
-# 異なるagentId・同一agentType: 表示集約（subagentsByType）では合算される
+# 異なるagentId・同一agentType: agentType単位の合算はもう行わず、agentIdごとに個別のentryとして
+# 保持される（issue #34「複数agentを使うときはagentごとに行になるように」への対応）
 current_a2="$(jq -nc '{tokens: {}, tools: {}, assistantCount: 1, activeSeconds: 45}')"
-merged_agent_b="$(_usage_merge_agent_state "$merged_agent_a" "agent2" "Explore" "$current_a2" "feature-x")"
-assert_equal "$(printf '%s' "$merged_agent_b" | jq -r '.sinceLastPush.subagentsByType.Explore.activeSeconds')" "75" \
-  "_usage_merge_agent_state: 異なるagentIdでも同一agentType分はsubagentsByType上で合算される（30+45）"
+merged_agent_b="$(_usage_merge_agent_state "$merged_agent_a" "agent2" "Explore" "another explore task" "$current_a2" "feature-x")"
+assert_equal "$(printf '%s' "$merged_agent_b" | jq -r '.sinceLastPush.subagents.agent1.activeSeconds')" "30" \
+  "_usage_merge_agent_state: 異なるagentId追加後もagent1自身の値は変わらない（合算されない）"
+assert_equal "$(printf '%s' "$merged_agent_b" | jq -r '.sinceLastPush.subagents.agent2.activeSeconds')" "45" \
+  "_usage_merge_agent_state: 異なるagentIdはそれぞれ個別のentryとして保持される（30と45が別々のまま）"
 assert_true "$(printf '%s' "$merged_agent_b" | jq -r 'if (.agents | has("agent1")) and (.agents | has("agent2")) then "true" else "false" end')" \
   "_usage_merge_agent_state: agentIdごとのスナップショットは個別に保持される"
 
 # 同一agentIdへの2回目の呼び出し: agentId単位のスナップショット差分のみが加算され、二重計上されない
 current_a1_grown="$(jq -nc '{tokens: {}, tools: {}, assistantCount: 2, activeSeconds: 50}')"
-merged_agent_c="$(_usage_merge_agent_state "$merged_agent_b" "agent1" "Explore" "$current_a1_grown" "feature-x")"
-assert_equal "$(printf '%s' "$merged_agent_c" | jq -r '.sinceLastPush.subagentsByType.Explore.activeSeconds')" "95" \
-  "_usage_merge_agent_state: 同一agentIdの2回目はスナップショット差分（50-30=20）のみが加算される（75+20）"
+merged_agent_c="$(_usage_merge_agent_state "$merged_agent_b" "agent1" "Explore" "Explore usage code" "$current_a1_grown" "feature-x")"
+assert_equal "$(printf '%s' "$merged_agent_c" | jq -r '.sinceLastPush.subagents.agent1.activeSeconds')" "50" \
+  "_usage_merge_agent_state: 同一agentIdの2回目はスナップショット差分（50-30=20）が前回の30へ加算される（30+20=50）"
 
 # --- _usage_sync_session_logs / _usage_aggregate_and_merge_subagents: 疑似~/.claude/projectsツリーからの
 #     コピー・集計（実ホームディレクトリには一切触れない） ---
@@ -196,7 +204,8 @@ mk_entry "2026-01-01T00:00:00Z" "feature-x" > "${FAKE_ROOT}/home_projects/sess1.
 jq -nc '{type: "assistant", gitBranch: "feature-x", timestamp: "2026-01-01T00:00:00Z",
   agentId: "a1", message: {model: "m", usage: {input_tokens: 1, output_tokens: 1}, content: []}}' \
   > "${FAKE_ROOT}/home_projects/sess1/subagents/agent-a1.jsonl"
-jq -nc '{agentType: "Explore"}' > "${FAKE_ROOT}/home_projects/sess1/subagents/agent-a1.meta.json"
+jq -nc '{agentType: "Explore", description: "Explore usage-report hook infra"}' \
+  > "${FAKE_ROOT}/home_projects/sess1/subagents/agent-a1.meta.json"
 
 log_dir="$(_usage_sync_session_logs "${FAKE_ROOT}/repo" "feature-x" "sess1" "${FAKE_ROOT}/home_projects/sess1.jsonl")"
 
@@ -210,7 +219,9 @@ assert_true "$([ -f "${log_dir}/subagents/agent-a1.meta.json" ] && echo true || 
 merged_from_copy="$(_usage_aggregate_and_merge_subagents "{}" "$log_dir" "feature-x")"
 assert_equal "$(printf '%s' "$merged_from_copy" | jq -r '.agents.a1.agentType')" "Explore" \
   "_usage_aggregate_and_merge_subagents: コピー済みディレクトリからagentTypeがmeta.json経由で読み取られる"
-assert_equal "$(printf '%s' "$merged_from_copy" | jq -r '.sinceLastPush.subagentsByType.Explore.activeSeconds')" "30" \
+assert_equal "$(printf '%s' "$merged_from_copy" | jq -r '.agents.a1.description')" "Explore usage-report hook infra" \
+  "_usage_aggregate_and_merge_subagents: コピー済みディレクトリからdescriptionがmeta.json経由で読み取られる"
+assert_equal "$(printf '%s' "$merged_from_copy" | jq -r '.sinceLastPush.subagents.a1.activeSeconds')" "30" \
   "_usage_aggregate_and_merge_subagents: コピー済みディレクトリから集計・マージまで一気通貫で動く"
 
 empty_log_dir="$(mktemp -d)"
@@ -218,6 +229,84 @@ existing_noop="$(jq -nc '{foo: "bar"}')"
 result_noop="$(_usage_aggregate_and_merge_subagents "$existing_noop" "$empty_log_dir" "feature-x")"
 assert_equal "$result_noop" "$existing_noop" \
   "_usage_aggregate_and_merge_subagents: subagentsディレクトリが無ければexistingをそのまま返す"
+
+# --- _usage_reset_since_last_push ---
+
+state_before_reset="$(jq -nc '{branch: "feature-x", sessions: {s: {lastTokens: {}}},
+  agents: {a1: {agentType: "Explore", description: "d"}},
+  sinceLastPush: {tokensByModel: {m: {input: 1, output: 1, cacheCreate: 0, cacheRead: 0}},
+    toolCalls: {Bash: 1}, turns: 1, activeSeconds: 30, subagents: {a1: {activeSeconds: 30}}}}')"
+reset_result="$(_usage_reset_since_last_push "$state_before_reset")"
+assert_equal "$(printf '%s' "$reset_result" | jq -r '.sinceLastPush.activeSeconds')" "0" \
+  "_usage_reset_since_last_push: sinceLastPush.activeSecondsが0になる"
+assert_equal "$(printf '%s' "$reset_result" | jq -c '.sinceLastPush.subagents')" "{}" \
+  "_usage_reset_since_last_push: sinceLastPush.subagentsが空になる"
+assert_equal "$(printf '%s' "$reset_result" | jq -r '.agents.a1.agentType')" "Explore" \
+  "_usage_reset_since_last_push: agents（累計スナップショット）はリセットされず保持される"
+assert_true "$(printf '%s' "$reset_result" | jq -r 'has("lastPostedAt")')" \
+  "_usage_reset_since_last_push: lastPostedAtが設定される"
+
+# --- _usage_filter_nonzero_subagents（issue #34「差分0のagentはレポートに出力しない」） ---
+
+subagents_mixed="$(jq -nc '{
+  a1: {agentType: "Explore", description: "d1",
+    tokensByModel: {m: {input: 1, output: 0, cacheCreate: 0, cacheRead: 0}}, toolCalls: {}, activeSeconds: 0},
+  a2: {agentType: "Explore", description: "d2",
+    tokensByModel: {}, toolCalls: {}, activeSeconds: 0},
+  a3: {agentType: "Plan", description: "d3",
+    tokensByModel: {}, toolCalls: {}, activeSeconds: 10}
+}')"
+filtered="$(_usage_filter_nonzero_subagents "$subagents_mixed")"
+assert_true "$(printf '%s' "$filtered" | jq -r 'has("a1")')" \
+  "_usage_filter_nonzero_subagents: トークン差分ありのagentは残る"
+assert_true "$(printf '%s' "$filtered" | jq -r '(has("a2") | not)')" \
+  "_usage_filter_nonzero_subagents: トークン・ツール・稼働時間いずれも差分0のagentは除外される"
+assert_true "$(printf '%s' "$filtered" | jq -r 'has("a3")')" \
+  "_usage_filter_nonzero_subagents: activeSecondsのみ差分があるagentは残る"
+
+# --- 回帰テスト: sync_usage_state を通しでのpush差分バグ（issue #34） ---
+# `_usage_merge_state`が`.agents`スナップショットを引き継がない場合、2回目push以降も
+# サブエージェント分が常に同じ値のまま再送されてしまっていた不具合の再発防止テスト。
+# post-push-usage-report.shと同じ「push→投稿成功でリセット→次のpush」の流れを
+# `sync_usage_state` + `_usage_reset_since_last_push` を直接使って再現する。
+
+PUSH_ROOT="$(mktemp -d)"
+trap 'rm -f "$TMP_FILE"; rm -rf "$FAKE_ROOT" "$PUSH_ROOT"' EXIT
+PUSH_REPO="${PUSH_ROOT}/repo"
+
+mkdir -p "${PUSH_ROOT}/home_projects/pushsess/subagents"
+mk_entry "2026-01-01T00:00:00Z" "feature-push" > "${PUSH_ROOT}/home_projects/pushsess.jsonl"
+jq -nc '{type: "assistant", gitBranch: "feature-push", timestamp: "2026-01-01T00:00:00Z",
+  agentId: "pa1", message: {model: "m", usage: {input_tokens: 1, output_tokens: 1}, content: []}}' \
+  > "${PUSH_ROOT}/home_projects/pushsess/subagents/agent-pa1.jsonl"
+jq -nc '{agentType: "Explore", description: "task A"}' \
+  > "${PUSH_ROOT}/home_projects/pushsess/subagents/agent-pa1.meta.json"
+
+# push #1: 初回。サブエージェント分の差分が計上される
+state1="$(sync_usage_state "$PUSH_REPO" "feature-push" "pushsess" "${PUSH_ROOT}/home_projects/pushsess.jsonl")"
+assert_equal "$(printf '%s' "$state1" | jq -r '.sinceLastPush.subagents.pa1.activeSeconds')" "30" \
+  "sync_usage_state回帰テスト: push#1でサブエージェント分の初回差分が計上される"
+
+# 投稿成功を模したリセット（post-push-usage-report.shと同じ処理）
+state1_reset="$(_usage_reset_since_last_push "$state1")"
+printf '%s' "$state1_reset" > "${PUSH_REPO}/.claude/usage-state/feature-push.json"
+
+# push #2: サブエージェントtranscriptは変更なし（新しい作業が発生していない）→差分は0になるべき
+state2="$(sync_usage_state "$PUSH_REPO" "feature-push" "pushsess" "${PUSH_ROOT}/home_projects/pushsess.jsonl")"
+assert_equal "$(printf '%s' "$state2" | jq -r '.sinceLastPush.subagents.pa1.activeSeconds // 0')" "0" \
+  "sync_usage_state回帰テスト（issue #34再発防止）: transcript不変ならpush#2の差分は0（バグ時は30が再送されていた）"
+
+# 投稿成功を模したリセット
+state2_reset="$(_usage_reset_since_last_push "$state2")"
+printf '%s' "$state2_reset" > "${PUSH_REPO}/.claude/usage-state/feature-push.json"
+
+# push #3: サブエージェントtranscriptへ新しいエントリを追記（新しい作業が発生）→追記分のみが差分になるべき
+jq -nc '{type: "assistant", gitBranch: "feature-push", timestamp: "2026-01-01T00:10:00Z",
+  agentId: "pa1", message: {model: "m", usage: {input_tokens: 5, output_tokens: 5}, content: []}}' \
+  >> "${PUSH_ROOT}/home_projects/pushsess/subagents/agent-pa1.jsonl"
+state3="$(sync_usage_state "$PUSH_REPO" "feature-push" "pushsess" "${PUSH_ROOT}/home_projects/pushsess.jsonl")"
+assert_equal "$(printf '%s' "$state3" | jq -r '.sinceLastPush.subagents.pa1.tokensByModel.m.input')" "5" \
+  "sync_usage_state回帰テスト: push#3は追記分のみ（累積6ではなく5）が計上される"
 
 echo "----"
 echo "passed=${PASSED} failures=${FAILURES}"

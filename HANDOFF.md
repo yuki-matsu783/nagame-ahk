@@ -25,8 +25,8 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 7 | MRで再度planについてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
 | [x] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
 | [x] | 9 | planをもとにMR descriptionを更新する | `describe` |
-| [] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
-| [] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
+| [x] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
+| [x] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
 | [] | 12 | commit, push してレビュー依頼を行う | エージェント |
 | [] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
 | [] | 14 | MRでレビュー・コメントする | 人間 |
@@ -52,16 +52,18 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 - plan・worklog・HANDOFF.mdをcommit・push（flow-id 6）。ユーザーから「レビューOK」の合図を受け、
   `comments all`で未解決スレッドが0件であることを確認済み（flow-id 7〜8）。
   PR #35のdescriptionをplan内容で更新済み（flow-id 9）。
+- flow-id 11実装完了:
+  - `_usage_merge_state`への`.agents`passthrough追加（push差分バグ本体の修正）
+  - `subagentsByType`→`subagents`（agentId単位、agentType・description付き）へのスキーマ変更
+  - `_usage_reset_since_last_push`・`_usage_filter_nonzero_subagents`の追加
+  - `post-push-usage-report.sh`のサブエージェントテーブルをagentId単位1行表示・0件除外に変更
+  - `tests/test_usage_tracking.sh`更新・回帰テスト追加（25→39件、全pass）
+  - 実装中に判明した追加修正: Windows版jqのCR混入バグ（`tr -d '\r'`で対応）、
+    ツール実行回数の0件フィルタ（ユーザー追加指示）。詳細はworklog参照。
 
 ## 次にやること
 
-- flow-id 10（コンテキスト削減のための`/compact`実施、人間の担当）。
-- 完了後、plan（`plans/cheeky-sprouting-pine.md`）に沿って実装に着手する（flow-id 11）:
-  1. `_usage_merge_state`への`.agents`passthrough追加
-  2. `subagentsByType`→`subagents`（agentId単位、description付き）へのスキーマ変更
-  3. `_usage_reset_since_last_push`の切り出し
-  4. `_usage_filter_nonzero_subagents`の追加とレポートテーブルのagentId単位・0件除外化
-  5. `tests/test_usage_tracking.sh`の更新・回帰テスト追加
+- flow-id 12: 実装をcommit・pushしてレビュー依頼。
 
 ## 判断を迷った内容
 

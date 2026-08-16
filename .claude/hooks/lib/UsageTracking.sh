@@ -132,6 +132,13 @@ _usage_aggregate_transcript() {
 
 # 状態ファイル(既存JSON)・今回の集計(current)・セッションIDを突き合わせ、
 # 「前回このセッションで記録した累計との差分」をsinceLastPushへ加算した新しい状態JSONを返す。
+#
+# 注意（`agents`のpassthrough）: `$existing.agents`（サブエージェントのagentId単位累計
+# スナップショット。`_usage_merge_agent_state`が読み書きする）は本関数が管理するフィールドでは
+# ないが、出力オブジェクトへそのまま引き継ぐ。`sync_usage_state`はメインセッション分の本関数呼び出し
+# →サブエージェント分の`_usage_aggregate_and_merge_subagents`呼び出し、の順で状態を受け渡すため、
+# ここで`agents`を落とすと後続のサブエージェント差分計算が毎回「前回スナップショット無し」扱いになり、
+# 差分ではなく毎回transcript全体を計上してしまうバグになる（issue #34で発生・修正）。
 _usage_merge_state() {
   local existing="$1" current="$2" session_id="$3" branch="$4"
   local jq_program
@@ -180,6 +187,7 @@ def zero_bucket: {input: 0, output: 0, cacheCreate: 0, cacheRead: 0};
   }}) as $newSessions
 | {branch: $branch, sessions: $newSessions, sinceLastPush: $newSince}
   + (if $existing.lastPostedAt then {lastPostedAt: $existing.lastPostedAt} else {} end)
+  + (if $existing.agents then {agents: $existing.agents} else {} end)
 JQ
 )"
   jq -n --argjson existing "$existing" --argjson current "$current" \
@@ -228,23 +236,25 @@ _usage_sync_session_logs() {
 }
 
 # 1つのサブエージェント（agentId単位）について、_usage_merge_state と全く同じ
-# 「current - prevSnapshot（下限0）」ロジックを適用する。累計スナップショットはagentId単位で
-# 保持する（バックグラウンドで複数pushをまたいで追記され続けるサブエージェントがあっても、
-# 既存の単調性保証がそのまま効き二重計上・過小計上が起きないようにするため）。表示・レポート集約は
-# agentType単位（`existing.sinceLastPush.subagentsByType[agentType]`）で行い、同じagentTypeを持つ
-# 複数のagentId分の差分はここで自然に合算される。
+# 「current - prevSnapshot（下限0）」ロジックを適用する。累計スナップショット・sinceLastPush差分の
+# いずれもagentId単位で保持する（バックグラウンドで複数pushをまたいで追記され続けるサブエージェント
+# があっても、既存の単調性保証がそのまま効き二重計上・過小計上が起きないようにするため）。
+# レポート表示はagentIdごとに1行とする方針のため、agentType単位での合算は行わない（issue #34、
+# 「同じagentTypeを複数回起動してもどのagentがどれだけ使ったか見えない」というフィードバックにより
+# agentType単位の合算表示から変更）。`agentType`・`description`（`meta.json`の値。表示ラベル用）は
+# スナップショット・sinceLastPushの両方に付与して保存する。
 #
 # _usage_aggregate_transcript / _usage_merge_state 本体は無改造のまま、agentId を「疑似session_id」、
-# agentType別の累計を「疑似sinceLastPush」としてラップして渡すことで、既存の差分計算ロジックを
+# agentId別の累計を「疑似sinceLastPush」としてラップして渡すことで、既存の差分計算ロジックを
 # そのまま再利用する。
 _usage_merge_agent_state() {
-  local existing="$1" agent_id="$2" agent_type="$3" current="$4" branch="$5"
+  local existing="$1" agent_id="$2" agent_type="$3" description="$4" current="$5" branch="$6"
 
   local pseudo_existing
-  pseudo_existing="$(printf '%s' "$existing" | jq -c --arg agentId "$agent_id" --arg agentType "$agent_type" '
+  pseudo_existing="$(printf '%s' "$existing" | jq -c --arg agentId "$agent_id" '
     {
       sessions: {($agentId): (.agents[$agentId] // {})},
-      sinceLastPush: (.sinceLastPush.subagentsByType[$agentType]
+      sinceLastPush: (.sinceLastPush.subagents[$agentId]
         // {tokensByModel: {}, toolCalls: {}, turns: 0, activeSeconds: 0})
     }
   ')"
@@ -253,10 +263,10 @@ _usage_merge_agent_state() {
   merged="$(_usage_merge_state "$pseudo_existing" "$current" "$agent_id" "$branch")"
 
   jq -n --argjson existing "$existing" --argjson merged "$merged" \
-    --arg agentId "$agent_id" --arg agentType "$agent_type" '
+    --arg agentId "$agent_id" --arg agentType "$agent_type" --arg description "$description" '
     $existing
-    | .agents[$agentId] = ($merged.sessions[$agentId] + {agentType: $agentType})
-    | .sinceLastPush.subagentsByType[$agentType] = $merged.sinceLastPush
+    | .agents[$agentId] = ($merged.sessions[$agentId] + {agentType: $agentType, description: $description})
+    | .sinceLastPush.subagents[$agentId] = ($merged.sinceLastPush + {agentType: $agentType, description: $description})
   '
 }
 
@@ -275,19 +285,23 @@ _usage_aggregate_and_merge_subagents() {
   local f
   for f in "$subagents_dir"/agent-*.jsonl; do
     [ -e "$f" ] || continue
-    local agent_id agent_type meta_file current
+    local agent_id agent_type description meta_file current
     agent_id="$(basename "$f" .jsonl)"
     agent_id="${agent_id#agent-}"
     meta_file="${f%.jsonl}.meta.json"
     if [ -f "$meta_file" ]; then
       agent_type="$(jq -r '.agentType // "unknown"' "$meta_file" 2>/dev/null || echo "unknown")"
+      # description: Agent/Taskツール起動時に渡された説明文（レポートの行ラベルに使う）。
+      # 実データ確認済み: meta.jsonにagentTypeと併せて記録されている。無ければ空文字のまま扱う。
+      description="$(jq -r '.description // ""' "$meta_file" 2>/dev/null || echo "")"
     else
       agent_type="unknown"
+      description=""
     fi
     [ -n "$agent_type" ] || agent_type="unknown"
 
     current="$(_usage_aggregate_transcript "$f" "$branch")"
-    existing="$(_usage_merge_agent_state "$existing" "$agent_id" "$agent_type" "$current" "$branch")"
+    existing="$(_usage_merge_agent_state "$existing" "$agent_id" "$agent_type" "$description" "$current" "$branch")"
   done
 
   printf '%s' "$existing"
@@ -332,4 +346,39 @@ sync_usage_state() {
 
   printf '%s' "$new_state" > "$state_file"
   printf '%s' "$new_state"
+}
+
+# post-push-usage-report.sh がMRへの投稿成功後に呼ぶ、sinceLastPushのゼロ初期化。
+# 状態JSON全体（state）を受け取り、sinceLastPushをゼロ初期化・lastPostedAtを現在時刻に更新した
+# 新しい状態JSONをstdoutへ返す（呼び出し元がstate_fileへ書き戻す）。他のフィールド（sessions,
+# agents等）はそのまま保持する。
+#
+# post-push-usage-report.sh本体からロジックを切り出した理由: インラインjqのままだと
+# tests/test_usage_tracking.shから直接検証できず、「pushでsinceLastPushを積算→投稿成功でリセット
+# →次のpushでは差分のみが積算される」という一連の流れ（issue #34のpush差分バグの回帰テスト）を
+# 実運用と全く同じリセットロジックで再現できないため。
+_usage_reset_since_last_push() {
+  local state="$1"
+  printf '%s' "$state" | jq \
+    --arg postedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    '.sinceLastPush = {tokensByModel: {}, toolCalls: {}, turns: 0, activeSeconds: 0, subagents: {}} | .lastPostedAt = $postedAt'
+}
+
+# サブエージェントレポート用: 前回pushからの差分が0（tokensByModel全モデル・toolCalls・
+# activeSecondsのいずれも0）のagentIdを `sinceLastPush.subagents` から除外して返す（issue #34、
+# 「差分0のagentはレポートに出力しない」というフィードバックへの対応）。トークンテーブル本体で
+# 既に行っている「4項目とも0のモデル行は表示しない」という間引きと同じ考え方を、agent単位に適用した
+# もの。post-push-usage-report.shのテーブル描画・稼働時間参考値等の集計は、この関数の出力に対して
+# 行う。
+_usage_filter_nonzero_subagents() {
+  local subagents="$1"
+  printf '%s' "$subagents" | jq '
+    to_entries
+    | map(select(
+        (((.value.tokensByModel // {}) | [.[] | (.input // 0) + (.output // 0) + (.cacheCreate // 0) + (.cacheRead // 0)] | add // 0) > 0)
+        or (((.value.toolCalls // {}) | [.[]] | add // 0) > 0)
+        or ((.value.activeSeconds // 0) > 0)
+      ))
+    | from_entries
+  '
 }
