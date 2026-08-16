@@ -226,8 +226,9 @@ Claude Codeの対応工数（モデル別トークン数・ツール実行回数
   （毎ターン投稿やコメントのupsertではない）。
 - **記録範囲**: モデル別トークン数（input/output/cache write/cache read。**既知の過小カウント要因
   あり**。詳細は「未決定事項・懸念点」参照）＋ツール実行回数＋assistant応答回数＋稼働時間
-  （`activeSeconds`。下記「稼働時間の算出方法」参照）。推定コスト(USD)・ファイルdiff・プロンプト本文は
-  対象外。
+  （`activeSeconds`。下記「稼働時間の算出方法」参照）＋skill呼び出し・Agent呼び出し・
+  ユーザーへの質問の詳細テーブル（issue #37で追加。下記「呼び出し・質問の詳細記録」参照）。
+  推定コスト(USD)・ファイルdiff・プロンプト本文（Agent呼び出しの`prompt`列を除く）は対象外。
   - **ツール実行回数は「実際に呼び出されたツールの集計」であり、利用可能な全ツール種別の固定
     カタログではない**（PR #29レビュー指摘）。[ツールリファレンス](https://code.claude.com/docs/en/tools-reference)
     に載っている多数のツールのうち、そのpush間隔で一度も呼び出されなかったツールは単純に
@@ -264,10 +265,12 @@ Claude Codeの対応工数（モデル別トークン数・ツール実行回数
     稼働時間に混入しうる、閾値以上の長時間ツール実行（大きめのビルド等）は稼働時間から漏れうる、
     tail bufferは固定値のため実際の読了時間との過不足がありうる。「目安」である旨をレポート・
     このドキュメントに明記する（既存のトークン集計と同じ扱い）。
-  - `activeSeconds`は`assistantCount`と同じ「0始まりの累計値」という性質を持つため、
-    `_usage_merge_state`側は既存の`turns`と全く同じ差分計算パターン（`current - prevSession値`、
-    前回スナップショット無しなら`current - 0`、下限0）をそのまま流用する。セッションごとの永続状態
-    （`sessions[<sessionId>]`）には`lastActiveSeconds`を`lastTokens`等と同様に保存する。
+  - **`activeSeconds`は、issue #37で他フィールドが新規行diff方式（後述）へ移行した後も、
+    唯一「累計値 - 前回スナップショット」という差分計算方式のまま残っている**（`current -
+    prevSession値`、前回スナップショット無しなら`current - 0`、下限0）。セッションごとの永続状態
+    （`sessions[<sessionId>]`）には`lastActiveSeconds`のみを保存する（`turns`等、他フィールドの
+    旧スナップショット`lastTokens`/`lastTools`/`lastAssistantCount`はissue #37で新規行diff方式へ
+    移行したのに伴い不要になり削除した）。
   - 複数セッション・複数プロジェクトが同時進行した場合の区間重複除去（overlap dedup。参考実装が
     持つ機能）は、本対応のスコープ外（単一ブランチ・単一セッションの範囲で完結する対応工数レポート
     のため）。将来必要になった場合に別issueで検討する。
@@ -282,15 +285,22 @@ Claude Codeの対応工数（モデル別トークン数・ツール実行回数
     を列挙することで発見する。
   - **session-logsローカルコピー方式**（PR #29レビュー指摘）: 集計対象を毎回`~/.claude/projects`
     配下の外部パスから直接読むのではなく、`git push`検知のたびにメイン・サブエージェント両方の
-    transcriptを`.claude/session-logs/<safeBranch>/<sessionId>/`（gitignore対象）へコピーしてから、
+    transcriptを`usage/session-logs/<safeBranch>/<sessionId>/`（gitignore対象）へコピーしてから、
     そのローカルコピーを対象に集計する。`~/.claude/projects`という非公開・ユーザープロファイル配下の
     揮発性のあるパスへ直接依存し続けるのを避け、pushのたびにリポジトリ内へスナップショットを
-    退避しておくことで、調査・デバッグ時に状態ファイル（`.claude/usage-state/`）と同じ場所で
-    生ログを参照できるようにする狙い。**全件再パース＋スナップショット差分方式そのものは変更しない**
-    （集計対象パスを差し替えるだけに留める）。行オフセットベースの差分パースへは踏み込まなかった
-    （`activeSeconds`のgapベースtail buffer計算・単調性保証が「毎回全件を時系列で走査し直す」ことを
-    前提にしており、オフセット方式にすると単調性証明が崩れるリスクが大きいと判断したため。
-    詳細はDDR 0006の追記を参照）。
+    退避しておくことで、調査・デバッグ時に状態ファイル（`usage/state/`）と同じ場所で
+    生ログを参照できるようにする狙い。
+  - **`usage/`ディレクトリへの移設**（issue #37）: `session-logs`/状態ファイルは元々`.claude/`配下
+    （`.claude/session-logs/`, `.claude/usage-state/`）に置いていたが、`.claude/`はAIエージェント
+    自体の設定・ルール置き場という性格が強く、対応工数レポートのローカル作業状態を置くのは
+    筋が悪いという指摘を受け、プロジェクトルート直下の新規`usage/`ディレクトリ
+    （`usage/session-logs/`, `usage/state/`）へ移設した。`.gitignore`も旧2行から`/usage/`1行へ統合。
+  - **行オフセットベースの差分パースへの移行（issue #37）**: 当初（PR #29時点）は「全件再パース＋
+    スナップショット差分方式そのものは変更しない」（`activeSeconds`のgapベースtail buffer計算・
+    単調性保証が「毎回全件を時系列で走査し直す」ことを前提にしており、オフセット方式にすると
+    単調性証明が崩れるリスクが大きいと判断したため）としていたが、issue #37でこの判断を一部覆した。
+    詳細は下記「新規行diff方式への移行（issue #37）」および
+    [DDR 0006の追記](../ddr/0006-対応工数レポートはtranscript自前パースで実装する.md)を参照。
   - **`agentId`単位のスナップショット・表示**（issue #34で変更）: 累計スナップショットは`agentId`
     単位で状態ファイルの`agents[<agentId>]`に保存し、既存の`sessions[<sessionId>]`と全く同じ
     「current - prevSnapshot（下限0）」ロジックを適用する（バックグラウンドで複数pushをまたいで
@@ -316,29 +326,85 @@ Claude Codeの対応工数（モデル別トークン数・ツール実行回数
   - **ネストしたサブエージェント（depth 2以降）は対象外**: `meta.json`に`spawnDepth`フィールドが
     存在し理論上ネストがありうるが、実データでは`depth 1`のみ観測され、ネスト時のディレクトリ構造・
     スキーマも未確認のため対象外とした。
+- **新規行diff方式への移行（issue #37）**: 「利用したツール数が明らかにずれている」という報告を
+  受け、原因調査（実データのjq調査）で、同一セッションが複数回・複数ブランチにわたってresumeされると
+  transcript JSONL上に同一行が複数回（異なる`gitBranch`ラベル付きで）出現することを確認した。
+  従来の「毎回全件を再パースし、前回累計との差分（引き算）を計上する」方式では、セッションが
+  新しいブランチで初めてpushされた際に前回スナップショットが存在せず、蓄積済みの全件がその新
+  ブランチの初回差分として計上されてしまう不具合があった。
+  - **採用方針**: `tokens`/`tools`/`turns`（assistant応答回数）/`skillCalls`/`agentCalls`/
+    `askUserQuestions`は、**セッション単位でグローバルなカーソル**
+    （`usage/state/session-cursors/<sessionId>.json`の`lastLineCount`。サブエージェントは
+    `<agentId>.json`）が指す「前回処理済み行数以降の新規行のみ」を対象に集計し、そのまま
+    `sinceLastPush`へ**単純加算**する（引き算方式は廃止）。カーソルは**ブランチに紐付けず**
+    セッション単位で管理するため、セッションが別ブランチへresumeされても取りこぼし・二重計上が
+    起きない。新規行が無ければ、session-logsへのコピー・状態更新自体をスキップする
+    （issue本文が当初提案していた「差分がなければコピーしない」設計）。
+  - **意図的に行わないこと（既知の限界）**: この方式は行の中身（重複かどうか・どの`gitBranch`
+    ラベルが「正しい」か）を一切詮索せず、「一度数えた範囲は二度と数え直さない」という機械的な
+    原則だけで動く。そのため、**resumeによってtranscript行が新しい物理位置に再度書き出された
+    場合、その重複行自体は「新規行」としてそのまま計上されうる**（内容が重複していることを
+    検出して除外する仕組みではない）。カーソル方式が確実に防ぐのは「同じ行を同じ位置から二重に
+    読むこと」のみである。設計判断の経緯（uuidベースの重複排除案を検討したが、`uuid`は
+    `parentUuid`チェーン上のノード識別子であり重複自体は異常ではないという判断で不採用とした
+    こと）はDDR 0006の追記を参照。
+  - **`activeSeconds`のみ従来方式を維持**: 上記「稼働時間の算出方法」に記載の通り、
+    `activeSeconds`はgapベースの単調非減少性が「毎回全件を時系列で走査し直す」ことを前提にして
+    いるため、新規行diffには移行せず、既存の全件再パース＋スナップショット差分方式のまま維持した。
+    1回のpushで「新規行diffの集計」と「全件再パースによる`activeSeconds`算出」の両方を行う
+    ハイブリッド構成になる。
+- **呼び出し・質問の詳細記録**（issue #37）: 上記の新規行diff方式への移行と合わせて、
+  メインセッションのtranscriptの新規行から以下3種の詳細情報を抽出し、`sinceLastPush`へ配列として
+  追記する（サブエージェント自身が呼び出した分・ネストしたサブエージェントは対象外）。
+  - `skillCalls`: `Skill` tool_useブロックから`{id, skill, args}`を抽出する。
+  - `agentCalls`: `Agent` tool_useブロックから`{id, subagentType, description, prompt}`を抽出する
+    （呼び出し時点の記録であり、対応するサブエージェントが完了しているかどうかは問わない。
+    上記「サブエージェントの使用量記録」＝トークン/稼働時間の実績テーブルとは別集計）。
+  - `askUserQuestions`: `type=="user"`エントリのtool_result本文（`"Your questions have been
+    answered: \"Q\"=\"A\", ..."`形式。実データで確認済み）から、`"([^"]*)"="([^"]*)"`パターンで
+    質問=回答ペアを正規表現抽出する。質問・回答の文字列自体にこのパターンと一致する部分文字列が
+    含まれる場合は誤抽出しうる既知の制約（レアケースとして許容）。
+  - レポートには、各配列が1件以上ある場合のみ「### skill呼び出し」「### Agent呼び出し」
+    「### ユーザーへの質問」のテーブルとして表示する（0件セクションは表示しない、既存の
+    トークンテーブル・ツール実行回数と同じ方針）。各セルはパイプ（`|`）をエスケープし改行は
+    半角スペースへ変換する（表が崩れないようにするため。`description`列と同じ扱い）。
+    `agentCalls`の`prompt`列は長文になりうるため300文字を超える場合は末尾を`…`で省略する。
 - **コンポーネント**:
-  - `.claude/hooks/lib/UsageTracking.sh`（共有ライブラリ、bash版。issue #6でPowerShell版から移行）:
+  - `.claude/hooks/lib/UsageTracking.sh`（共有ライブラリ、bash版。issue #6でPowerShell版から移行。
+    issue #37で新規行diff方式へ全面的に書き換え）:
     `sync_usage_state <repoRoot> <branch> <sessionId> <transcriptPath>` が集計本体。まず
-    `_usage_sync_session_logs` で対象transcriptを`.claude/session-logs/`へコピーし、コピー先を
-    `_usage_aggregate_transcript`（jqで1行ずつパース。不正な行・空行は無視するベストエフォート）へ
-    渡す。`.gitBranch == <branch>` のエントリのみを対象に、`message.usage`（モデル別トークン数）、
-    `message.content[].type=="tool_use"`（ツール名別呼び出し回数）、該当エントリ件数
-    （assistant応答回数）、および`.timestamp`のgapベース算出による稼働時間（`activeSeconds`。
-    算出方法は上記「稼働時間の算出方法」参照）を集計する。前回このセッションで記録した累計との
-    **差分**を、ブランチ単位の状態ファイル（`.claude/usage-state/<branch>.json`、gitignore対象）の
-    `sinceLastPush` へ加算する（トークン・ツール回数・応答回数・稼働時間のいずれも同じ
-    「差分を加算」方式。**`.agents`（サブエージェントの累計スナップショット）は本関数が管理する
-    フィールドではないが、出力へそのまま引き継ぐ（issue #34で修正）。落とすと`sync_usage_state`内で
-    後続の`_usage_aggregate_and_merge_subagents`が毎回「前回スナップショット無し」として扱い、
-    サブエージェント分の差分が常に全量再計上される不具合になる**）。続けて
-    `_usage_aggregate_and_merge_subagents`が`subagents/agent-*.jsonl`を列挙し、1ファイルずつ
-    `_usage_aggregate_transcript`（無改造で再利用）→ `_usage_merge_agent_state`（`agentId`単位の
-    スナップショット差分を`sinceLastPush.subagents[agentId]`へ保持。`agentType`・`description`は
-    `meta.json`から取得）で畳み込む。投稿成功後のリセットは`_usage_reset_since_last_push`が担い
-    （`sinceLastPush`をゼロ初期化、`agents`スナップショットは保持）、レポート表示直前の0件除外は
-    `_usage_filter_nonzero_subagents`が担う（いずれもissue #34でテスト容易性のため関数化した）。
-    `_usage_safe_branch_name`はブランチ名のサニタイズ（状態ファイル名・session-logsディレクトリ名に
-    使用）を担う共通ヘルパー。
+    `_usage_read_cursor`でセッション横断カーソル（`usage/state/session-cursors/<sessionId>.json`の
+    `lastLineCount`）を読み、`_usage_read_new_lines`（`totalLines`（空行除く全行数）と、カーソル
+    位置以降の新規行のみをパース済みJSONで返す`newEntries`）で新規行を切り出す。新規行が無ければ
+    （`totalLines <= lastLineCount`）、session-logsへのコピー・状態更新をスキップし既存状態を
+    そのまま返す。新規行があれば、`_usage_sync_session_logs`で対象transcriptを
+    `usage/session-logs/`へコピーしたうえで、`_usage_aggregate_new_lines`が新規行のみを対象に
+    `message.usage`（モデル別トークン数）、`message.content[].type=="tool_use"`（ツール名別
+    呼び出し回数、および`Skill`/`Agent`ブロックからの`skillCalls`/`agentCalls`抽出）、該当エントリ
+    件数（assistant応答回数）、`type=="user"`エントリのtool_result本文からの`askUserQuestions`抽出を
+    行う（`.gitBranch == <branch>` で絞り込み。詳細は上記「新規行diff方式への移行」
+    「呼び出し・質問の詳細記録」参照）。この結果はそのまま「新規分（差分）」であるため、
+    `_usage_merge_state`は引き算せずブランチ単位の状態ファイル（`usage/state/<branch>.json`、
+    gitignore対象）の`sinceLastPush`へ単純加算・追記する。`activeSeconds`のみ別途
+    `_usage_aggregate_transcript`（全件再パース。下記参照）で算出し、従来通り
+    `sessions[sessionId].lastActiveSeconds`との差分（下限0）を計上する。**`.agents`
+    （サブエージェントの累計スナップショット）は`_usage_merge_state`が管理するフィールドではないが、
+    出力へそのまま引き継ぐ（issue #34で修正）。落とすと後続の`_usage_aggregate_and_merge_subagents`が
+    毎回「前回スナップショット無し」として扱い、サブエージェント分の差分が常に全量再計上される
+    不具合になる**。続けて`_usage_aggregate_and_merge_subagents`が`subagents/agent-*.jsonl`を
+    列挙し、1ファイルずつ`agentId`単位のカーソル（`_usage_read_cursor`/`_usage_write_cursor`。
+    メインと同じ`usage/state/session-cursors/`配下）で新規行を切り出し、新規行が無いagentは
+    スキップ、あれば`_usage_aggregate_new_lines`→`_usage_merge_agent_state`（`agentId`単位の
+    差分を`sinceLastPush.subagents[agentId]`へ保持しつつ、`activeSeconds`のみ
+    `_usage_aggregate_transcript`の全件再パースで別途算出。`agentType`・`description`は
+    `meta.json`から取得）で畳み込む。最後にメイン・サブエージェント両方のカーソルを
+    `_usage_write_cursor`で更新する。投稿成功後のリセットは`_usage_reset_since_last_push`が担い
+    （`sinceLastPush`をゼロ初期化。`skillCalls`/`agentCalls`/`askUserQuestions`も空配列へ、
+    `agents`スナップショットは保持）、レポート表示直前の0件除外は`_usage_filter_nonzero_subagents`が
+    担う（いずれもissue #34でテスト容易性のため関数化した）。`_usage_aggregate_transcript`
+    （全件再パース）自体はissue #37以降`activeSeconds`算出専用として無改造のまま維持している
+    （呼び出し元は戻り値のうち`.activeSeconds`のみを使う）。`_usage_safe_branch_name`はブランチ名の
+    サニタイズ（状態ファイル名・session-logsディレクトリ名に使用）を担う共通ヘルパー。
   - `.claude/hooks/post-push-usage-report.sh`（`PostToolUse` hook、bash版）: `.claude/settings.json` の
     matcher `Bash|PowerShell` と `if: "Bash(git push*)"` / `if: "PowerShell(git push*)"` により
     `git push` を含むコマンド実行後のみ発火する（マッチしなければプロセス起動自体が行われず、
@@ -349,13 +415,17 @@ Claude Codeの対応工数（モデル別トークン数・ツール実行回数
     `sinceLastPush` をリセットする（失敗時は次回pushへ繰り越す。git push自体はブロックしない）。
     hookの起動コマンドは`"bash"`（PATH解決に依存。詳細: [shell-scripts.md](shell-scripts.md)）。
     コメント本文には`fmt_duration`（秒→`H時間M分`/`M分`形式）で整形した「対応工数（目安・入力待ち
-    時間を除く）」の行、および`_usage_filter_nonzero_subagents`適用後のサブエージェント分が1件以上
-    あれば「### サブエージェント」セクション（`agentId`×モデルの1行テーブル。エージェント種別・
-    説明・モデル別トークン、ツール実行回数合計、稼働時間参考値）を含める。テーブル描画で
-    `agentId`・モデル名等をfor変数として使うループには、Windowsネイティブjqのコマンド置換CR混入
-    対策（`.claude/rules/shell-script-style.md`「文字コード」節参照）として`tr -d '\r'`を挟む。
+    時間を除く）」の行、`skillCalls`/`agentCalls`/`askUserQuestions`がそれぞれ1件以上あれば
+    「### skill呼び出し」「### Agent呼び出し」「### ユーザーへの質問」の詳細テーブル（issue #37。
+    詳細は上記「呼び出し・質問の詳細記録」参照）、および`_usage_filter_nonzero_subagents`適用後の
+    サブエージェント分が1件以上あれば「### サブエージェント」セクション（`agentId`×モデルの
+    1行テーブル。エージェント種別・説明・モデル別トークン、ツール実行回数合計、稼働時間参考値）を
+    含める。テーブル描画で`agentId`・モデル名・配列インデックス等をfor変数として使うループには、
+    Windowsネイティブjqのコマンド置換CR混入対策（`.claude/rules/shell-script-style.md`
+    「文字コード」節参照）として`tr -d '\r'`を挟む。
   - `.claude/settings.json`: `hooks.PostToolUse` を追加。
-  - `.gitignore`: `/.claude/usage-state/`, `/.claude/session-logs/` を追加。
+  - `.gitignore`: `/usage/`（issue #37で`/.claude/usage-state/`, `/.claude/session-logs/`の2行から
+    統合。詳細は上記「`usage/`ディレクトリへの移設」参照）。
 - **`Stop` hookは使わない**: 当初は `Stop`（1ターン完了時に発火）でも同じ集計処理を呼び、
   ターン数カウント専用の役割を持たせていたが、(1) `post-push-usage-report.sh` 自身が呼ぶだけで
   十分、(2) `Stop`依存のカウントは「そのターンのStopがまだ発火していない状態でのpush」で
@@ -689,6 +759,30 @@ issueはGitHubのUIからしか作成できず、標準4見出し（目的・現
 - `dev-tools/docs/spec/issue-mr-workflow.md`（「提供関数」に`build_issue_body`/`new_issue`を追加、
   新規サブセクション「issue作成（AIエージェント代行・スクリプト実行）」を追加、本エントリを追加）
 
+新規（追加分・issue #37 対応工数レポートの集計ロジック修正・詳細テーブル追加）:
+- `usage/`（`.claude/session-logs/`・`.claude/usage-state/`の移設先。`usage/session-logs/`,
+  `usage/state/`（`usage/state/session-cursors/`にセッション横断カーソルを保持）。gitignore対象の
+  ためリポジトリには含まれない）
+
+変更（追加分・issue #37 対応工数レポートの集計ロジック修正・詳細テーブル追加）:
+- `.claude/hooks/lib/UsageTracking.sh`（全面書き換え。`_usage_read_new_lines`/
+  `_usage_aggregate_new_lines`（新規行diff集計、`skillCalls`/`agentCalls`/`askUserQuestions`抽出）、
+  `_usage_read_cursor`/`_usage_write_cursor`（セッション横断カーソル管理）を追加。
+  `_usage_merge_state`をdelta加算＋`activeSeconds`のみ差分方式へ変更。`_usage_merge_agent_state`/
+  `_usage_aggregate_and_merge_subagents`も`agentId`単位のカーソル管理を組み込んで書き換え。
+  `_usage_aggregate_transcript`自体は`activeSeconds`算出専用として無改造のまま維持）
+- `.claude/hooks/post-push-usage-report.sh`（「### skill呼び出し」「### Agent呼び出し」
+  「### ユーザーへの質問」の3テーブルを追加。`state_dir`のパスを`usage/state`へ更新）
+- `.gitignore`（`/.claude/usage-state/`, `/.claude/session-logs/`の2行を`/usage/`1行へ統合）
+- `tests/test_usage_tracking.sh`（新方式に合わせて全面書き換え。66件）
+- `dev-tools/docs/ddr/0006-対応工数レポートはtranscript自前パースで実装する.md`（マージ済みDDRの
+  ため既存内容は変更せず、行オフセットベースの差分パースへの移行・`usage/`ディレクトリ移設に関する
+  「追記」セクションを追加）
+- `.claude/rules/directory-structure.md`（ツリーへ`usage/`を追加）
+- `dev-tools/docs/spec/issue-mr-workflow.md`（本セクション「記録範囲」「稼働時間の算出方法」
+  「session-logsローカルコピー方式」を更新、新規サブセクション「新規行diff方式への移行」
+  「呼び出し・質問の詳細記録」を追加、「コンポーネント」の関数一覧を更新、本エントリを追加）
+
 ## 設定項目
 
 `.mrworkflow.json`（nagame-ahk向けの初期値）
@@ -766,6 +860,15 @@ issueはGitHubのUIからしか作成できず、標準4見出し（目的・現
   セッションでの他ブランチ分混入を防ぐ。詳細・却下案は
   [0006-対応工数レポートはtranscript自前パースで実装する.md](../ddr/0006-対応工数レポートはtranscript自前パースで実装する.md)
   参照。
+- **対応工数の集計方式（tools/tokens/turns）はセッション横断カーソルによる新規行diff方式**
+  （issue #37）: 「毎回全件再パース＋前回累計との引き算」方式が抱えていた「セッションが新しい
+  ブランチで初めてpushされた際の過去分の再計上」バグへの対応として、当初検討したuuidベースの
+  重複排除案（不採用）を経て、セッション単位でグローバルなカーソル（ブランチに紐付けない
+  `usage/state/session-cursors/<sessionId>.json`）による新規行diff＋単純加算方式を採用した。
+  `activeSeconds`のみ単調非減少性を保つため従来の全件再パース方式を維持する。設計判断の経緯・
+  却下案は
+  [0006-対応工数レポートはtranscript自前パースで実装する.md](../ddr/0006-対応工数レポートはtranscript自前パースで実装する.md)
+  の追記を参照。
 
 ## 未決定事項・懸念点
 
@@ -799,6 +902,11 @@ issueはGitHubのUIからしか作成できず、標準4見出し（目的・現
 - **SessionStart hookの実機（新規Claude Codeセッション）での動作確認が未実施**: 疑似stdin JSONを
   使った単体テストでは期待通りの挙動を確認したが、実際のセッション開始時にコンテキストへ反映される
   ことは本対応内では未確認。次回以降のセッション開始時に確認する。
+- **新規行diff方式（issue #37）は、resumeによって新しい物理位置に再度書き出された重複行までは
+  除外しない**: セッション横断カーソルが確実に防ぐのは「同じ行を同じ位置から二重に読むこと」のみで
+  あり、「重複した内容が新しい位置（カーソルより後ろ）に現れること」までは防げない（意図的な設計。
+  上記「新規行diff方式への移行」参照）。実際にどの程度の頻度・規模で重複が発生するかは実データでの
+  継続観測が必要。
 - **transcript JSONLの非公開フォーマット依存**: 対応工数レポート機能は、Claude Code非公開の
   内部フォーマットである`transcript_path`のJSONLを自前パースしている。将来のバージョンで形式が
   変わった場合、集計が0件になる（ベストエフォート設計のため実害は対応工数が記録されなく
@@ -822,9 +930,9 @@ issueはGitHubのUIからしか作成できず、標準4見出し（目的・現
   切り替わった場合、旧セッション分の使用量との合算は行わない（新しい`session_id`として
   ゼロから集計が始まる）。
 - **状態ファイル書き込みの排他制御が無い**: 複数のClaude Codeセッションが同一ブランチに対して
-  同時にhookを発火させた場合、`.claude/usage-state/<branch>.json`への読み書きにロックが無いため、
-  一方の更新が失われる可能性がある（レースコンディション）。単一開発者が同一作業ディレクトリで
-  複数セッションを同時実行する運用は想定しにくいため許容している。
+  同時にhookを発火させた場合、`usage/state/<branch>.json`（issue #37で`.claude/usage-state/`から
+  移設）への読み書きにロックが無いため、一方の更新が失われる可能性がある（レースコンディション）。
+  単一開発者が同一作業ディレクトリで複数セッションを同時実行する運用は想定しにくいため許容している。
 - **ネストしたサブエージェント（depth 2以降）は未対応・未検証**（PR #29レビュー指摘）:
   サブエージェントの`meta.json`には`spawnDepth`フィールドが存在し、理論上サブエージェントが
   さらにサブエージェントを起動するネストがありうるが、このリポジトリの実データでは`depth 1`のみ

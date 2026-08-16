@@ -38,6 +38,9 @@ nagame-ahk/
 │       └── spec/
 ├── build/
 ├── tests/
+├── usage/                    # 対応工数レポート機能のローカル作業状態（.gitignore対象、コミットしない）
+│   ├── session-logs/          #   push検知のたびにコピーするtranscriptのローカルスナップショット
+│   └── state/                 #   ブランチ別の累計状態・セッション横断カーソル（session-cursors/）
 ├── .claude/
 │   ├── rules/
 │   ├── skills/
