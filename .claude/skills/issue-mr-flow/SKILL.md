@@ -40,23 +40,23 @@ source dev-tools/src/vcs/Provider.sh
 | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
 | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
 | 5 | Planに合意する | 人間 |
-| 6 | commit, push してレビュー依頼を行う | エージェント |
+| 6 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | 7 | MRで再度planについてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
 | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
 | 9 | planをもとにMR descriptionを更新する | `describe` |
 | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
 | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
-| 12 | commit, push してレビュー依頼を行う | エージェント |
+| 12 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
 | 14 | MRでレビュー・コメントする。レビュー済み連絡をするまで以降の作業は行わない。 | 人間 |
 | 15 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（11〜15の作業ループを合意まで繰り返す） | `comments` / `reply` |
 | 16 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
 | 17 | AIアセット改善: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
-| 18 | commit, push してレビュー依頼を行う | エージェント |
+| 18 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | 19 | MRでレビュー・コメントする。レビュー済み連絡をするまで以降の作業は行わない。 | 人間 |
 | 20 | レビュー内容を取得し、設計反映・AIアセットの内容を修正する。対応が完了したコメントには対応内容を返信する（16〜20を合意まで繰り返す） | `comments` / `reply` |
 | 21 | `plans/` `worklog/` を削除し、`HANDOFF.md` を次タスクへリセットする | エージェント |
-| 22 | commit, push して Draftを解除する | エージェント |
+| 22 | `commit`スキル経由でcommitし、push して Draftを解除する | エージェント |
 | 23 | マージする（squash merge。ブランチは削除してよい） | 人間 |
 
 **`start` から着手する場合を除き、このセッションでこのフローのサブコマンドを初めて使う前には、
@@ -206,7 +206,8 @@ PR #29のセッションで実際に発生）。この場合、タスク固有�
 
 - ドキュメントの置き場所・ライフサイクル（`plans/` `worklog/` `docs/spec/` `docs/ddr/` `HANDOFF.md`）:
   `.claude/rules/docs-workflow.md` の「ドキュメント運用」表
-- ブランチ命名規則・squash mergeの方針: `.claude/rules/git-workflow.md`
+- ブランチ命名規則・squash mergeの方針・コミット運用（`commit`スキル必須使用・PreToolUse hookに
+  よる技術的強制）: `.claude/rules/git-workflow.md`
 - AHKコーディング規約・設計ドキュメントの章立て・実装時のコメント作法:
   `.claude/skills/ahk-implement/SKILL.md`, `.claude/rules/ahk-style.md`
 - bashスクリプトの規約（`set -euo pipefail`・jq前提・改行/エンコーディング等）:

@@ -23,6 +23,32 @@ keywords: [featureブランチ, ブランチ命名, worklog, squash-merge, draft
 - フロー対象のタスクは、着手前に必ずfeatureブランチを作成する（mainへの直接コミットはしない）。
 - ブランチ名は `.mrworkflow.json` の `branchPrefixTemplate`（既定 `feature-<issue番号>-<slug>`）に従う。
 
+## コミット運用
+
+- **すべてのコミットは `commit` スキル（`.claude/skills/commit/SKILL.md`）経由で行う**
+  （issue #39）。ユーザーが明示的に `/commit` を呼ぶ場合だけでなく、`issue-mr-flow` の全体フロー
+  flow-id 6/12/18/22でAIエージェントが自律的にコミットする場面も対象。
+- ドキュメント上のルールだけでなく、技術的にも強制する。`git commit` の直接実行は
+  `.claude/hooks/block-direct-git-commit.sh`（PreToolUse hook。`.claude/settings.json`の
+  `hooks.PreToolUse`で登録）が、Bash/PowerShellのコマンド文字列に `git commit` を検知した時点で
+  exit code 2でブロックする。`permissions.deny`にも`Bash(git commit*)` / `PowerShell(git commit*)`
+  を追加しているが、複合コマンド（例: `cd src && git commit -m "fix"`）はprefixマッチをすり抜ける
+  ため、実質的な強制はhook側が担う（多重防御）。
+  - `commit`スキル自身は `dev-tools/src/create-commit.sh` というラッパースクリプト経由で
+    `git add` / `git commit` を実行する。呼び出し文字列自体に `git commit` という部分文字列を
+    含まないため、hookの対象にならず正規に実行できる。
+  - 既知のトレードオフ: 部分文字列マッチのため、たまたま `git commit` という語を含む無関係な
+    コマンド（該当文字列を検索する `grep` 等）も誤ってブロックされる。悪意ある回避への対策は
+    行わない（既定動作を確実な方向へ倒す仕組みであり、敵対的な安全境界ではない）。
+    **AIエージェント向け注記**: このトレードオフはissue #39対応時に実際に2回発生した
+    （コミットメッセージ、およびMR description用heredocの説明文中に、それぞれ`git commit`という
+    語句が地の文として含まれていたため）。コミットメッセージ・PR description・スクリプトの
+    コメント等、このhookの仕組み自体を日本語で説明する文章を書く際は、`git` と `commit` を
+    半角スペース区切りで連続させず（例:「gitのコミット操作」「直接コミットを実行する」のように
+    言い換える）、同一Bash/PowerShellツール呼び出し文字列内で誤検知を避ける。
+  - 経緯・却下案は
+    `dev-tools/docs/ddr/0012-コミットはcommitスキル経由を機構的に強制する.md` を参照。
+
 ## worklogの配置・命名
 
 `worklog/日付_<planファイル名>.md` に記録する（配置・命名は `directory-structure.md`、ライフサイクルは
