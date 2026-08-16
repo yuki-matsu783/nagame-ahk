@@ -118,11 +118,11 @@ hookの対象にならず正規に実行できる。
 （`git commit` の直接実行は `.claude/hooks/block-direct-git-commit.sh` によりブロックされる）。
 
 ```
-bash dev-tools/src/create-commit.sh --message "<prefix>: <日本語サマリ>" -- <file1> [file2 ...]
+bash dev-tools/src/create-commit.sh --message "<prefix>: <日本語説明>" -- <file1> [file2 ...]
 ```
 
 **コミットメッセージ形式：**
-- `<prefix>: <日本語サマリ>` の **1行のみ**
+- `<prefix>: <日本語説明>` の **1行のみ**
 - 本文・フッター・Co-Authored-By など一切付けない
 
 複数コミットの場合は順番に Step 3-4 を繰り返す。途中で失敗したら**そこで停止**して状況を報告（自動 reset しない）。
@@ -158,5 +158,4 @@ bash dev-tools/src/create-commit.sh --message "<prefix>: <日本語サマリ>" -
 ## してはいけないこと
 
 - TodoWrite / Agent ツールの使用
-- `git push` の実行（ユーザが明示的に頼まない限り）
 - 機密ファイルが残っていてもユーザに警告せず除外（必ず明示する）
