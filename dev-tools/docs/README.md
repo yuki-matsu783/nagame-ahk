@@ -38,3 +38,4 @@ architectureに限らない意思決定も記録対象とする（詳細は
 - [0006-セッション使用量レポートはtranscript自前パースで実装する.md](ddr/0006-セッション使用量レポートはtranscript自前パースで実装する.md)
 - [0007-hookのcommandはbashのPATH解決方式へ変更.md](ddr/0007-hookのcommandはbashのPATH解決方式へ変更.md)
 - [0008-frontmatter抽出スクリプトの設計判断.md](ddr/0008-frontmatter抽出スクリプトの設計判断.md)
+- [0009-Planモードre-entry時はgit checkout復元でなくarchiveスクリプトで対処する.md](ddr/0009-Planモードre-entry時はgit checkout復元でなくarchiveスクリプトで対処する.md)

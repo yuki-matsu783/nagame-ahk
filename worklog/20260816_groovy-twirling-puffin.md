@@ -42,6 +42,8 @@ plan: `plans/groovy-twirling-puffin.md`
   該当アサーションをbasename比較に変更して回避した。
 - ユーザー指摘を受け、規則2「計画ごとに新しいplanファイル名を使う」を「既存の承認済み計画の
   内容を失わない」に改題し、規則6の退避手順が例外として矛盾しないことを規則2側にも明記した。
+- flow-id 16（設計反映）: `dev-tools/docs/ddr/0009-...md` を新規作成し、
+  `dev-tools/docs/README.md`索引に追記。旧手順の問題・新手順・却下案を記録。
 
 ## ダメだったこと
 
@@ -51,7 +53,7 @@ plan: `plans/groovy-twirling-puffin.md`
 
 ## 次の一歩
 
-- flow-id 16（設計反映）で `docs/ddr/` にDDRを追加する。
-- MRでのレビュー依頼（flow-id 12〜）。
+- flow-id 18: 設計反映内容のcommit/push・レビュー依頼。
+- レビュー完了後、flow-id 21（plans/worklog削除・HANDOFFリセット）へ。
 
 ---
