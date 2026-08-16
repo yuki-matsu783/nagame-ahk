@@ -31,11 +31,11 @@ issue #39「コミットSkillを利用するようにルールを記載する」
 | [x] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
 | [x] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
 | [x] | 12 | commit, push してレビュー依頼を行う | エージェント |
-| [] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
-| [] | 14 | MRでレビュー・コメントする | 人間 |
-| [] | 15 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（11〜15の作業ループを合意まで繰り返す） | `comments` / `reply` |
-| [] | 16 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
-| [] | 17 | AIアセット改善: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
+| [x] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
+| [x] | 14 | MRでレビュー・コメントする | 人間 |
+| [x] | 15 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（11〜15の作業ループを合意まで繰り返す） | `comments` / `reply` |
+| [x] | 16 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
+| [x] | 17 | AIアセット改善: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
 | [] | 18 | commit, push してレビュー依頼を行う | エージェント |
 | [] | 19 | MRでレビュー・コメントする | 人間 |
 | [] | 20 | レビュー内容を取得し、設計反映・AIアセットの内容を修正する。対応が完了したコメントには対応内容を返信する（16〜20を合意まで繰り返す） | `comments` / `reply` |
@@ -63,10 +63,18 @@ issue #39「コミットSkillを利用するようにルールを記載する」
   `dev-tools/src/create-commit.sh`経由なら成功することを確認済み。
 - flow-id 12: 3コミット（`7a1254e` feat / `c04bc77` docs / `cea4140` chore）＋worklog反映コミット
   （`7406b72`）を作成しpush済み。
+- flow-id 13: `describe`でPR #40 descriptionを実装状況ベースへ更新。
+- flow-id 14-15: ユーザーから「レビューOK」の合図を受領後、`comments all`で再確認。未解決の
+  レビューコメントは無く（自動投稿の対応工数レポートのみ）、修正対応なし。
+- flow-id 16: plan「対象外」節の通りdocs/spec反映対象なし。DDR 0012が既にflow-id 11で
+  作成済みのため追加反映不要と判断。
+- flow-id 17: このセッションで実際に2回発生した「hookの部分文字列マッチがコミットメッセージ・
+  PR description中の"git commit"という地の文にも誤反応する」実例を、
+  `.claude/rules/git-workflow.md`のコミット運用節へAIエージェント向け注記として追記。
 
 ## 次にやること
 
-flow-id 13（`describe`でMR descriptionを実装内容ベースへ更新）→ flow-id 14（人間レビュー待ち）。
+flow-id 18（`commit`スキル経由でcommit・push、レビュー依頼）→ flow-id 19（人間レビュー待ち）。
 
 ## 判断を迷った内容
 
@@ -77,10 +85,8 @@ flow-id 13（`describe`でMR descriptionを実装内容ベースへ更新）→ 
 
 ## 未解決の内容
 
-- hookの部分文字列マッチによる誤検知が、このタスク自身の最初のコミットメッセージ案
-  （「git commitの直接実行を...」という日本語文中の"git commit"）で実際に発生した。plan/DDR
-  0012で明記済みの既知トレードオフの範囲内であり、追加対応はしていない
-  （メッセージを言い換えて回避した）。
+（無し。hookの部分文字列マッチによる誤検知の実例はflow-id 17で
+`.claude/rules/git-workflow.md`へ注記として反映済み）
 
 ## 守るべき条件・触ってはいけない範囲
 

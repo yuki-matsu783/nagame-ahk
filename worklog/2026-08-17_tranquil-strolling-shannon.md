@@ -67,3 +67,17 @@ keywords: [commit, コミット, スキル, git-workflow, issue-mr-flow, pretool
   `7a1254e`（feat: hook+wrapper+settings）、
   `c04bc77`（docs: skill/rule/flow更新+DDR）、
   `cea4140`（chore: index.jsonl再生成）。
+- flow-id 13: `describe`でPR #40 descriptionを実装状況ベースへ更新（実装完了状況・コミット一覧・
+  検証結果を記載）。
+- flow-id 14-15: ユーザーから「レビューOK」の合図を受領後、`comments all`
+  （`get_mr_unresolved_comments 40 true`）で再確認。取得できたのは全て自動投稿の対応工数レポート
+  のみで、実際のレビューコメント・未解決スレッドは無かった。修正対応なし。
+- flow-id 16（設計反映）: plan「対象外」節の通り、本タスクはdev-tooling/ワークフロー変更であり
+  `docs/spec/`への反映対象なし。意思決定の記録は`dev-tools/docs/ddr/0012-...md`として既に
+  flow-id 11で作成済みのため、追加のspec/ddr反映は不要と判断した。
+- flow-id 17（AIアセット改善）: このセッション中に実際に2回発生した「hookの部分文字列マッチが
+  コミットメッセージ・PR description中の"git commit"という地の文にも誤反応する」という実例を、
+  次回以降の同種作業で無駄な試行錯誤をしないよう
+  `.claude/rules/git-workflow.md`の「コミット運用」節へAIエージェント向け注記として追記した
+  （hookの仕組み自体を説明する文章では`git`と`commit`を連続させず言い換える、という具体的な
+  回避策）。
