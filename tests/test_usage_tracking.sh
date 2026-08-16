@@ -4,12 +4,20 @@
 # 設計: plans/inherited-gathering-biscuit.md（issue #37）,
 #       dev-tools/docs/spec/issue-mr-workflow.md「対応工数レポート」節
 #
-# 対象: gh/glab呼び出しを伴わない純粋ロジック（_usage_aggregate_transcript, _usage_read_new_lines,
-# _usage_aggregate_new_lines, _usage_merge_state, _usage_merge_agent_state,
-# _usage_sync_session_logs, _usage_aggregate_and_merge_subagents, sync_usage_state,
-# _usage_reset_since_last_push）。合成JSONLフィクスチャ（jq -ncで生成、$TMPDIR配下）に対する
-# 集計結果を検証する。_usage_sync_session_logsのコピー処理は、疑似`~/.claude/projects`ツリーを
-# $TMPDIR配下に自作して検証する（実ホームディレクトリには一切触れない）。
+# 対象: gh/glab呼び出しを伴わない純粋ロジック（_usage_aggregate_transcript, _usage_aggregate_new_lines,
+# _usage_merge_state, _usage_merge_agent_state, _usage_sync_session_logs,
+# _usage_aggregate_and_merge_subagents, sync_usage_state, _usage_reset_since_last_push）。
+# 合成JSONLフィクスチャ（jq -ncで生成、$TMPDIR配下）に対する集計結果を検証する。
+# _usage_sync_session_logsのコピー処理は、疑似`~/.claude/projects`ツリーを$TMPDIR配下に自作して
+# 検証する（実ホームディレクトリには一切触れない）。
+#
+# 注意（issue #37の追加バグ修正、_usage_read_new_linesの廃止）: 当初は「新規行の切り出し
+# （_usage_read_new_lines）とその集計（_usage_aggregate_new_lines）」の2関数構成だったが、
+# 前者が切り出したJSON配列を後者へ`--argjson`のコマンドライン引数として渡す設計が、実transcript
+# （tool_use/tool_resultの生の入出力を含む）ではWindowsのコマンドライン長上限を容易に超え
+# `Argument list too long`で失敗することが実データで判明した。対策として両関数を
+# `_usage_aggregate_new_lines(transcript_path, last_line_count, branch)`に統合し、常に
+# transcriptをファイルパスとしてjqへ渡す設計に変更した（詳細はUsageTracking.shのコメント参照）。
 #
 # 使い方:
 #     bash tests/test_usage_tracking.sh
@@ -101,42 +109,82 @@ result="$(_usage_aggregate_transcript "$TMP_FILE" "b")"
 assert_equal "$(printf '%s' "$result" | jq -r '.assistantCount')" "1" \
   "_usage_aggregate_transcript: gitBranch不一致entryはassistantCountから除外される"
 
-# --- _usage_read_new_lines: カーソル位置以降の新規行のみが切り出される ---
+# --- _usage_aggregate_new_lines: totalLines/オフセット/不正行の扱い（issue #37の追加バグ修正で
+#     _usage_read_new_lines を統合したため、totalLinesと集計結果を同じ呼び出しで検証する） ---
 
 {
   mk_entry "2026-01-01T00:00:00Z" "b"
   mk_entry "2026-01-01T00:01:00Z" "b"
   mk_entry "2026-01-01T00:02:00Z" "b"
 } > "$TMP_FILE"
-result="$(_usage_read_new_lines "$TMP_FILE" 1)"
+result="$(_usage_aggregate_new_lines "$TMP_FILE" 1 "b")"
 assert_equal "$(printf '%s' "$result" | jq -r '.totalLines')" "3" \
-  "_usage_read_new_lines: totalLinesは空行を除いた全行数"
-assert_equal "$(printf '%s' "$result" | jq -r '.newEntries | length')" "2" \
-  "_usage_read_new_lines: オフセット以降の行のみがnewEntriesに含まれる"
-assert_equal "$(printf '%s' "$result" | jq -r '.newEntries[0].timestamp')" "2026-01-01T00:01:00Z" \
-  "_usage_read_new_lines: newEntriesの先頭はオフセット位置の行"
+  "_usage_aggregate_new_lines: totalLinesは空行を除いた全行数"
+assert_equal "$(printf '%s' "$result" | jq -r '.assistantCount')" "2" \
+  "_usage_aggregate_new_lines: オフセット以降の行のみが集計対象になる"
 
-result="$(_usage_read_new_lines "$TMP_FILE" 0)"
-assert_equal "$(printf '%s' "$result" | jq -r '.newEntries | length')" "3" \
-  "_usage_read_new_lines: オフセット0なら全行がnewEntriesに含まれる"
+result="$(_usage_aggregate_new_lines "$TMP_FILE" 0 "b")"
+assert_equal "$(printf '%s' "$result" | jq -r '.assistantCount')" "3" \
+  "_usage_aggregate_new_lines: オフセット0なら全行が集計対象になる"
 
-result="$(_usage_read_new_lines "$TMP_FILE" 10)"
-assert_equal "$(printf '%s' "$result" | jq -r '.newEntries | length')" "0" \
-  "_usage_read_new_lines: オフセットが総行数を超える場合はnewEntriesが空になる"
+result="$(_usage_aggregate_new_lines "$TMP_FILE" 10 "b")"
+assert_equal "$(printf '%s' "$result" | jq -r '.assistantCount')" "0" \
+  "_usage_aggregate_new_lines: オフセットが総行数を超える場合は集計対象が空になる"
 
-# 不正なJSON行は行数（totalLines）には数えるが、newEntriesからは除外される
+# 不正なJSON行は行数（totalLines）には数えるが、集計からは除外される
 {
   mk_entry "2026-01-01T00:00:00Z" "b"
   echo "not valid json"
   mk_entry "2026-01-01T00:02:00Z" "b"
 } > "$TMP_FILE"
-result="$(_usage_read_new_lines "$TMP_FILE" 0)"
+result="$(_usage_aggregate_new_lines "$TMP_FILE" 0 "b")"
 assert_equal "$(printf '%s' "$result" | jq -r '.totalLines')" "3" \
-  "_usage_read_new_lines: 不正なJSON行も空行でなければtotalLinesに数える"
-assert_equal "$(printf '%s' "$result" | jq -r '.newEntries | length')" "2" \
-  "_usage_read_new_lines: 不正なJSON行はnewEntriesからは除外される"
+  "_usage_aggregate_new_lines: 不正なJSON行も空行でなければtotalLinesに数える"
+assert_equal "$(printf '%s' "$result" | jq -r '.assistantCount')" "2" \
+  "_usage_aggregate_new_lines: 不正なJSON行は集計からは除外される"
 
-# --- _usage_aggregate_new_lines: tools/tokens/turns/skillCalls/agentCalls/askUserQuestionsの抽出 ---
+# --- _usage_aggregate_new_lines（続き）: 巨大なペイロードでも Argument list too long にならない
+#     ことの回帰テスト（issue #37の追加バグ修正の主目的）。実transcriptのtool出力を模した
+#     長い文字列フィールドを持つ行を複数含めても、コマンドライン引数の長さに一切影響しない
+#     （transcriptを常にファイルパスとしてjqへ渡す設計のため）ことを確認する。 ---
+
+# 注意: 長い文字列を`jq --arg`のコマンドライン引数として渡すと、このヘルパー自身が本テストで
+# 検証したいのと同じ「Argument list too long」バグを踏んでしまう。そのためjqへ引数として渡さず、
+# printfでJSON行を直接組み立てる（中身は"x"の繰り返しのみでJSON上のエスケープが不要なため安全）。
+mk_large_entry() {
+  local ts="$1" branch="$2" size="$3"
+  local big
+  big="$(printf 'x%.0s' $(seq 1 "$size"))"
+  printf '{"type":"assistant","gitBranch":"%s","timestamp":"%s","message":{"model":"m","usage":{"input_tokens":1,"output_tokens":1},"content":[{"type":"tool_use","id":"toolu_big","name":"Bash","input":{"command":"%s"}}]}}\n' \
+    "$branch" "$ts" "$big"
+}
+
+{
+  mk_large_entry "2026-01-01T00:00:00Z" "b" 50000
+  mk_large_entry "2026-01-01T00:01:00Z" "b" 50000
+  mk_large_entry "2026-01-01T00:02:00Z" "b" 50000
+} > "$TMP_FILE"
+result="$(_usage_aggregate_new_lines "$TMP_FILE" 0 "b")"
+assert_equal "$?" "0" \
+  "_usage_aggregate_new_lines: 巨大な行(50KB×3件)でもArgument list too longにならず正常終了する"
+assert_equal "$(printf '%s' "$result" | jq -r '.assistantCount')" "3" \
+  "_usage_aggregate_new_lines: 巨大な行でも集計結果自体は正しい"
+
+# --- _usage_aggregate_new_lines（続き）: userメッセージのmessage.contentが配列でなく単一の文字列の
+#     場合でも例外にならないことの回帰テスト（issue #37の追加バグ修正。人間が直接入力したシンプルな
+#     userメッセージは message.content が文字列のまま格納されることが実データで確認された） ---
+
+plain_string_user_entry="$(jq -nc '{type: "user", gitBranch: "b", timestamp: "2026-01-01T00:03:00Z",
+  uuid: "u3", message: {role: "user", content: "こんにちは"}}')"
+printf '%s\n' "$plain_string_user_entry" > "$TMP_FILE"
+result="$(_usage_aggregate_new_lines "$TMP_FILE" 0 "b")"
+assert_equal "$?" "0" \
+  "_usage_aggregate_new_lines: message.contentが文字列のuserエントリでも例外にならず正常終了する"
+assert_equal "$(printf '%s' "$result" | jq -r '.askUserQuestions | length')" "0" \
+  "_usage_aggregate_new_lines: 文字列のmessage.contentからはaskUserQuestionsが抽出されない（tool_resultが無いため）"
+
+# --- _usage_aggregate_new_lines（続き）: tools/tokens/turns/skillCalls/agentCalls/askUserQuestionsの
+#     抽出 ---
 
 skill_entry="$(jq -nc '{type: "assistant", gitBranch: "b", timestamp: "2026-01-01T00:00:00Z",
   message: {model: "m", usage: {input_tokens: 1, output_tokens: 1}, content: [
@@ -162,10 +210,14 @@ non_answer_entry="$(jq -nc '{type: "user", gitBranch: "b", timestamp: "2026-01-0
     {type: "tool_result", tool_use_id: "toolu_5", content: "1"}
   ]}}')"
 
-new_entries="$(jq -nc --argjson e1 "$skill_entry" --argjson e2 "$agent_entry" \
-  --argjson e3 "$other_branch_entry" --argjson e4 "$question_entry" --argjson e5 "$non_answer_entry" \
-  '[$e1, $e2, $e3, $e4, $e5]')"
-delta="$(_usage_aggregate_new_lines "$new_entries" "b")"
+{
+  printf '%s\n' "$skill_entry"
+  printf '%s\n' "$agent_entry"
+  printf '%s\n' "$other_branch_entry"
+  printf '%s\n' "$question_entry"
+  printf '%s\n' "$non_answer_entry"
+} > "$TMP_FILE"
+delta="$(_usage_aggregate_new_lines "$TMP_FILE" 0 "b")"
 
 assert_equal "$(printf '%s' "$delta" | jq -r '.assistantCount')" "2" \
   "_usage_aggregate_new_lines: gitBranch一致のassistantエントリのみカウントされる"
@@ -406,6 +458,27 @@ assert_equal "$state_noop_1" "$state_noop_2" \
   "sync_usage_state: transcriptに変化が無ければ2回目呼び出しでも状態は変わらない"
 assert_true "$([ -d "${NOOP_REPO}/usage/session-logs/feature-noop/noopsess" ] && echo true || echo false)" \
   "sync_usage_state: 差分がある1回目はsession-logsへコピーされる"
+
+# --- 回帰テスト: 破損（空）した状態ファイルからの自己回復（issue #37の追加バグ修正） ---
+#
+# 実データで、状態ファイルが0バイトに壊れた状態でカーソルだけが進んでいる状況を確認した
+# （当時のargv長バグにより発生したと推測される）。この状態を人為的に再現し、sync_usage_state が
+# クラッシュせず「状態なし」として扱って新しい状態を作れることを確認する。
+
+CORRUPT_ROOT="$(mktemp -d)"
+trap 'rm -f "$TMP_FILE"; rm -rf "$FAKE_ROOT" "$PUSH_ROOT" "$NOOP_ROOT" "$CORRUPT_ROOT"' EXIT
+CORRUPT_REPO="${CORRUPT_ROOT}/repo"
+CORRUPT_TRANSCRIPT="${CORRUPT_ROOT}/home_projects/corruptsess.jsonl"
+mkdir -p "${CORRUPT_ROOT}/home_projects" "${CORRUPT_REPO}/usage/state"
+mk_entry "2026-01-01T00:00:00Z" "feature-corrupt" > "$CORRUPT_TRANSCRIPT"
+# 状態ファイルを意図的に0バイトの破損状態にしておく
+: > "${CORRUPT_REPO}/usage/state/feature-corrupt.json"
+
+state_after_corrupt="$(sync_usage_state "$CORRUPT_REPO" "feature-corrupt" "corruptsess" "$CORRUPT_TRANSCRIPT")"
+assert_equal "$?" "0" \
+  "sync_usage_state: 状態ファイルが0バイトに壊れていてもクラッシュせず正常終了する"
+assert_equal "$(printf '%s' "$state_after_corrupt" | jq -r '.sinceLastPush.turns')" "1" \
+  "sync_usage_state: 破損した状態ファイルは「状態なし」として扱われ、新規分だけの状態が作られる"
 
 echo "----"
 echo "passed=${PASSED} failures=${FAILURES}"
