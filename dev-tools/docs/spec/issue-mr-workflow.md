@@ -198,10 +198,10 @@ resume・clear時に毎回、現在ブランチのissue/MR状態をコンテキ�
 [0005-DraftPR作成失敗時は空コミットで自動リトライする.md](../ddr/0005-DraftPR作成失敗時は空コミットで自動リトライする.md)
 参照。
 
-### セッション使用量レポート（PostToolUse hook, git push検知）
+### 対応工数レポート（PostToolUse hook, git push検知）
 
 issue #15「作業にかかったトークンなどの情報をMRのコメントに記載する」への対応として、
-Claude Codeのセッション使用量（モデル別トークン数・ツール実行回数・assistant応答回数）をMRへ
+Claude Codeの対応工数（モデル別トークン数・ツール実行回数・assistant応答回数）をMRへ
 自動投稿する。
 
 - **投稿トリガー**: `git push` 成功時に、前回投稿からの差分をMRへ新規コメントとして投稿する
@@ -248,7 +248,7 @@ Claude Codeのセッション使用量（モデル別トークン数・ツール
   追加され性能影響とのトレードオフになるため、対応しない。
 - **設計判断の詳細・却下案**（`transcript` JSONL自前パースの採用理由、`gitBranch` フィルタの理由、
   `Stop` hookを廃止した経緯）は
-  [0006-セッション使用量レポートはtranscript自前パースで実装する.md](../ddr/0006-セッション使用量レポートはtranscript自前パースで実装する.md)
+  [0006-対応工数レポートはtranscript自前パースで実装する.md](../ddr/0006-対応工数レポートはtranscript自前パースで実装する.md)
   参照。
 
 ### ブランチ命名
@@ -346,13 +346,13 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
 - `.claude/skills/issue-mr-flow/SKILL.md`（「詳細ルールへのポインタ」に
   `.claude/rules/powershell-encoding.md` を追加）
 
-新規（追加分・issue #15 Draft PR自動リトライ＋セッション使用量レポート）:
+新規（追加分・issue #15 Draft PR自動リトライ＋対応工数レポート）:
 - `.claude/hooks/lib/UsageTracking.ps1`（集計ロジック）
 - `.claude/hooks/post-push-usage-report.ps1`（PostToolUse hook）
 - `dev-tools/docs/ddr/0005-DraftPR作成失敗時は空コミットで自動リトライする.md`
-- `dev-tools/docs/ddr/0006-セッション使用量レポートはtranscript自前パースで実装する.md`
+- `dev-tools/docs/ddr/0006-対応工数レポートはtranscript自前パースで実装する.md`
 
-変更（追加分・issue #15 Draft PR自動リトライ＋セッション使用量レポート）:
+変更（追加分・issue #15 Draft PR自動リトライ＋対応工数レポート）:
 - `dev-tools/src/vcs/Provider.ps1`（`Add-EmptyCommitForDraftMr`, `Add-MrComment` を追加）
 - `dev-tools/src/vcs/Github.ps1` / `Gitlab.ps1`（`New-DraftMergeRequest` 実装に失敗時リトライを追加、
   `GitHub-AddMrComment` / `GitLab-AddMrComment` を追加）
@@ -457,11 +457,11 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
   解消した。背景・却下案は
   [0005-DraftPR作成失敗時は空コミットで自動リトライする.md](../ddr/0005-DraftPR作成失敗時は空コミットで自動リトライする.md)
   参照。
-- **セッション使用量のトークン集計方式**: transcript JSONLの自前パース以外に確実な取得手段が
+- **対応工数のトークン集計方式**: transcript JSONLの自前パース以外に確実な取得手段が
   無いことを確認した上で採用した。非公開フォーマットへの依存リスクは、失敗の握りつぶし・
   「目安」である旨の明記で吸収する。`entry.gitBranch`でのフィルタにより、複数ブランチを跨いだ
   セッションでの他ブランチ分混入を防ぐ。詳細・却下案は
-  [0006-セッション使用量レポートはtranscript自前パースで実装する.md](../ddr/0006-セッション使用量レポートはtranscript自前パースで実装する.md)
+  [0006-対応工数レポートはtranscript自前パースで実装する.md](../ddr/0006-対応工数レポートはtranscript自前パースで実装する.md)
   参照。
 
 ## 未決定事項・懸念点
@@ -496,11 +496,11 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
 - **SessionStart hookの実機（新規Claude Codeセッション）での動作確認が未実施**: 疑似stdin JSONを
   使った単体テストでは期待通りの挙動を確認したが、実際のセッション開始時にコンテキストへ反映される
   ことは本対応内では未確認。次回以降のセッション開始時に確認する。
-- **transcript JSONLの非公開フォーマット依存**: セッション使用量レポート機能は、Claude Code非公開の
+- **transcript JSONLの非公開フォーマット依存**: 対応工数レポート機能は、Claude Code非公開の
   内部フォーマットである`transcript_path`のJSONLを自前パースしている。将来のバージョンで形式が
-  変わった場合、集計が0件になる（ベストエフォート設計のため実害はセッション使用量が記録されなく
+  変わった場合、集計が0件になる（ベストエフォート設計のため実害は対応工数が記録されなく
   なるのみ）。詳細は
-  [0006-セッション使用量レポートはtranscript自前パースで実装する.md](../ddr/0006-セッション使用量レポートはtranscript自前パースで実装する.md)
+  [0006-対応工数レポートはtranscript自前パースで実装する.md](../ddr/0006-対応工数レポートはtranscript自前パースで実装する.md)
   参照。
 - **セッション（transcriptファイル）を跨いだ集計は未対応**: `/resume`等で新しいtranscriptファイルに
   切り替わった場合、旧セッション分の使用量との合算は行わない（新しい`session_id`として

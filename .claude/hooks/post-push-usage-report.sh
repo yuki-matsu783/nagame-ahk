@@ -115,7 +115,7 @@ main() {
   local tmp_file
   tmp_file="$(mktemp)"
   {
-    echo "## セッション使用量レポート（自動投稿・前回pushからの差分）"
+    echo "## 対応工数レポート（自動投稿・前回pushからの差分）"
     echo ""
     echo "> このコメントはClaude Codeによる自動投稿です。**レビューの合否判定には使用しないでください。**"
     echo ""
