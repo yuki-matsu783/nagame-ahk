@@ -1,3 +1,11 @@
+---
+title: 0006. セッション使用量レポートはtranscript JSONLの自前パースで実装する
+type: ddr
+description: セッション使用量レポートをtranscript JSONLの自前パースで実装する方針を記録したDDR
+tags: [usage-report, transcript, ddr]
+keywords: [transcript, トークン使用量, ブランチフィルタ, プッシュ後投稿, ベストエフォート, stopフック廃止]
+---
+
 # 0006. セッション使用量レポートはtranscript JSONLの自前パースで実装する
 
 ## 背景

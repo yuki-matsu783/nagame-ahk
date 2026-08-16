@@ -1,3 +1,11 @@
+---
+title: 0001. 意思決定ログのディレクトリ・呼称をADRからDDR（Design Decision Record）へ改称する
+type: ddr
+description: 意思決定ログのディレクトリ・呼称をADRからDDRへ改称した経緯を記録したDDR
+tags: [ddr, docs, naming]
+keywords: [adr, ddr, 意思決定ログ, 改称, docs-readme, issue-12]
+---
+
 # 0001. 意思決定ログのディレクトリ・呼称をADRからDDR（Design Decision Record）へ改称する
 
 ## 背景

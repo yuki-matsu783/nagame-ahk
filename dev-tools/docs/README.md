@@ -1,3 +1,11 @@
+---
+title: dev-tools/docs配下の目次
+type: guide
+description: dev-tools配下（開発者向けツール一式）のspec・ddrの位置づけと各ドキュメントへのリンクをまとめた目次
+tags: [dev-tools, docs, index, guide]
+keywords: [正史仕様, 意思決定ログ, 配布, issue-mr-workflow, シェルスクリプト方針]
+---
+
 # dev-tools/docs 配下の目次
 
 `dev-tools/` は開発者向けツール（ビルド・配布まわり等）一式を、アプリ本体（`src/`, `docs/`）とは
@@ -14,6 +22,7 @@
 - [distribution.md](spec/distribution.md) ── Windows用exe配布方法
 - [issue-mr-workflow.md](spec/issue-mr-workflow.md) ── issue駆動MRワークフロー支援
 - [shell-scripts.md](spec/shell-scripts.md) ── 開発補助スクリプトのシェル言語方針（PowerShell→bash）
+- [extract-frontmatter.md](spec/extract-frontmatter.md) ── frontmatter抽出スクリプト（index.jsonl生成）
 
 ## ddr（意思決定ログ）
 
@@ -28,3 +37,4 @@ architectureに限らない意思決定も記録対象とする（詳細は
 - [0005-DraftPR作成失敗時は空コミットで自動リトライする.md](ddr/0005-DraftPR作成失敗時は空コミットで自動リトライする.md)
 - [0006-セッション使用量レポートはtranscript自前パースで実装する.md](ddr/0006-セッション使用量レポートはtranscript自前パースで実装する.md)
 - [0007-hookのcommandはbashのPATH解決方式へ変更.md](ddr/0007-hookのcommandはbashのPATH解決方式へ変更.md)
+- [0008-frontmatter抽出スクリプトの設計判断.md](ddr/0008-frontmatter抽出スクリプトの設計判断.md)

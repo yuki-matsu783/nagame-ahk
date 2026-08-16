@@ -1,3 +1,11 @@
+---
+title: アプリ利用者向けガイド
+type: guide
+description: nagame-ahk（配布exeを使うエンドユーザー向け）の入手方法・使い方を説明するガイド
+tags: [readme, user-guide]
+keywords: [常駐トレイ, ホットキー, office監視, pdf監視, 最近使ったファイル, 外部コマンド, 操作状態表示, ログ]
+---
+
 # nagame-ahk
 
 Windows のタスクトレイに常駐し、ホットキーやファイルを開く操作をきっかけに、いくつかの便利な

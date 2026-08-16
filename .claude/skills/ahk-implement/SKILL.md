@@ -1,6 +1,10 @@
 ---
 name: ahk-implement
 description: nagame-ahk（AutoHotkey v2）で新機能の追加や既存動作の変更を行うときに使う。.claude/skills/issue-mr-flow/SKILL.md（唯一の実装フロー定義）から呼ばれるサブフローで、docs/ への設計ドキュメント作成 → 人間の承認 → 設計ドキュメント参照コメント/Debugログ付きでの実装 ——を順番に進める。
+title: nagame-ahk 実装フロー
+type: skill
+tags: [ahk, implement, skill]
+keywords: [設計ドキュメント, docs-spec, planモード, worklog, handoff, issue-mr-flow, ロガー, コーディング規約]
 ---
 
 # nagame-ahk 実装フロー

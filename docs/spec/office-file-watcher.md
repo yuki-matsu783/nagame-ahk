@@ -1,3 +1,11 @@
+---
+title: MS Officeファイル監視・情報表示（OfficeFileWatcher）
+type: spec
+description: Word/Excel/PowerPoint/Visioで開かれたファイルの名前・パス・プロセス情報を表示する機能の仕様
+tags: [office-file-watcher, ahk, spec]
+keywords: [ウィンドウ監視, ファイルパス取得, オフィス監視, トレイ通知, com連携, 重複排除]
+---
+
 # MS Officeファイル監視・情報表示（OfficeFileWatcher）
 
 ## 背景・目的

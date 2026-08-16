@@ -1,3 +1,11 @@
+---
+title: 開発補助スクリプトのシェル言語方針
+type: spec
+description: 開発補助スクリプトをbash/PowerShellのどちらで書くかの判断基準と移行方針の仕様
+tags: [bash, powershell, spec]
+keywords: [git-bash, jq, powershellからの移行, パス変換, bash化, フック起動]
+---
+
 # 開発補助スクリプトのシェル言語方針
 
 ## 背景・目的

@@ -1,5 +1,10 @@
 ---
 alwaysApply: true
+title: ドキュメント運用
+type: rule
+description: ドキュメントの置き場所・ライフサイクル（plans/worklog/spec/ddr/HANDOFF）を定めたルール
+tags: [docs, workflow, rule]
+keywords: [plans, handoff, worklog, 正史仕様, 意思決定ログ, ライフサイクル, issue-mr-flow, ループ進捗, always-apply]
 ---
 
 # ドキュメント運用

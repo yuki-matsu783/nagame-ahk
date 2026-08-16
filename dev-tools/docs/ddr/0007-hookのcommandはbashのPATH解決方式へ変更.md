@@ -1,3 +1,11 @@
+---
+title: "0007. Claude Code hookの起動コマンドはPATH解決方式（`\"bash\"`）を採用し、フルパス直書きは採用しない"
+type: ddr
+description: Claude Code hookの起動コマンドをPATH解決方式（bash）へ変更した経緯を記録したDDR
+tags: [hook, bash, ddr]
+keywords: [path解決, wslスタブ, system32, システム環境変数, settings-json]
+---
+
 # 0007. Claude Code hookの起動コマンドはPATH解決方式（`"bash"`）を採用し、フルパス直書きは採用しない
 
 ## 背景

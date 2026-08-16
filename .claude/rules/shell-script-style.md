@@ -1,3 +1,11 @@
+---
+title: bashスクリプトの規約
+type: rule
+description: 開発補助bashスクリプトの保存形式・エラー方針・命名規則等を定めたルール
+tags: [bash, shell-script, rule]
+keywords: [bashスクリプト, jq, サブシェル, 命名規則, パス変換, 文字コード, 改行コード, claude-code-hook]
+---
+
 # bashスクリプトの規約
 
 issue #6でリポジトリ内の開発補助スクリプトを全てPowerShellからbashへ移行した際に定めた規約。
@@ -74,6 +82,12 @@ issue #6でリポジトリ内の開発補助スクリプトを全てPowerShell�
 - ただし`tasklist.exe`のような非MSYSネイティブコマンドの出力はシステムのコードページ（cp932等）の
   ままになる。この種のコマンドの出力を判定に使う場合は、日本語メッセージの文字列一致を避け、
   終了コードやASCII文字列（イメージ名等）での判定に留める。
+- Windows版のnative `jq`バイナリ（`C:\Program Files\jq\jq.exe`のような、MSYS版ではなくWindows
+  ネイティブ実行ファイルとして配布されるもの）は、標準出力をファイルへリダイレクトする際に行末へ
+  CRを付与することがある（実機確認: `dev-tools/src/extract-frontmatter.sh`実装時。git bashの
+  `core.autocrlf=input`設定下ではコミット時に自動でLFへ変換されるため実害は限定的だが、コミット前の
+  ワーキングツリー上ではCRLFが混入する）。jqの出力を直接ファイルへ書き出す箇所は`tr -d '\r'`を
+  挟んでLF改行に統一する。
 
 ## Claude Code hookとして登録する場合
 

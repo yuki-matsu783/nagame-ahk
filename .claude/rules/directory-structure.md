@@ -1,44 +1,53 @@
 ---
 alwaysApply: true
+title: ディレクトリ構成
+type: rule
+description: リポジトリのディレクトリ構成と配置方針を定めたルール
+tags: [directory-structure, rule]
+keywords: [ディレクトリ構成, src, features, lib, dev-tools, 配置方針, plans, worklog, 設定値集約, always-apply]
 ---
 
 # ディレクトリ構成
 
+各ディレクトリの役割説明は [index.md](../../index.md)（Repository Map）を正とする。本ファイルは
+ツリー構造・配置ルールと、個別ファイル（後述のツリー内でコメント付きのもの）の役割を扱う
+（ディレクトリの役割説明を重複記載しない）。
+
 ```
 nagame-ahk/
 ├── src/
-│   ├── main.ahk            # エントリーポイント。#Include の集約と起動呼び出しのみを行う
+│   ├── main.ahk             # エントリーポイント。#Include の集約と起動呼び出しのみを行う
 │   ├── config/
-│   │   └── Settings.ahk    # 定数・ユーザー設定値
+│   │   └── Settings.ahk     # 定数・ユーザー設定値
 │   ├── core/
-│   │   ├── App.ahk         # 起動処理などアプリのライフサイクル管理
-│   │   ├── Hotkeys.ahk     # ホットキー登録の集約（実処理は features/ に委譲）
-│   │   └── TrayMenu.ahk    # トレイアイコン・右クリックメニュー
-│   ├── features/           # 機能単位の自動化ロジック（1機能 = 1ファイル目安）
-│   └── lib/                # 汎用ユーティリティ（複数機能から使い回す部品）
+│   │   ├── App.ahk          # 起動処理などアプリのライフサイクル管理
+│   │   ├── Hotkeys.ahk      # ホットキー登録の集約（実処理は features/ に委譲）
+│   │   └── TrayMenu.ahk     # トレイアイコン・右クリックメニュー
+│   ├── features/
+│   └── lib/
 ├── assets/
-│   └── icons/               # トレイアイコンなど
+│   └── icons/
 ├── docs/
-│   ├── README.md            # docs配下の目次
-│   ├── spec/                 # 機能ごとの正史仕様（docs/spec/機能名.md）
-│   └── ddr/                  # 意思決定ログ（DDR: Design Decision Record。追記のみ）
-├── dev-tools/                # 開発者向けツール一式。アプリ本体（src/, docs/）とは分離管理
-│   ├── src/                   # ビルドスクリプト等（例: build.sh）
+│   ├── README.md             # docs配下の目次
+│   ├── spec/
+│   └── ddr/
+├── dev-tools/
+│   ├── src/
 │   └── docs/
-│       ├── README.md          # dev-tools配下の目次
-│       └── spec/               # dev-tools機能ごとの正史仕様（構成・運用はdocs/spec/に準ずる）
-├── build/                    # Ahk2Exeビルド成果物の出力先（.gitignore対象。コミットしない）
-├── tests/                    # 手動/自動テスト用スクリプト
+│       ├── README.md         # dev-tools配下の目次
+│       └── spec/
+├── build/
+├── tests/
 ├── .claude/
-│   ├── rules/                 # AI向け詳細ルール（このファイルもここにある）
-│   ├── skills/                 # /issue-mr-flow（唯一の実装フロー定義）・/ahk-implement などのスキル定義
-│   └── hooks/                  # Claude Codeのhookスクリプト（SessionStart/Stop/PostToolUse等）。
-│       └── lib/                 # 複数hookスクリプトで使い回す共通ロジック（例: UsageTracking.ps1）
-├── plans/                    # AIエージェントのplanモードが出力する計画ファイル。タスクごとに新規生成し、そのままコミットして履歴として残す
-├── worklog/                  # 実装中の詳細な試行錯誤ログ（日付_<planファイル名>.md）。PR作成前の設計反映でspec/ddrへ反映し削除する（.claude/skills/issue-mr-flow/SKILL.md参照）
+│   ├── rules/
+│   ├── skills/
+│   └── hooks/
+│       └── lib/
+├── plans/
+├── worklog/
 ├── .gitignore
-├── CLAUDE.md                    # プロジェクト概要・開発実行・.claude/rules/ へのポインタ
-├── HANDOFF.md                   # セッション間・作業者間の軽量な引継ぎメモ（ブランチの現在地・次回やること等。詳細な試行錯誤はworklog/へ）
+├── CLAUDE.md                 # プロジェクト概要・開発実行・.claude/rules/ へのポインタ
+├── HANDOFF.md                # セッション間・作業者間の軽量な引継ぎメモ（ブランチの現在地・次回やること等。詳細な試行錯誤はworklog/へ）
 └── README.md
 ```
 

@@ -1,3 +1,11 @@
+---
+title: issue駆動MRワークフロー支援
+type: spec
+description: AIエージェントがissue起点で開発を進める際の定型作業（issue取得・ブランチ/MR作成・レビュー往復等）を支援する仕組みの仕様
+tags: [issue-mr-flow, workflow, spec]
+keywords: [provider-sh, github連携, gitlab連携, セッション開始hook, 使用量集計, draft-pr, 途中引き継ぎ]
+---
+
 # issue駆動MRワークフロー支援
 
 ## 背景・目的

@@ -1,3 +1,11 @@
+---
+title: ロガー（Logger）
+type: spec
+description: ログレベル制御・コンソール/ファイル出力に対応した共通ロガーの仕様
+tags: [logger, ahk, spec]
+keywords: [ログレベル, fileappend, 文字コード, outputdebug, デバッグ情報]
+---
+
 # ロガー（Logger）
 
 ## 背景・目的

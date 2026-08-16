@@ -1,3 +1,11 @@
+---
+title: Windows用exe配布方法
+type: spec
+description: Ahk2Exeを使ったnagame-ahkのexeビルド・社内配布方法の仕様
+tags: [distribution, ahk2exe, spec]
+keywords: [ビルドスクリプト, ahk2exe, exe配布, アイコン, バージョン, ファイルサーバー]
+---
+
 # Windows用exe配布方法
 
 ## 背景・目的

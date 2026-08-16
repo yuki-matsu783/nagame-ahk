@@ -1,3 +1,11 @@
+---
+title: worklogテンプレート
+type: template
+description: worklog作成時にコピーして使うテンプレートファイル
+tags: [worklog, template]
+keywords: [worklog, 計画, 試したこと, うまくいったこと, ダメだったこと, 次の一歩]
+---
+
 <!--
   worklogテンプレート。
   新規worklog作成時はこのファイルをコピーし、
