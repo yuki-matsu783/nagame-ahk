@@ -3,7 +3,7 @@ title: docs配下の目次
 type: guide
 description: docs/spec・docs/ddrの位置づけと各ドキュメントへのリンクをまとめた目次
 tags: [docs, index, guide]
-keywords: [spec, ddr, activity-status, external-command-server, logger, office-file-watcher, pdf-file-watcher, recent-docs-watcher]
+keywords: [正史仕様, 意思決定ログ, 操作状態表示, 外部コマンドサーバー, ロガー, office監視, pdf監視, 最近使ったファイル監視]
 ---
 
 # docs 配下の目次

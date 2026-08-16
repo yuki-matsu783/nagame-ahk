@@ -3,7 +3,7 @@ title: dev-tools/docs配下の目次
 type: guide
 description: dev-tools配下（開発者向けツール一式）のspec・ddrの位置づけと各ドキュメントへのリンクをまとめた目次
 tags: [dev-tools, docs, index, guide]
-keywords: [spec, ddr, distribution, issue-mr-workflow, shell-scripts]
+keywords: [正史仕様, 意思決定ログ, 配布, issue-mr-workflow, シェルスクリプト方針]
 ---
 
 # dev-tools/docs 配下の目次

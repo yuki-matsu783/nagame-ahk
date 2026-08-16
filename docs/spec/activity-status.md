@@ -3,7 +3,7 @@ title: 操作状態表示（ActivityStatus）
 type: spec
 description: マウス・キーボードの操作状態（アクティブ/非アクティブ）をツールチップで表示する機能の仕様
 tags: [activity-status, ahk, spec]
-keywords: [a-timeidlephysical, tooltip, idle-threshold, hotkey, tray-menu]
+keywords: [操作状態表示, ツールチップ, 非アクティブ判定, ホットキー, トレイメニュー]
 ---
 
 # 操作状態表示（ActivityStatus）

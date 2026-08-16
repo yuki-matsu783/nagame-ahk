@@ -4,7 +4,7 @@ title: Planモードの安全な運用（Claude Code固有）
 type: rule
 description: ExitPlanMode利用時に過去の計画を誤って再送信する事故を防ぐための運用ルール
 tags: [plan-mode, claude-code, rule]
-keywords: [exitplanmode, plan-file, verbatim-resend, approval, self-check, incident, always-apply, claude-code]
+keywords: [exitplanmode, 計画ファイル, 誤送信, 承認, セルフチェック, 事故事例, always-apply, claude-code]
 ---
 
 # Planモードの安全な運用（Claude Code固有）

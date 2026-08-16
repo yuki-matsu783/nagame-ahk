@@ -3,7 +3,7 @@ title: 最近使ったファイル監視・通知（RecentDocsWatcher）
 type: spec
 description: アプリ・ファイル種別を問わず「何らかのファイルが開かれたこと」を軽量に通知する機能の仕様
 tags: [recent-docs-watcher, ahk, spec]
-keywords: [recentdocs, mrulistex, lnk, registry, polling, traytip]
+keywords: [最近使ったファイル, mrulistex, ショートカット, レジストリ, ポーリング, トレイ通知]
 ---
 
 # 最近使ったファイル監視・通知（RecentDocsWatcher）

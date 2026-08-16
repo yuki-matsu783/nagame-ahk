@@ -3,13 +3,14 @@ title: Repository Map
 type: guide
 description: プロジェクトルートから各ディレクトリへの相対パスと役割をまとめたリポジトリマップ
 tags: [index, repository-map, guide]
-keywords: [directory, repository-map, src, docs, dev-tools, claude, plans, worklog]
+keywords: [directory, repository-map, リポジトリマップ, ディレクトリ, src, docs, dev-tools, claude, plans, worklog]
 ---
 
 # Repository Map
 
-`nagame-ahk` リポジトリの主要ディレクトリの一覧。ファイル単位の詳細は記載せず、ディレクトリと
-その役割のみを示す。より詳しい配置方針は [.claude/rules/directory-structure.md](.claude/rules/directory-structure.md)、
+`nagame-ahk` リポジトリの主要ディレクトリの一覧。**各ディレクトリの役割説明は本ファイルを正とし**、
+ファイル単位の詳細は記載しない（重複を避けるため）。ディレクトリツリー構造・配置ルール・個別
+ファイルの役割は [.claude/rules/directory-structure.md](.claude/rules/directory-structure.md) を、
 ドキュメントの置き場所・ライフサイクルは [.claude/rules/docs-workflow.md](.claude/rules/docs-workflow.md) を参照。
 
 ## Directory Structure

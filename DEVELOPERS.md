@@ -3,7 +3,7 @@ title: 開発者向けドキュメント
 type: guide
 description: nagame-ahkの開発に参加する人向けの動作環境・関連ドキュメントへの入り口をまとめたガイド
 tags: [developers, guide]
-keywords: [autohotkey-v2, directory-structure, docs-spec, ahk2exe, build, issue-mr-flow, distribution, release]
+keywords: [autohotkey-v2, ディレクトリ構成, 正史仕様, ahk2exe, ビルド, issue-mr-flow, 配布, リリース手順]
 ---
 
 # 開発者向けドキュメント

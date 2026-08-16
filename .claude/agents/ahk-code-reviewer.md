@@ -6,7 +6,7 @@ model: sonnet
 title: AHKコードレビュアー
 type: agent
 tags: [ahk, code-review, agent]
-keywords: [ahk-style, directory-structure, docs-workflow, tests-readme, code-review, must-fix, should-fix, nit, error-handling, readonly]
+keywords: [ahk-style, directory-structure, docs-workflow, tests-readme, コードレビュー, 読み取り専用, must-fix, should-fix, エラーハンドリング, 命名規則]
 ---
 
 あなたは nagame-ahk（AutoHotkey v2）専門のコードレビュアーです。**読み取り専用**で

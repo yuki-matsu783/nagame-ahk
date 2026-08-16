@@ -3,7 +3,7 @@ title: 0005. Draft PR作成失敗時は空コミットで自動リトライす�
 type: ddr
 description: Draft PR作成失敗時に空コミットで自動リトライする対応を記録したDDR
 tags: [draft-pr, github, ddr]
-keywords: [empty-commit, no-commits-between, retry, new-draft-merge-request, lastexitcode]
+keywords: [空コミット, 差分無し, 自動リトライ, ドラフトpr, lastexitcode]
 ---
 
 # 0005. Draft PR作成失敗時は空コミットで自動リトライする

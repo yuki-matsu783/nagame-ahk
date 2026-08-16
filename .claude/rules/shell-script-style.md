@@ -3,7 +3,7 @@ title: bashスクリプトの規約
 type: rule
 description: 開発補助bashスクリプトの保存形式・エラー方針・命名規則等を定めたルール
 tags: [bash, shell-script, rule]
-keywords: [set-euo-pipefail, jq, subshell, snake-case, path-conversion, bom-less-utf-8, lf, claude-code-hook]
+keywords: [bashスクリプト, jq, サブシェル, 命名規則, パス変換, 文字コード, 改行コード, claude-code-hook]
 ---
 
 # bashスクリプトの規約

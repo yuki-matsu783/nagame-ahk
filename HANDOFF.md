@@ -3,7 +3,7 @@ title: HANDOFF
 type: handoff
 description: セッション間・作業者間の引継ぎメモ（現在地・次回やること等）
 tags: [handoff, workflow]
-keywords: [issue-7, pr-23, flow-progress, worklog, review-comments, okf-frontmatter]
+keywords: [issue-7, pr-23, フロー進捗, worklog, レビューコメント, フロントマター, 引き継ぎ]
 ---
 
 # HANDOFF
@@ -29,8 +29,8 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
 | [x] | 12 | commit, push してレビュー依頼を行う | エージェント |
 | [x] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
-| [x][] | 14 | MRでレビュー・コメントする | 人間 |
-| [x][] | 15 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（11〜15の作業ループを合意まで繰り返す） | `comments` / `reply` |
+| [x][x][] | 14 | MRでレビュー・コメントする | 人間 |
+| [x][x][] | 15 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（11〜15の作業ループを合意まで繰り返す） | `comments` / `reply` |
 | [] | 16 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
 | [] | 17 | AIアセット改善: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
 | [] | 18 | commit, push してレビュー依頼を行う | エージェント |
@@ -66,16 +66,29 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
   各ファイルへ`keywords`実データをバックフィル。
 - `index.md`（Repository Map）、`dev-tools/src/extract-frontmatter.sh`（frontmatter抽出jsonl
   スクリプト）、`tests/test_extract_frontmatter.sh`（単体テスト）を新規作成。3件のレビュースレッドに
-  対応内容を返信済み（worklog参照）。
+  対応内容を返信済み（worklog参照）。commit・push・PR description更新済み（`e273f4f`）。
+- PR #23の再レビュー（flow-id 14 round2）で「説明列の改善」スレッドがresolvedになった一方、
+  「keywords追加」スレッドに新規コメント（「日本語の単語もバランスよく含めてほしい」）、加えて
+  新規スレッド2件（index.mdとdirectory-structure.mdの記載重複、extract-frontmatter.shでのyq利用
+  可否）を受領。plan（`plans/ember-quilted-narwhal.md`）を作成・承認を得て対応（flow-id 15 round2）。
+- 対象39ファイル全ての`keywords`を、既存の英語技術用語と本文中の日本語の単語を概ね半々で混在させる
+  形に書き直し、`.claude/rules/markdown-frontmatter.md`のkeywords説明にも追記。
+- `index.md`＝各ディレクトリの役割説明（正）、`.claude/rules/directory-structure.md`＝ツリー構造・
+  配置ルール・個別ファイルの役割説明（正）と責務を分離し、ツリーからディレクトリ単位の役割コメントを
+  削除、相互に参照する一文を追記。
+- `dev-tools/src/extract-frontmatter.sh`を、`yq`がPATH上にあれば優先利用し、無ければ自前の軽量
+  パーサーへフォールバックする構成に変更（新規の必須外部依存にはしない）。3件のスレッドに対応内容を
+  返信済み（worklog参照）。
 
 ## 次にやること
 
 - commit・push・PR description更新（`describe`）を行い、人間の再レビューを受ける（flow-id 14
-  round2）。`comments all`で3件の返信済みスレッドが実際にresolvedになっているか、新規指摘が無いかを
+  round3）。`comments all`で返信済みスレッドが実際にresolvedになっているか、新規指摘が無いかを
   確認してから設計反映（flow-id 16）へ進む。
-- 設計反映: `plans/purrfect-churning-oasis.md` / `worklog/20260816_purrfect-churning-oasis.md` の
-  内容を`dev-tools/docs/spec/`（`extract-frontmatter.sh`の正史仕様）・
-  `.claude/rules/markdown-frontmatter.md`（既に反映済み）へ反映する。
+- 設計反映: `plans/purrfect-churning-oasis.md`（round2、`plans/immutable-painting-kitten.md`同様
+  上書きしない） / `plans/ember-quilted-narwhal.md`（round3） / 対応するworklog2件の内容を
+  `dev-tools/docs/spec/`（`extract-frontmatter.sh`の正史仕様）・`.claude/rules/markdown-frontmatter.md`
+  ・`.claude/rules/directory-structure.md`（既に反映済み）へ反映する。
 
 ## 判断を迷った内容
 
@@ -87,8 +100,16 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
   （今回の対象38ファイルは全て省略）。
 - `keyword`フィールドはレビューコメントでは単数形表記だったが、既存の`tags`との命名規則統一を
   優先し複数形`keywords`を採用した（ユーザー承認済み。詳細は`plans/purrfect-churning-oasis.md`参照）。
-- frontmatter抽出スクリプトのYAML→JSON変換は、`yq`等の外部ツールを新規導入せず、本リポジトリの
-  frontmatterスキーマ（スカラー値・フロー配列・ブロック配列のみ）に絞った自前パーサーで実装した。
+- frontmatter抽出スクリプトのYAML→JSON変換は、当初`yq`等の外部ツールを新規導入せず自前パーサーのみで
+  実装したが、レビューで「yqがあれば優先利用すべきでは」との指摘を受け、`yq`がPATH上にあれば優先的に
+  使い、無ければ自前パーサーへフォールバックする方式に変更した（yq自体を新規の必須外部依存には
+  していない）。
+- Planモードの再突入時、ハーネスが追跡する「今回のplanファイル」が前回（round2）のパス
+  （`plans/purrfect-churning-oasis.md`）に固定される仕様のため、`ExitPlanMode`がround3の内容を
+  正しく読めるよう一時的に同ファイルへround3の内容を書き込み、承認後に`git checkout`でround2時点の
+  コミット済み内容へ復元し、round3の正式なplanは新規ファイル（`plans/ember-quilted-narwhal.md`）に
+  分離した。`.claude/rules/plan-mode-safety.md`「計画ごとに新しいplanファイル名を使う」の趣旨を、
+  ハーネス側の1re-entry=1ファイル固定という制約の中でも満たすための対応。
 
 ## 未解決の内容
 

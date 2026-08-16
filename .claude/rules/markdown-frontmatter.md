@@ -3,7 +3,7 @@ title: markdownのYAML frontmatter規約
 type: rule
 description: リポジトリ内markdownドキュメントに付与するOpen Knowledge Format風frontmatterのキー定義・type値一覧・例外ルール
 tags: [markdown, frontmatter, rule]
-keywords: [okf, frontmatter, yaml, type, title, description, resource, tags, keywords]
+keywords: [okf, frontmatter, フロントマター, キー定義, 開放知識形式, 対象外ファイル, タイプ, keywords]
 ---
 
 # markdownのYAML frontmatter規約
@@ -22,7 +22,7 @@ OKF（Open Knowledge Format、https://okf.md/spec/ ）のフィールド定義�
 | `description` | 推奨 | 1文でコンセプトを要約する。将来的な一覧化・インデックス生成に使う |
 | `resource` | 推奨 | 実リソース（外部URL・社内配布先・BigQueryテーブルURI等）を一意に識別するURI。抽象的な概念や、対応する実リソースが無いファイルではキー自体を省略してよい（空文字列は使わない） |
 | `tags` | 推奨 | 横断的カテゴリ分類用の文字列リスト（kebab-case、2〜4個程度。ディレクトリ・技術要素・工程等を表す） |
-| `keywords` | 推奨 | OKF標準の必須/推奨フィールドではない拡張フィールド。本文中の頻出語・特徴的な語を検索用途で3〜20個（文章量に応じて増減、平均的な長さの文章なら10個前後）リスト形式で記載する |
+| `keywords` | 推奨 | OKF標準にはない拡張フィールド。本文中の頻出語・特徴的な語を検索用途で3〜20個（文章量に応じて増減、平均的な長さの文章なら10個前後）リスト形式で記載する。日本語で書かれたファイルでは、英語の技術用語のみに偏らず日本語の単語もバランスよく含める |
 
 新規markdown作成時は原則このfrontmatterを付与する。既存のfrontmatterを持つファイル（後述）は
 既存キーを変更せず、不足しているキーのみを追記する。

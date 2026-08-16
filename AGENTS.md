@@ -3,7 +3,7 @@ title: AIエージェント共通ルール
 type: rule
 description: 複数のAIコーディングエージェント（Claude Code, Gemini CLI等）が共通で従うルール・プロジェクト概要・開発実行方法
 tags: [agents, rule]
-keywords: [issue-mr-flow, plan-mode, autohotkey, tray, hotkey, claude-code, gemini-cli]
+keywords: [issue-mr-flow, 計画, autohotkey, 常駐, ホットキー, claude-code, gemini-cli]
 ---
 
 ## ルール

@@ -3,7 +3,7 @@ title: 0002. issue-mr-flowへの実装フロー統合と「reflect」の分割
 type: ddr
 description: issue駆動MRワークフロー支援をissue-mr-flowへ統合し、reflectステップを分割した経緯を記録したDDR
 tags: [issue-mr-flow, workflow, ddr]
-keywords: [skill-md, docs-workflow, git-workflow, reflect, design-reflection, ai-asset-improvement]
+keywords: [skill-md, docs-workflow, git-workflow, 設計反映, aiアセット改善, 実装フロー統合]
 ---
 
 # 0002. issue-mr-flowへの実装フロー統合と「reflect」の分割

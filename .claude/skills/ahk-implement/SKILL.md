@@ -4,7 +4,7 @@ description: nagame-ahk（AutoHotkey v2）で新機能の追加や既存動作�
 title: nagame-ahk 実装フロー
 type: skill
 tags: [ahk, implement, skill]
-keywords: [design-doc, docs-spec, plan-mode, worklog, handoff, issue-mr-flow, logger, coding-rule]
+keywords: [設計ドキュメント, docs-spec, planモード, worklog, handoff, issue-mr-flow, ロガー, コーディング規約]
 ---
 
 # nagame-ahk 実装フロー

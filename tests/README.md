@@ -3,7 +3,7 @@ title: tests/
 type: guide
 description: 手動/自動テスト用スクリプトの一覧と、各スクリプトの対象・副作用・実行方法をまとめたガイド
 tags: [tests, guide]
-keywords: [ahk-test, bash-test, assert, test-json, vcs-provider, external-command-server, manual-verification]
+keywords: [ahkテスト, bashテスト, アサーション, 手動確認, vcs-provider, 外部コマンドサーバー, 単体テスト]
 ---
 
 # tests/

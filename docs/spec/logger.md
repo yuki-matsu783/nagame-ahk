@@ -3,7 +3,7 @@ title: ロガー（Logger）
 type: spec
 description: ログレベル制御・コンソール/ファイル出力に対応した共通ロガーの仕様
 tags: [logger, ahk, spec]
-keywords: [log-level, fileappend, utf-8-raw, outputdebug, debug-info-warn-error]
+keywords: [ログレベル, fileappend, 文字コード, outputdebug, デバッグ情報]
 ---
 
 # ロガー（Logger）

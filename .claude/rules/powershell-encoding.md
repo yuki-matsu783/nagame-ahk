@@ -3,7 +3,7 @@ title: PowerShellスクリプト・コマンドの文字コード注意事項
 type: rule
 description: PowerShellスクリプト・コマンドでの文字コード（ANSI/OEMコードページ）に関する注意事項を定めたルール
 tags: [powershell, encoding, rule]
-keywords: [ansi-codepage, cp932, utf-8, bom, provider-ps1, console-outputencoding, psdefaultparametervalues, gh-cli]
+keywords: [文字コード, cp932, utf-8, bom, provider-ps1, コンソール出力, 既定パラメータ, 文字化け]
 ---
 
 # PowerShellスクリプト・コマンドの文字コード注意事項
