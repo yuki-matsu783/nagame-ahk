@@ -90,6 +90,15 @@ test_issue_sections() {
   done
 }
 
+# 標準4見出し（目的・現状・期待する動作・受け入れ条件）に沿ってissue本文を組み立てる
+# （`.github/ISSUE_TEMPLATE/task.md`, `.gitlab/issue_templates/task.md` と同じ見出し構成）。
+# 外部コマンド呼び出しを伴わない純粋関数。プロバイダ非依存。
+build_issue_body() {
+  local purpose="$1" current="$2" expected="$3" acceptance="$4"
+  printf '## 目的\n\n%s\n\n## 現状\n\n%s\n\n## 期待する動作\n\n%s\n\n## 受け入れ条件\n\n%s\n' \
+    "$purpose" "$current" "$expected" "$acceptance"
+}
+
 # `git remote get-url origin` のホスト名からプロバイダを判定する
 get_provider() {
   local url
@@ -109,6 +118,14 @@ get_issue() {
   case "$(get_provider)" in
     github) github_get_issue "$number" ;;
     gitlab) gitlab_get_issue "$number" ;;
+  esac
+}
+
+new_issue() {
+  local title="$1" body="$2"
+  case "$(get_provider)" in
+    github) github_new_issue "$title" "$body" ;;
+    gitlab) gitlab_new_issue "$title" "$body" ;;
   esac
 }
 

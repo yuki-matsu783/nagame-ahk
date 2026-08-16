@@ -94,6 +94,8 @@ git bash特有の注意点は [shell-scripts.md](shell-scripts.md) を参照。
 | `get_issue_number_from_branch [<branch>]` | ブランチ名を `branchPrefixTemplate` に照らしてissue番号を抽出する（省略時は現在のブランチ）。マッチすればstdoutへ出力し終了コード0、マッチしなければ終了コード1（プロバイダ非依存） | — | — |
 | `get_mr_for_branch <branch>` | 指定ブランチに紐づくPR/MRの番号・URL・タイトル・Draft状態を取得する（JSON。無ければ何も出力せず終了コード0） | `gh pr view <branch>` | `glab mr view <branch>` |
 | `get_branch_work_files` | 現在のブランチ固有（`<defaultBaseBranch>` に無い）の `plans/` `worklog/` ファイル一覧を返す（プロバイダ非依存） | — | — |
+| `build_issue_body <purpose> <current> <expected> <acceptance>` | 標準4見出し（目的・現状・期待する動作・受け入れ条件）に沿ってissue本文を組み立てる（プロバイダ非依存。issue #25） | — | — |
+| `new_issue <title> <body>` | タイトル・本文からissueを新規作成し、`get_issue`と同じ形（number/title/body/url/slug）のJSONを返す（issue #25） | `gh issue create` → URLから番号抽出 → `github_get_issue` | `glab issue create` → URLから番号抽出 → `gitlab_get_issue` |
 
 ### 全体フロー
 
@@ -446,6 +448,39 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
 `Provider.sh` の `test_issue_sections` でチェックし、欠けている見出しがあれば警告として提示する
 （処理は止めない。テンプレートを使わず手動で作られた既存issueにも同じチェックが働く）。
 
+### issue作成（AIエージェント代行・スクリプト実行）（issue #25）
+
+issueはGitHubのUIからしか作成できず、標準4見出し（目的・現状・期待する動作・受け入れ条件）に
+沿ったissueを、スクリプト実行やAIエージェント経由で作成する手段が無かった。「Issueテンプレート
+標準化」節で定めた4見出しの**作成**側を、既存の`get_issue`（取得）と対称的な構造で追加した。
+
+- **`build_issue_body`**: 4見出しでissue本文を組み立てる純粋関数（外部コマンド呼び出し無し）。
+  `test_issue_sections`と組み合わせて使うことで、組み立てた本文が常に4見出しを満たすことを
+  スクリプト内で検証できる。
+- **`new_issue` / `github_new_issue` / `gitlab_new_issue`**: `new_draft_merge_request`等と同じ
+  ディスパッチパターンで実装。`gh issue create` / `glab issue create`はissue番号を含んだJSONを
+  直接返さずissue URLのみを出力するため、出力URL末尾から`grep -oE '[0-9]+$'`で番号を抽出し、
+  `github_get_issue`/`gitlab_get_issue`を呼んで`get_issue`と同じ形（number/title/body/url/slug）に
+  正規化する（呼び出し側が取得・作成のどちらの戻り値も同じ形で扱えるようにするため）。番号抽出に
+  失敗した場合はエラーメッセージを出して`return 1`する。
+- **`dev-tools/src/create-issue.sh`（新規CLIスクリプト）**: `--title`/`--purpose`/`--current`/
+  `--expected`/`--acceptance`の5フラグ（すべて必須）を受け取り、`build_issue_body`→
+  `test_issue_sections`（安全網）→`new_issue`の順に呼び出す。標準出力に作成結果のJSONを返す。
+  人間が直接実行することも、AIエージェントが呼び出すことも想定する。
+- **`.claude/skills/issue-create/SKILL.md`（新規スキル）**: `issue-mr-flow`のflow-id 1
+  （issue起票、本来は人間の担当）をAIエージェントが代行するための独立スキル。ユーザーの依頼内容から
+  5項目（タイトル＋4見出し）を埋め、内容が不足していれば質問で補い（勝手に創作しない）、ユーザーに
+  提示して明示的な確認を得たうえで`create-issue.sh`を実行する。issue作成後のブランチ・Draft MR
+  作成（flow-id 2〜3）は対象外とし、`/issue-mr-flow start <issue番号>`に委ねる。
+  `issue-mr-flow/SKILL.md`のflow-id 1担当セルに、このスキルへの導線を一言追記した。
+  `issue-mr-flow`のサブコマンドとして追加しなかった理由・却下案は
+  [0011-issue作成は独立スキルとして新設する.md](../ddr/0011-issue作成は独立スキルとして新設する.md)
+  参照。
+- **GitHub/GitLab両実装**: 他の`gitlab_*`関数群と同様、GitLab側（`gitlab_new_issue`）はこのリポジトリの
+  remoteがGitHubのみのため実機未検証（「未決定事項・懸念点」の既存項目と同じ制約）。
+- **実機検証（GitHub）**: `create-issue.sh`を実際に実行してissue #38を作成し、4見出し構成で
+  正しく作成されることを確認した。検証用issueのため確認後にクローズ済み。
+
 ## 影響範囲
 
 新規:
@@ -641,6 +676,19 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
 - `dev-tools/docs/spec/issue-mr-workflow.md`（本セクション「サブエージェントの使用量記録」
   「コンポーネント」を`agentId`単位表示・関数構成の変更に合わせて更新。本エントリを追加）
 
+新規（追加分・issue #25 issue作成スクリプト・スキル）:
+- `dev-tools/src/create-issue.sh`（標準4見出しでissueを作成するCLIスクリプト）
+- `.claude/skills/issue-create/SKILL.md`（issue起票をAIエージェントが代行する独立スキル）
+
+変更（追加分・issue #25 issue作成スクリプト・スキル）:
+- `dev-tools/src/vcs/Provider.sh`（`build_issue_body`、`new_issue`ディスパッチを追加）
+- `dev-tools/src/vcs/Github.sh`（`github_new_issue`を追加）
+- `dev-tools/src/vcs/Gitlab.sh`（`gitlab_new_issue`を追加。未検証）
+- `.claude/skills/issue-mr-flow/SKILL.md`（flow-id 1担当セルに`issue-create`スキルへの導線を追記）
+- `tests/test_vcs_provider.sh`（`build_issue_body`の単体テストを追加）
+- `dev-tools/docs/spec/issue-mr-workflow.md`（「提供関数」に`build_issue_body`/`new_issue`を追加、
+  新規サブセクション「issue作成（AIエージェント代行・スクリプト実行）」を追加、本エントリを追加）
+
 ## 設定項目
 
 `.mrworkflow.json`（nagame-ahk向けの初期値）
@@ -804,3 +852,6 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
   並行した場合の区間重複を除去する機能を持つが、本対応のスコープ（単一ブランチ・単一セッション）
   では扱わない。仮に同一ブランチで複数セッションを並行実行した場合、それぞれの`activeSeconds`が
   単純合算され、実際の稼働時間より過大になりうる。
+- **（issue #25で追加した`gitlab_new_issue`にも従来からの制約が引き継がれる）GitLab側の動作未検証**:
+  本ファイル冒頭の「GitLab側の動作未検証」と同じ制約（実remoteがGitHubのみのため未検証）が
+  `gitlab_new_issue`にもそのまま適用される。

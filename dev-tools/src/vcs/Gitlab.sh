@@ -22,6 +22,21 @@ gitlab_get_issue() {
     '{number: .iid, title: .title, body: .description, url: .web_url, slug: $slug}'
 }
 
+# タイトル・本文からissueを新規作成する。作成後は `gitlab_get_issue` で正規化した
+# JSON（number/title/body/url/slug）を返す（get_issueと同じ形にすることで呼び出し側の扱いを揃える）。
+# 【未検証】このリポジトリのremoteはGitHubのみのため実機確認できていない。
+gitlab_new_issue() {
+  local title="$1" body="$2"
+  local url number
+  url="$(glab issue create --title "$title" --description "$body" --yes)"
+  number="$(printf '%s' "$url" | grep -oE '[0-9]+$')"
+  if [ -z "$number" ]; then
+    echo "glab issue create の出力からissue番号を取得できませんでした: $url" >&2
+    return 1
+  fi
+  gitlab_get_issue "$number"
+}
+
 gitlab_new_draft_merge_request() {
   local issue_number="$1" branch="$2" base_branch="$3" title="$4"
   local description

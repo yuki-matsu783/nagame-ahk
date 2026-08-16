@@ -35,7 +35,7 @@ source dev-tools/src/vcs/Provider.sh
 
 | flow-id | ステップ | 担当 |
 |---|---|---|
-| 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間 |
+| 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間（AIが代行する場合は `issue-create` スキル） |
 | 2 | issueの内容を取得する | `start <issue番号>` |
 | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
 | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
@@ -104,7 +104,7 @@ HANDOFF.mdとの矛盾など、ブランチ名だけでは分からない「こ�
    （ファイルパス・行番号・スレッドID・該当diffを含む）。対応済み（解決済み）のスレッドは既定で
    機械的に除外される。引数に `all` が指定された場合は `get_mr_unresolved_comments <n> true` で呼び、
    解決済みも含めた全件を取得する。
-3. 新たなコメントが0件でユーザがプロンプトで指摘を行った場合は、MRにコメントすることを促す。
+3. ユーザがプロンプトにおいて指摘を行った場合は、MRにコメントすることを促す。
 4. 提示した内容をもとに、`plans/<plan名>.md` を修正する、または設計・実装を修正する
    （この修正作業自体は本スキルの対象外。通常の編集で行う）。対応が完了したコメントには、
    `reply` サブコマンドで対応内容を返信する。
