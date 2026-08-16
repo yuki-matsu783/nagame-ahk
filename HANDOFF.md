@@ -29,10 +29,10 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
 | [x] | 12 | commit, push してレビュー依頼を行う | エージェント |
 | [x] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
-| [x][x][] | 14 | MRでレビュー・コメントする | 人間 |
-| [x][x][] | 15 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（11〜15の作業ループを合意まで繰り返す） | `comments` / `reply` |
-| [] | 16 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
-| [] | 17 | AIアセット改善: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
+| [x][x][x] | 14 | MRでレビュー・コメントする | 人間 |
+| [x][x][x] | 15 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（11〜15の作業ループを合意まで繰り返す） | `comments` / `reply` |
+| [x] | 16 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
+| [x] | 17 | AIアセット改善: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
 | [] | 18 | commit, push してレビュー依頼を行う | エージェント |
 | [] | 19 | MRでレビュー・コメントする | 人間 |
 | [] | 20 | レビュー内容を取得し、設計反映・AIアセットの内容を修正する。対応が完了したコメントには対応内容を返信する（16〜20を合意まで繰り返す） | `comments` / `reply` |
@@ -96,19 +96,26 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
   リポジトリルート基準の相対パスにする設計へ変更。誤った旧仕様の8ファイルを削除し、
   リポジトリルートで1回実行して16ファイルへ再生成。`tests/test_extract_frontmatter.sh`も
   `resolve_repo_root`・repo_root基準のconcept_id導出テストへ更新（15アサーション成功）。
+- ユーザーから「レビューOK」の合図を受け、`comments all`で7スレッド全件がresolved・未解決0件で
+  あることを確認した上でflow-id 14〜15ループを完了扱いとした。plan（`plans/amber-thistle-fox.md`）
+  を作成・承認を得て設計反映（flow-id 16）・AIアセット改善（flow-id 17）に着手（worklog:
+  `worklog/20260816_amber-thistle-fox.md`）。
+- `dev-tools/docs/spec/extract-frontmatter.md`（正史仕様）・
+  `dev-tools/docs/ddr/0008-frontmatter抽出スクリプトの設計判断.md`（出力単位・concept_id基準・
+  yq優先度の3設計判断と却下案）を新規作成し、`dev-tools/docs/README.md`にリンクを追加。
+- `.claude/rules/plan-mode-safety.md`に項目6（Planモード複数回再突入時、ハーネスがplanファイル
+  パスを前回re-entryのものへ固定し続ける制約と、その回避手順）を追記。
+  `.claude/rules/shell-script-style.md`「文字コード」節に、Windowsネイティブ版`jq`バイナリの
+  CRLF付与事象と`tr -d '\r'`対策を追記。
+- ドキュメント追加を反映するため全16件の`index.jsonl`を再生成。`jq empty`全行検証・CR混入無しを
+  確認済み。`tests/test_extract_frontmatter.sh`（15/15）・`tests/test_vcs_provider.sh`（10/10）を
+  再実行し全件成功を確認。
 
 ## 次にやること
 
-- commit・push・PR description更新（`describe`）を行い、人間の再レビューを受ける（flow-id 14
-  round3）。`comments all`で返信済みスレッドが実際にresolvedになっているか、新規指摘が無いかを
-  確認してから設計反映（flow-id 16）へ進む。
-- 設計反映: `plans/purrfect-churning-oasis.md`（round2、`plans/immutable-painting-kitten.md`同様
-  上書きしない） / `plans/ember-quilted-narwhal.md`（round3） / `plans/gilded-tundra-sparrow.md`
-  （index.jsonl管理化） / `plans/velvet-copper-lynx.md`（出力仕様の再設計） / 対応するworklog4件の
-  内容を`dev-tools/docs/spec/`（`extract-frontmatter.sh`の正史仕様。ディレクトリ分散出力・
-  repo root基準concept_id・生成物`index.jsonl`を手動管理する運用や再生成のタイミングを記載する）・
-  `.claude/rules/markdown-frontmatter.md`・`.claude/rules/directory-structure.md`（既に反映済み）
-  へ反映する。
+- commit・push・PR description更新（`describe`）を行い、人間の再レビューを受ける（flow-id 19）。
+  `comments all`で新規指摘が無いことを確認できれば、flow-id 21（`plans/`・`worklog/`削除、
+  `HANDOFF.md`リセット）・22（Draft解除）へ進める。
 
 ## 判断を迷った内容
 
