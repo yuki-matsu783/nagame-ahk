@@ -157,7 +157,10 @@ main() {
     fi
     echo "---"
     echo "Claude Codeより: 自動投稿（post-push-usage-report.sh による集計。"
-    echo "transcriptの非公開フォーマットに依存したベストエフォートの集計のため、目安として扱ってください）"
+    echo "transcriptの非公開フォーマットに依存したベストエフォートの集計のため、目安として扱ってください。"
+    echo "特にトークン数は、ストリーミング応答中のプレースホルダー値が更新されないケースがあるという"
+    echo "既知の過小カウント要因が報告されています。詳細:"
+    echo "https://gille.ai/en/blog/claude-code-jsonl-logs-undercount-tokens/ ）"
   } > "$tmp_file"
 
   add_mr_comment "$mr_number" "$tmp_file"
