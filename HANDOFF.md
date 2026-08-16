@@ -16,11 +16,11 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 | 進捗 | flow-id | ステップ | 担当 |
 |----|---|---|---|
-| [] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間 |
-| [] | 2 | issueの内容を取得する | `start <issue番号>` |
-| [] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
-| [] | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
-| [] | 5 | Planに合意する | 人間 |
+| [x] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間 |
+| [x] | 2 | issueの内容を取得する | `start <issue番号>` |
+| [x] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
+| [x] | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
+| [x] | 5 | Planに合意する | 人間 |
 | [] | 6 | commit, push してレビュー依頼を行う | エージェント |
 | [] | 7 | MRで再度planについてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
 | [] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
@@ -42,11 +42,24 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## やったこと
 
-（このタスクではまだ何もしていない）
+- issue #25「issueを作成するスクリプト、スキルを作成する」を取得し、内容を確認した
+  （4見出しの欠落なし）
+- ブランチ `feature-25-create-issue-script-skill` を作成・push
+- Draft PR [#36](https://github.com/yuki-matsu783/nagame-ahk/pull/36) を作成
+- Planを作成・承認済み（`plans/glimmering-wiggling-balloon.md`、
+  `worklog/2026-08-16_glimmering-wiggling-balloon.md`）
 
 ## 次にやること
 
-（次のissueに着手する場合は `start <issue番号>` から）
+Planをもとに実装を進める（flow-id 11）。
+- `dev-tools/src/vcs/Provider.sh` に `build_issue_body` / `new_issue` を追加
+- `Github.sh` に `github_new_issue`、`Gitlab.sh` に `gitlab_new_issue` を追加
+- `dev-tools/src/create-issue.sh`（新規CLIスクリプト）を追加
+- `.claude/skills/issue-create/SKILL.md`（新規スキル）を追加
+- `issue-mr-flow/SKILL.md` のflow-id 1担当セルに導線を一言追記
+- `tests/test_vcs_provider.sh` に `build_issue_body` のテストを追加
+
+詳細は `plans/glimmering-wiggling-balloon.md` を参照。
 
 ## 判断を迷った内容
 
