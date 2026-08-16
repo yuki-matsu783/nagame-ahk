@@ -16,24 +16,24 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 | 進捗 | flow-id | ステップ | 担当 |
 |----|---|---|---|
-| [x] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間 |
-| [x] | 2 | issueの内容を取得する | `start <issue番号>` |
-| [x] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
-| [x] | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
-| [x] | 5 | Planに合意する | 人間 |
-| [x] | 6 | commit, push してレビュー依頼を行う | エージェント |
-| [x] | 7 | MRで再度planについてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
-| [x] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
-| [x] | 9 | planをもとにMR descriptionを更新する | `describe` |
+| [] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間 |
+| [] | 2 | issueの内容を取得する | `start <issue番号>` |
+| [] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
+| [] | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
+| [] | 5 | Planに合意する | 人間 |
+| [] | 6 | commit, push してレビュー依頼を行う | エージェント |
+| [] | 7 | MRで再度planについてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
+| [] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
+| [] | 9 | planをもとにMR descriptionを更新する | `describe` |
 | [] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
-| [x] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
-| [x] | 12 | commit, push してレビュー依頼を行う | エージェント |
-| [x] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
-| [x] | 14 | MRでレビュー・コメントする | 人間 |
-| [x] | 15 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（11〜15の作業ループを合意まで繰り返す） | `comments` / `reply` |
-| [x] | 16 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
-| [x] | 17 | AIアセット改善: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
-| [x] | 18 | commit, push してレビュー依頼を行う | エージェント |
+| [] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
+| [] | 12 | commit, push してレビュー依頼を行う | エージェント |
+| [] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
+| [] | 14 | MRでレビュー・コメントする | 人間 |
+| [] | 15 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（11〜15の作業ループを合意まで繰り返す） | `comments` / `reply` |
+| [] | 16 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
+| [] | 17 | AIアセット改善: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
+| [] | 18 | commit, push してレビュー依頼を行う | エージェント |
 | [] | 19 | MRでレビュー・コメントする | 人間 |
 | [] | 20 | レビュー内容を取得し、設計反映・AIアセットの内容を修正する。対応が完了したコメントには対応内容を返信する（16〜20を合意まで繰り返す） | `comments` / `reply` |
 | [] | 21 | `plans/` `worklog/` を削除し、`HANDOFF.md` を次タスクへリセットする | エージェント |
@@ -42,37 +42,15 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## やったこと
 
-- issue #22（ブランチ名のslugをリッチにしたい）の内容取得、ユーザーへの意図確認
-- ブランチ `feature-22-slug` / Draft PR #32 を作成
-- Planを作成しユーザー承認済み（`plans/prancy-snacking-ocean.md`）
-- `worklog/2026-08-16_prancy-snacking-ocean.md` を作成
-- plan/worklog/HANDOFF.mdをcommit・push、PR #32でレビュー依頼
-- ユーザーから「レビューOK」を受領。`comments all`で未解決スレッド無し（自動投稿の工数レポートのみ）を確認済み
-- PR #32のdescriptionをplan内容で更新（`describe`）
-
-- 計画の実施内容1〜3を実装（SKILL.md, Provider.sh, tests/test_vcs_provider.sh）、検証も完了
-  （`bash -n`構文OK、`passed=11 failures=0`、手動確認も想定どおり）
-
-- flow-id 12-13: 実装をcommit・push、MR descriptionを実装状況で更新済み
-- flow-id 14-15: ユーザーから「レビュー完了」を受領。`comments all`で未解決スレッド無し
-  （自動投稿の工数レポートのみ）を確認済み
-- flow-id 16: `dev-tools/docs/ddr/0010-ブランチslugの意訳生成はAIエージェントが行う.md` を新規作成、
-  `dev-tools/docs/spec/issue-mr-workflow.md`（提供関数テーブル・未決定事項節）を更新
-- flow-id 17: 今回の変更自体が`.claude/skills/issue-mr-flow/SKILL.md`の改善（flow-id 11で実施済み）
-  にあたるため、追加のAIアセット改善は不要と判断
-
-- flow-id 18: 設計反映の内容をcommit・push・レビュー依頼済み
+（このタスクではまだ何もしていない）
 
 ## 次にやること
 
-- flow-id 19-20: 設計反映・AIアセットの内容についてレビューを受け、対応する
-  （レビュー完了連絡があるまで先へ進まない）
+（次のissueに着手する場合は `start <issue番号>` から）
 
 ## 判断を迷った内容
 
-- slugをAI意訳にすると非決定的になり`start`手順2の既存ブランチ確認が壊れる懸念があったため、
-  Provider.shに専用ヘルパー関数を追加するか、SKILL.mdの手順文修正のみで対応するかをユーザーに
-  確認した。ユーザーは後者（SKILL.md修正のみ）を選択（詳細は計画のContext参照）
+（無し）
 
 ## 未解決の内容
 
