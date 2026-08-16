@@ -236,6 +236,16 @@ Claude Codeのセッション使用量（モデル別トークン数・ツール
 - **投稿内容の位置づけ**: コメント本文冒頭に「このコメントはClaude Codeによる自動投稿です。
   レビューの合否判定には使用しないでください。」と明記する（`add_mr_comment` は通常コメントであり
   レビューではないため、そもそも承認状態に影響しない。issue #15の受け入れ条件に対応）。
+- **制約: スクリプト経由の`git push`は検知されない**: 投稿トリガーの判定は、Bash/PowerShell
+  ツールへ渡された`tool_input.command`文字列が`git push`で始まるかどうかの前方一致マッチ
+  （`.claude/settings.json`の`if: "Bash(git push*)"` / `if: "PowerShell(git push*)"`）に依存する。
+  そのため、`git push`をラップしたスクリプト（`bash deploy.sh`等）や、gitのエイリアス、他言語の
+  subprocess経由でpushした場合は`tool_input.command`自体に`git push`という文字列が現れず、
+  hookプロセスが起動されないため検知できない。そのため、git pushをラップしたスクリプトを作成することやgit pushコマンドを前方一致マッチにHITしないような形式で実行することを**禁止**する。投稿対象は使用量レポート（参考情報）のみでpush
+  自体をブロックする機能ではないため、影響は該当push分の投稿が漏れることに留まる（次回、検知条件に
+  一致するpush時に`sinceLastPush`が繰り越されて投稿される）。より厳密な検知（`PreToolUse`と
+  `PostToolUse`のペアでref状態を比較する等）も検討可能だが、全Bash/PowerShell呼び出しへ処理が
+  追加され性能影響とのトレードオフになるため、対応しない。
 - **設計判断の詳細・却下案**（`transcript` JSONL自前パースの採用理由、`gitBranch` フィルタの理由、
   `Stop` hookを廃止した経緯）は
   [0006-セッション使用量レポートはtranscript自前パースで実装する.md](../ddr/0006-セッション使用量レポートはtranscript自前パースで実装する.md)
