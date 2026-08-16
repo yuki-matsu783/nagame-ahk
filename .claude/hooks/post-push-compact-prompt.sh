@@ -24,7 +24,8 @@
 
 set -uo pipefail
 
-COMPACT_PROMPT_MESSAGE='MRのレビューをお願いします。/compactを実施をしていただくと、レビュー中にコンテキストを圧縮して今後の作業が効率化になる可能性があります'
+CONTEXT_MESSAGE='ユーザにMRレビューとcompactの実施を促すメッセージを注入するフックです。また、前回のcompact実施から一定期間経過している場合、/compactの実施をAskUserQuestionで確認する。'
+COMPACT_PROMPT_MESSAGE='メッセージ例: MRのレビューをお願いします。/compactを実施をしていただくと、レビュー中にコンテキストを圧縮して今後の作業が効率的になる可能性があります'
 
 write_additional_context() {
   local text="$1"
@@ -74,7 +75,7 @@ main() {
   mr="$(get_mr_for_branch "$branch")"
   [ -n "$mr" ] || exit 0
 
-  write_additional_context "$COMPACT_PROMPT_MESSAGE"
+  write_additional_context "$CONTEXT_MESSAGE $COMPACT_PROMPT_MESSAGE"
 }
 
 ( main ) || true
