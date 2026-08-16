@@ -1,6 +1,6 @@
 ---
 name: commit
-description: 'Generate a Japanese commit message with Conventional Commits prefix and create one or more atomic commits. Use whenever a commit needs to be made in this repository — both when the user explicitly invokes /commit AND whenever an AI agent commits autonomously as part of the issue-mr-flow (flow-id 6/12/18/22). All commits in this repo MUST go through this skill; direct git commit is blocked by a PreToolUse hook. Flow: git status → confirm with user via AskUserQuestion → filter sensitive/junk files → dev-tools/src/create-commit.sh (NO Claude footer)'
+description: 'Generate a Japanese commit message with Conventional Commits prefix and create one or more atomic commits. Use whenever a commit needs to be made in this repository — both when the user explicitly invokes /commit AND whenever an AI agent commits autonomously as part of the issue-mr-flow (flow-id 6/12/18/22). All commits in this repo MUST go through this skill; direct git commit is blocked by a PreToolUse hook. Flow: git status → analyze diff → filter sensitive/junk files → dev-tools/src/create-commit.sh (NO Claude footer, no confirmation; multiple mixed prefixes are auto-split into separate commits)'
 title: git commit標準化
 type: skill
 tags: [issue-mr-flow, workflow, skill]
@@ -9,7 +9,7 @@ keywords: [commit, コミット]
 
 # /commit スキル
 
-`/commit` が呼ばれた時、変更内容を分析して日本語のコミットメッセージを自動生成し、コミット作成までを対話的に進める。
+`/commit` が呼ばれた時、変更内容を分析して日本語のコミットメッセージを自動生成し、確認を挟まずコミット作成まで進める。
 
 ## 呼び出しタイミング
 
@@ -23,7 +23,7 @@ keywords: [commit, コミット]
 
 `git commit` の直接実行は `.claude/hooks/block-direct-git-commit.sh`（PreToolUse hook）により
 機構的にブロックされる（`.claude/rules/git-workflow.md` の「コミット運用」節参照）。このスキルの
-Step 5は `dev-tools/src/create-commit.sh` というラッパースクリプト経由でコミットするため、
+Step 4は `dev-tools/src/create-commit.sh` というラッパースクリプト経由でコミットするため、
 hookの対象にならず正規に実行できる。
 
 ## 絶対ルール
@@ -69,40 +69,7 @@ hookの対象にならず正規に実行できる。
 
 **(b) 論理的まとまり判定** — 内容（prefixが変わるか）+ ファイルパスの両方を見て、複数のスコープに分かれるかを判定。
 
-### Step 3: ユーザに確認（AskUserQuestion 使用）
-
-**単一スコープの場合：**
-
-`AskUserQuestion` で1問：
-- question: 「このコミットメッセージで作成しますか？」
-- header: 「コミット確認」
-- options:
-  - 「OK」 — 提案通り作成
-  - 「メッセージ修正」 — ユーザに自由入力させる
-  - 「キャンセル」 — 中止
-
-提案メッセージはチャット本文に表示してから質問する。除外予定のファイル（クレデンシャル系・副産物）があれば明示。
-
-**複数prefix混在の場合：**
-
-`AskUserQuestion` で1問：
-- question: 「複数のスコープが混在しています。どうしますか？」
-- header: 「分割確認」
-- options:
-  - 「提案通り分割」 — 複数コミットを順に作成
-  - 「1コミットに統合」 — 主要prefixを使って1つにまとめる
-  - 「キャンセル」 — 中止
-
-分割案は AskUserQuestion を出す前にチャット本文に明示：
-```
-コミット1: feat: ○○機能を追加
-  - src/feature.ts
-  - src/feature.test.ts
-コミット2: docs: READMEを更新
-  - README.md
-```
-
-### Step 4: ファイルフィルタ
+### Step 3: ファイルフィルタ
 
 `git add` 対象から以下を**自動除外**：
 
@@ -130,7 +97,22 @@ hookの対象にならず正規に実行できる。
 - node_modules/...
 ```
 
-### Step 5: コミット実行
+### Step 4: コミット実行
+
+**確認は挟まず、そのままコミットを作成する。** ユーザへの承認待ち（AskUserQuestion等）は行わない。
+
+**単一スコープの場合：** 提案するコミットメッセージをチャット本文に表示したうえで、そのまま
+コミットを実行する。除外予定のファイル（クレデンシャル系・副産物）があれば合わせて明示する。
+
+**複数prefix混在の場合：** 確認を挟まず、prefixごとに複数コミットへ自動的に分割して順次実行する。
+実行前に、分割案をチャット本文に明示する（透明性のため。承認待ちはしない）：
+```
+コミット1: feat: ○○機能を追加
+  - src/feature.ts
+  - src/feature.test.ts
+コミット2: docs: READMEを更新
+  - README.md
+```
 
 `git add` / `git commit` を直接実行せず、`dev-tools/src/create-commit.sh` を使う
 （`git commit` の直接実行は `.claude/hooks/block-direct-git-commit.sh` によりブロックされる）。
@@ -143,7 +125,7 @@ bash dev-tools/src/create-commit.sh --message "<prefix>: <日本語サマリ>" -
 - `<prefix>: <日本語サマリ>` の **1行のみ**
 - 本文・フッター・Co-Authored-By など一切付けない
 
-複数コミットの場合は順番に Step 4-5 を繰り返す。途中で失敗したら**そこで停止**して状況を報告（自動 reset しない）。
+複数コミットの場合は順番に Step 3-4 を繰り返す。途中で失敗したら**そこで停止**して状況を報告（自動 reset しない）。
 
 ## 備考
 <レビュアーが知っておくべきこと、未対応事項。なければセクション省略>
@@ -178,4 +160,3 @@ bash dev-tools/src/create-commit.sh --message "<prefix>: <日本語サマリ>" -
 - TodoWrite / Agent ツールの使用
 - `git push` の実行（ユーザが明示的に頼まない限り）
 - 機密ファイルが残っていてもユーザに警告せず除外（必ず明示する）
-- ユーザ確認を飛ばして自動でコミット作成
