@@ -42,3 +42,12 @@ keywords: [create-issue.sh, issue-create, build_issue_body, new_issue]
     いることを確認→検証用のため即クローズ。GitHub側は問題なく動作した。GitLab側（`glab`）は
     このリポジトリのremoteがGitHubのみのため実機確認できていない（既存の他gitlab_*関数群と同じ
     制約）。
+- 設計反映（flow-id 16）:
+  - `dev-tools/docs/spec/issue-mr-workflow.md`: 「提供関数」表に`build_issue_body`/`new_issue`を
+    追加、新規サブセクション「issue作成（AIエージェント代行・スクリプト実行）」を追加、
+    「影響範囲」に本issue分の新規・変更ファイル一覧を追記。
+  - `dev-tools/docs/ddr/0011-issue作成は独立スキルとして新設する.md`（新規DDR）: 独立スキル
+    （`issue-create`）とissue-mr-flowサブコマンド追加案の比較・却下理由を記録。
+- AIアセット改善（flow-id 17）: `issue-mr-flow/SKILL.md`のflow-id 1担当セルへの導線追記は
+  flow-id 11の実装内で既に対応済み（上記参照）。今回のセッションで他に追加のルール・スキル
+  不備は見つからなかった。
