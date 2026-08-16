@@ -157,6 +157,21 @@ resumeを省略してしまう事故が発生した）。そのため発動条�
 `comments` / `describe` サブコマンドの「現在のブランチに紐づくMR番号を取得する」手順は、
 重複実装を避けるため `get_mr_for_branch` に統一する。
 
+### マージ後の取り残しクリーンアップ
+
+人間がレビュー後にそのままMR/PRをマージするなど、flow-id 21（`plans/` `worklog/`の削除・
+`HANDOFF.md`のリセット）の実施前にマージが完了してしまうことがある（issue #28, PR #29の
+セッションで実際に発生）。この場合、タスク固有の`plans/`・`worklog/`ファイルと作業途中のままの
+`HANDOFF.md`が`main`へ残ってしまい、`docs-workflow.md`の運用（`worklog/`はsquash mergeで
+`main`に残さない設計）と矛盾する。
+
+この状態に気づいた場合、`main`への直接コミットではなく、新しいクリーンアップ用ブランチと
+PRで対処する（`main`はレビューを経ないままの直接変更を避ける対象のため）。issue番号を持たない
+一回限りの対応のため、`.mrworkflow.json`のブランチ命名規則には従わず`chore/cleanup-<説明>`
+のような名前を使ってよい。手順の詳細は
+`.claude/skills/issue-mr-flow/SKILL.md`の「PRがflow-id 21実施前にマージされてしまった場合の対処」
+節を参照。
+
 ### セッション開始時の自動コンテキスト注入（SessionStart hook）
 
 `resume` は人間・AIエージェントが明示的に呼び出す必要があり、機械的に実行されない
