@@ -174,13 +174,16 @@ add_empty_commit_for_draft_mr() {
   git push >/dev/null
 }
 
-# issue番号・スラッグから `.mrworkflow.json` の branchPrefixTemplate に沿ったブランチを作成しcheckout、
-# リモートへpushする（ステップ3・4: 「issueからMRとブランチを作る」「作成したブランチをfetch, checkout」）。
+# issue番号・スラッグ生成用テキストから `.mrworkflow.json` の branchPrefixTemplate に沿った
+# ブランチを作成しcheckout、リモートへpushする（ステップ3・4: 「issueからMRとブランチを作る」
+# 「作成したブランチをfetch, checkout」）。第2引数はslug化対象のテキストであり、生のissueタイトル
+# である必要はない（呼び出し元が英語の意訳フレーズ等を渡してよい。`.claude/skills/issue-mr-flow/
+# SKILL.md` の `start` サブコマンド参照。issue #22）。
 new_issue_branch() {
-  local issue_number="$1" title="$2"
+  local issue_number="$1" slug_source="$2"
   local config slug branch base_branch template
   config="$(get_workflow_config)"
-  slug="$(to_slug "$title")"
+  slug="$(to_slug "$slug_source")"
   base_branch="$(printf '%s' "$config" | jq -r '.defaultBaseBranch')"
   template="$(printf '%s' "$config" | jq -r '.branchPrefixTemplate')"
   branch="${template//\{issue\}/$issue_number}"

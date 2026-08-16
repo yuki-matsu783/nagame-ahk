@@ -82,7 +82,7 @@ git bash特有の注意点は [shell-scripts.md](shell-scripts.md) を参照。
 | 関数 | 内容 | GitHub実装 | GitLab実装 |
 |---|---|---|---|
 | `get_issue <n>` | issueのtitle/body/labelsを取得（JSON） | `gh issue view` | `glab issue view` |
-| `new_issue_branch <n> <title>` | `<branchPrefixTemplate>` に従いブランチを作成しcheckout、リモートpush | `git switch -c` + `git push` | 同左 |
+| `new_issue_branch <n> <slugSource>` | `<branchPrefixTemplate>` に従いブランチを作成しcheckout、リモートpush。`<slugSource>` はslug化対象のテキストであり、生issueタイトルである必要はない（`.claude/skills/issue-mr-flow/SKILL.md` の `start` サブコマンドではAIエージェントが生成した英語の意訳フレーズを渡す。詳細: [0010-ブランチslugの意訳生成はAIエージェントが行う.md](../ddr/0010-ブランチslugの意訳生成はAIエージェントが行う.md)） | `git switch -c` + `git push` | 同左 |
 | `new_draft_merge_request <n> <branch> <title> [<base>]` | issueに紐づくDraft PR/MRを作成（bodyは仮テンプレート、後続の `set_mr_description` で上書き前提。`<title>` はissueタイトルをそのまま渡す） | `gh pr create --draft` | `glab mr create --draft` |
 | `get_mr_unresolved_comments <n> [true]` | レビューコメント／スレッドを取得しテキストへ整形（スレッドID・ファイルパス・行番号・diffを含む）。既定（第2引数省略）では未解決のスレッドのみを返し、対応済み（解決済み）スレッドは機械的に除外する。第2引数に `true` を渡すと解決済みも含めた全件を返す | `gh api graphql` (review threads) | `glab api` (discussions) |
 | `add_mr_thread_reply <n> <threadId> <text>` | 指定スレッドに対応内容を返信する（スレッドの解決＝resolvedはレビュアー側の操作のため本関数では行わない） | `gh api graphql`（reply mutation） | `glab api`（note追加） |
@@ -632,12 +632,12 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
   GitLab側のテスト方法（別リポジトリ用意等）は今後の課題。
 - **他リポジトリへの移植性の検証**: `.mrworkflow.json` による切り出しで足りるか、実際に他リポジトリへ
   導入してみないと確認できない。今回はnagame-ahk上での実装・検証にとどめる。
-- **全角文字のみのissueタイトルのスラッグ化**: `to_slug`（旧`ConvertTo-Slug`）はASCII英数字のみを
-  残す簡易実装のため、
-  「開発フローを変える」のような全角文字のみのタイトルは空文字となり `issue` にフォールバックする
-  （実機確認: issue #3 で確認済み）。ブランチ名は `feature-<issue番号>-issue` のように番号のみで
-  区別される形になるが、番号自体が一意なため実害はない。より説明的なスラッグが必要になった場合は
-  ローマ字変換等の対応を別途検討する。
+- **（issue #22で対応済み）全角文字のみのissueタイトルのスラッグ化**: `to_slug`（旧
+  `ConvertTo-Slug`）はASCII英数字のみを残す簡易実装のため、「開発フローを変える」のような全角文字
+  のみのタイトルは空文字となり `issue` にフォールバックしていた（実機確認: issue #3 で確認済み）。
+  `to_slug`自体は変更せず、`start`サブコマンド実行時にAIエージェントがissueタイトルの意味を汲んだ
+  英語の意訳フレーズを生成し`new_issue_branch`へ渡す方式で対応した（詳細:
+  [0010-ブランチslugの意訳生成はAIエージェントが行う.md](../ddr/0010-ブランチslugの意訳生成はAIエージェントが行う.md)）。
 - **`ahk-implement` スキルの非issueタスクでの扱い**: 今回の統合で `ahk-implement` は独立した
   最上位エントリーポイントではなく `issue-mr-flow` から呼ばれるサブフローという位置づけに変更した。
   「issueを起票しないごく小さな変更」は `git-workflow.md` の適用範囲の例外（main直接コミット許容）で
