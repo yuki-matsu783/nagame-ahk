@@ -124,6 +124,12 @@ main() {
   local mr_number
   mr_number="$(printf '%s' "$mr" | jq -r '.number')"
 
+  # このMR（ブランチ）に対して過去に投稿成功したことがあるか（state.lastPostedAtの有無で判定）。
+  # 免責事項の説明文（フッター）は初回投稿時のみ表示し、毎回同じ文言が繰り返し投稿されるのを防ぐ
+  # （PR #29レビュー指摘）。
+  local is_first_post
+  is_first_post="$(printf '%s' "$state" | jq -r 'if .lastPostedAt then "false" else "true" end')"
+
   # --- コメント本文の組み立て ---
   local tmp_file
   tmp_file="$(mktemp)"
@@ -155,12 +161,13 @@ main() {
       echo "**ツール実行回数**: ${tool_summary}"
       echo ""
     fi
-    echo "---"
-    echo "Claude Codeより: 自動投稿（post-push-usage-report.sh による集計。"
-    echo "transcriptの非公開フォーマットに依存したベストエフォートの集計のため、目安として扱ってください。"
-    echo "特にトークン数は、ストリーミング応答中のプレースホルダー値が更新されないケースがあるという"
-    echo "既知の過小カウント要因が報告されています。詳細:"
-    echo "https://gille.ai/en/blog/claude-code-jsonl-logs-undercount-tokens/ ）"
+    if [ "$is_first_post" = "true" ]; then
+      echo "---"
+      echo "Claude Codeより: 自動投稿（post-push-usage-report.sh による集計。"
+      echo "セッション情報ログを解析した集計のため、目安として扱ってください。"
+      echo "既知の過小カウント要因が報告されています。詳細:"
+      echo "https://gille.ai/en/blog/claude-code-jsonl-logs-undercount-tokens/ ）"
+    fi
   } > "$tmp_file"
 
   add_mr_comment "$mr_number" "$tmp_file"

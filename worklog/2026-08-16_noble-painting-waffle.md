@@ -129,6 +129,28 @@ keywords: [対応工数, 経過時間, transcript, timestamp, usage-tracking, my
   レビュアー側の操作のため、返信後も`get_mr_unresolved_comments`では`unresolved`のまま
   表示される（DDR 0003の既定動作どおり）。ユーザーへ再確認を依頼する。
 
+## レビュー往復（flow-id 14〜15, 2回目）
+
+- ユーザーが上記スレッドを解決し、新たなレビューコメントを追加（1件目のスレッドは`resolved`、
+  新規スレッド`PRRT_kwDOT4Y-5s6Zk1CA`が`unresolved`として検出された）。ユーザーからの合図は
+  「レビュー指摘を記入した」のみだったが、ルール通り`get_mr_unresolved_comments 29 true`で機械的に
+  確認し新規スレッドの存在を検出した。
+- 指摘（`.claude/hooks/post-push-usage-report.sh:158`）: 「この部分のコメントについては、
+  該当MRに対応工数レポートを最初に行うときだけ記載するようにすること」。フッターの免責事項説明文
+  （集計方法・既知の過小カウント要因の説明）を、毎回のpushで繰り返し投稿するのではなく、
+  そのMRへの初回投稿時のみに限定してほしいという指摘。
+- 対応: `post-push-usage-report.sh`に`is_first_post`判定を追加した。状態ファイルの
+  `lastPostedAt`（投稿前時点の値。存在すれば過去に投稿成功済み、存在しなければ初回）で分岐し、
+  フッターの詳しい説明文（`Claude Codeより: 自動投稿...`の段落）はfalseの場合（2回目以降）は
+  出力しないようにした。冒頭の「レビューの合否判定には使用しないでください」という短い注記は
+  毎回表示したまま残した（投稿ごとの識別に必要なため）。
+  `dev-tools/docs/spec/issue-mr-workflow.md`にもこの挙動を追記した。
+- なお、ユーザー（または連携ツール）がフッター文言自体も手動編集していた
+  （「transcriptの非公開フォーマットに依存した...」→「セッション情報ログを解析した集計のため、
+  目安として扱ってください。」への簡略化）。この編集はそのまま活かし、上書きしていない。
+- `bash -n`構文チェック・`tests/test_usage_tracking.sh`/`tests/test_vcs_provider.sh`の回帰確認済み。
+  push後の実際のレポート投稿で、2回目以降フッターが省略されることを実地確認する。
+
 ## レビュー往復（flow-id 7〜8, 1回目）
 
 - 指摘（yuki-matsu783, PR #29 `plans/noble-painting-waffle.md:25`）: 計測したいのは
