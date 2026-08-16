@@ -152,6 +152,11 @@ main() {
       output_v="$(printf '%s' "$m" | jq -r '.output // 0')"
       create_v="$(printf '%s' "$m" | jq -r '.cacheCreate // 0')"
       read_v="$(printf '%s' "$m" | jq -r '.cacheRead // 0')"
+      # "<synthetic>"等、4項目とも0のモデル行はノイズなので表示しない（transcript側が
+      # usageの無いプレースホルダーentryにmodel名を割り当てているケースがある）
+      if [ "$input_v" = "0" ] && [ "$output_v" = "0" ] && [ "$create_v" = "0" ] && [ "$read_v" = "0" ]; then
+        continue
+      fi
       echo "| ${model} | $(fmt_num "$input_v") | $(fmt_num "$output_v") | $(fmt_num "$create_v") | $(fmt_num "$read_v") |"
     done
     echo ""
