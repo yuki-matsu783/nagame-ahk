@@ -16,9 +16,9 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 | 進捗 | flow-id | ステップ | 担当 |
 |----|---|---|---|
-| [] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間 |
-| [] | 2 | issueの内容を取得する | `start <issue番号>` |
-| [] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
+| [x] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間 |
+| [x] | 2 | issueの内容を取得する | `start <issue番号>` |
+| [x] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
 | [] | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
 | [] | 5 | Planに合意する | 人間 |
 | [] | 6 | commit, push してレビュー依頼を行う | エージェント |
@@ -42,11 +42,13 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## やったこと
 
-（このタスクではまだ何もしていない）
+- issue #11「git pushイベントを検知してcompactする」を取得
+- `feature-11-prompt-compact-after-push` ブランチ・Draft PR #33 を作成
+- origin/main（PR #32マージ分）を取り込みmerge・push済み
 
 ## 次にやること
 
-（次のissueに着手する場合は `start <issue番号>` から）
+- Planモードで実装方針を作成する（flow-id 4）
 
 ## 判断を迷った内容
 
@@ -54,7 +56,10 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## 未解決の内容
 
-（無し）
+- `new_issue_branch`（`dev-tools/src/vcs/Provider.sh`）内の `git push -u origin "$branch"` の出力が
+  呼び出し元の `$(...)` キャプチャに混入し、`new_draft_merge_request` へ渡す branch 引数が
+  複数行になって PR作成が失敗する不具合を実際に踏んだ（手動でリカバリ済み、PR #33自体は正常）。
+  今回のissue本題ではないため後回しにしている。flow-id 17（AIアセット改善）で対応を検討する。
 
 ## 守るべき条件・触ってはいけない範囲
 
