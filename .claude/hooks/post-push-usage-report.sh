@@ -223,10 +223,11 @@ main() {
     fi
     if [ "$is_first_post" = "true" ]; then
       echo "---"
-      echo "Claude Codeより: 自動投稿（post-push-usage-report.sh による集計。"
+      echo "### Claude Codeより"
+      echo "post-push-usage-report.sh による集計。"
       echo "セッション情報ログを解析した集計のため、目安として扱ってください。"
-      echo "既知の過小カウント要因が報告されています。詳細:"
-      echo "https://gille.ai/en/blog/claude-code-jsonl-logs-undercount-tokens/ ）"
+      echo "既知の過小カウント要因が報告されています。"
+      echo "詳細:https://gille.ai/en/blog/claude-code-jsonl-logs-undercount-tokens/"
     fi
   } > "$tmp_file"
 
