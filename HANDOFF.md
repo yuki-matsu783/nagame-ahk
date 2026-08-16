@@ -14,15 +14,17 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## フロー進捗状況
 
-（次タスク着手時にissue番号・ブランチ名・PR/MR番号とともに記載する）
+- issue: #37「対応工数レポートの数値が間違っていそうなので集計ロジックを修正する」
+- ブランチ: `feature-37-fix-effort-report-aggregation-logic`
+- Draft PR: https://github.com/yuki-matsu783/nagame-ahk/pull/47
 
 | 進捗 | flow-id | ステップ | 担当 |
 |----|---|---|---|
-| [] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間（AIが代行する場合は `issue-create` スキル） |
-| [] | 2 | issueの内容を取得する | `start <issue番号>` |
-| [] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
-| [] | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
-| [] | 5 | Planに合意する | 人間 |
+| [x] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間（AIが代行する場合は `issue-create` スキル） |
+| [x] | 2 | issueの内容を取得する | `start <issue番号>` |
+| [x] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
+| [x] | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
+| [x] | 5 | Planに合意する | 人間 |
 | [] | 6 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | [] | 7 | MRで再度planについてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
 | [] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
@@ -44,15 +46,32 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## やったこと
 
-（無し）
+- issue #37の内容取得、ブランチ・Draft PR作成（flow-id 2〜3）
+- 調査（Explore agent + 手動jq調査）で、対応工数レポートの件数ズレの原因を特定
+  - 実データで確認: 同一セッションが複数ブランチにわたってresumeされると、transcript JSONL上に
+    同一`uuid`の行が複数回（異なる`gitBranch`ラベル付きで）出現する
+  - 現行の「毎回全件再パース＋前回累計との引き算」方式は、同一セッションが新しいブランチで
+    初めてpushされた際に`prevSession`が存在せず、蓄積済みの全件がその新ブランチの初回差分として
+    計上されてしまう
+- Plan作成→uuid重複排除案を一度提示したが、「uuidの重複自体は異常ではない（parentUuidチェーン上の
+  ノード識別子）」というユーザー指摘によりExitPlanModeが却下され、方針を再設計
+  - 採用方針: セッション単位でグローバルなカーソル（`.claude/usage-state/session-cursors/
+    <sessionId>.json`の`lastLineCount`）を持ち、push断面ごとに「前回処理済み行数以降の新規行」
+    のみを差分として加算していく方式（issue本文が当初提案していた方式）
+  - `activeSeconds`（稼働時間）のみ、単調非減少性の前提が崩れるリスクを避けるため既存の
+    全件再パース方式を維持
+  - あわせてskill/AskUserQuestion/Agent呼び出しの詳細テーブルも同issueで実装することを確認
+- Plan承認済み（`plans/inherited-gathering-biscuit.md`）
 
 ## 次にやること
 
-（無し）
+- flow-id 4のworklog作成（`worklog/日付_inherited-gathering-biscuit.md`）
+- flow-id 6: `commit`スキルでplanをcommit・push（レビュー依頼）
+- 承認後、flow-id 11: `plans/inherited-gathering-biscuit.md`の対応方針A〜Gに沿って実装
 
 ## 判断を迷った内容
 
-（無し）
+- （無し。上記「やったこと」に記載した設計方針転換の経緯を参照）
 
 ## 未解決の内容
 
@@ -60,4 +79,5 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## 守るべき条件・触ってはいけない範囲
 
-（無し）
+- `activeSeconds`（稼働時間）の算出ロジックは変更しない（既存の全件再パース＋スナップショット差分を
+  維持する。plan「対象外」節参照）
