@@ -54,7 +54,12 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## 未解決の内容
 
-（次タスク着手時に記載）
+- （issue #26とは無関係）作業ツリーに、自分では作成していない未コミットの変更が2件存在する
+  （origin不明。前ブランチから引き継ぎ）:
+  - `.claude/rules/markdown-frontmatter.md`: type表の`template`行が`log`行（`worklog/*.md`）に置換
+  - `worklog/TEMPLATE.md`: `type: template` → `type: log`
+  - 内容的には一貫している（worklogのtypeを`log`とする方針）が、originが不明なため
+    コミット・破棄いずれも保留中。ユーザーに確認が必要。
 
 ## 守るべき条件・触ってはいけない範囲
 

@@ -1,6 +1,6 @@
 ---
 title: worklogテンプレート
-type: template
+type: log
 description: worklog作成時にコピーして使うテンプレートファイル
 tags: [worklog, template]
 keywords: [worklog, 計画, 試したこと, うまくいったこと, ダメだったこと, 次の一歩]
