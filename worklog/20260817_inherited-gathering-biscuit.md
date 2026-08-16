@@ -58,8 +58,27 @@ plan策定・ExitPlanModeを試みたが、ユーザーから却下された。
 
 この設計転換の経緯は`plans/inherited-gathering-biscuit.md`のContext節にも反映済み。
 
+## 追加の設計変更: `.claude/`配下から`usage/`ディレクトリへの移設
+
+plan策定・commit後、ユーザーから追加指示があった。
+
+> session-logsとusage-stateが.claude配下にあるの微妙なので、プロジェクトルートにusageディレクトリを
+> 作成してその中で管理するようにしてほしい
+
+`.claude/`はAIエージェント自体の設定・ルール置き場という性格が強く、対応工数レポートの
+ローカル作業状態（gitignore対象）を置くのは筋が悪いという指摘。まだ実装（コード変更）には
+着手していなかったため、planへ反映してから実装に進むことにした。
+
+- `.claude/session-logs/` → `usage/session-logs/`
+- `.claude/usage-state/` → `usage/state/`（新設カーソルは`usage/state/session-cursors/`）
+- `.gitignore`の該当2行を`/usage/`1行へ統合
+- `.claude/rules/directory-structure.md`のツリーへ`usage/`を追記（flow-id 17で対応）
+
+詳細はplan本文（対応方針A、E、G、H）に反映済み。
+
 ## 次のステップ
 
-- plan本文（対応方針A〜G）に沿って実装する。
-- 実装順序の目安: A（カーソル管理）→B（新規行diff集計）→D（sync_usage_state/merge_state書き換え）
-  →E（レポート描画）→F（テスト）。
+- plan本文（対応方針A〜H）に沿って実装する。
+- 実装順序の目安: A（`usage/`ディレクトリ移設・`.gitignore`更新）→B（カーソル管理）
+  →C（新規行diff集計）→E（sync_usage_state/merge_state書き換え）→F（レポート描画）→G（テスト）
+  →H（ドキュメント反映、flow-id 16〜17）。

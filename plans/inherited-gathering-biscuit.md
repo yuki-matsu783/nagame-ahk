@@ -3,7 +3,7 @@ title: 対応工数レポートの集計ロジック修正と詳細テーブル�
 type: rule
 description: issue #37対応。push断面ごとのtranscript diffに基づく集計方式への変更と、skill/AskUserQuestion/Agent呼び出しの詳細テーブル追加の実施計画
 tags: [usage-tracking, bugfix, reporting]
-keywords: [対応工数レポート, UsageTracking, line-offset, diff, session-cursor, skillCalls, agentCalls, askUserQuestions]
+keywords: [対応工数レポート, UsageTracking, line-offset, diff, session-cursor, skillCalls, agentCalls, askUserQuestions, usageディレクトリ]
 ---
 
 # 対応工数レポートの集計ロジック修正と詳細テーブル追加
@@ -14,7 +14,8 @@ issue #37「対応工数レポートの数値が間違っていそうなので�
 利用したツールの数が明らかにずれているという報告を受け、`.claude/hooks/lib/UsageTracking.sh` /
 `.claude/hooks/post-push-usage-report.sh` を調査した。
 
-実データ（`.claude/session-logs/feature-45-commit-skill-skip-confirmation/9e53412d-.../main.jsonl`）で、
+実データ（`.claude/session-logs/feature-45-commit-skill-skip-confirmation/9e53412d-.../main.jsonl`。
+本plan策定時点でのパス。後述のとおり本対応で`usage/session-logs/`へ移設する）で、
 同一`uuid`のtranscript行が複数回（異なる`gitBranch`ラベル付きも含む）出現することを確認した。
 当初この「同一uuidの重複」自体をバグとみなし、uuidベースの重複排除で対応する案を提示したが、
 `uuid`はあくまで会話木のノード識別子（`parentUuid`によるチェーン構造）であり、同一uuidが
@@ -30,18 +31,40 @@ issue #37「対応工数レポートの数値が間違っていそうなので�
 あわせて、issueのもう1つの要望（受け入れ条件にも明記）である「skill呼び出し」「AskUserQuestion」
 「Agent(サブエージェント)呼び出し」の詳細テーブル化も、同じissue/PRで実装する（ユーザー承認済み）。
 
+さらに、`session-logs`/`usage-state`が`.claude/`配下にあるのは分かりにくい（`.claude/`はAI
+エージェント自体の設定・ルール置き場という性格が強く、対応工数レポートのローカル作業状態を
+そこに置くのは筋が悪い）というユーザー指摘を受け、プロジェクトルート直下の新規`usage/`
+ディレクトリへ移設する（ユーザー承認済み）。
+
 ## 対応方針
 
-### A. セッション横断のカーソル管理（新規）
+### A. `.claude/`配下から`usage/`ディレクトリへの移設
 
-新規ディレクトリ `.claude/usage-state/session-cursors/<sessionId>.json`（サブエージェントは
+- 新しい配置: `usage/session-logs/`（旧`.claude/session-logs/`）、`usage/state/`
+  （旧`.claude/usage-state/`）。両方ともローカル作業状態でありコミット対象外という性格は変わらない。
+- `.gitignore`（`:11-15`）を以下のように書き換える。
+  ```
+  # 対応工数レポート機能のローカル作業状態（ブランチ横断・非コミット対象）
+  /usage/
+  ```
+  （旧`/.claude/usage-state/`・`/.claude/session-logs/`の2行を、新設ディレクトリ全体を対象とする
+  1行へ統合する）
+- `.claude/rules/directory-structure.md`のツリーへ`usage/`を追加し、「対応工数レポート機能の
+  ローカル作業状態（`.gitignore`対象、コミットしない）」という趣旨のコメントを付ける
+  （flow-id 17のAIアセット改善で反映）。
+- 移設前に存在していたローカルの`.claude/usage-state/`・`.claude/session-logs/`実体
+  （gitignore対象＝git管理外）は、削除して問題ない（本対応でスキーマ自体も刷新するため、
+  過去の蓄積状態を引き継ぐ意味が無い）。
+
+### B. セッション横断のカーソル管理（新規）
+
+新規ディレクトリ `usage/state/session-cursors/<sessionId>.json`（サブエージェントは
 `<agentId>.json`）に、`{lastLineCount: N}`（transcriptのうち空行を除いた行数で、前回までに
 集計済みの行数）を記録する。**ブランチをまたいだセッション再開でも取りこぼし・二重計上が
 起きないよう、このカーソルはブランチに紐付けず、セッション（agentId）単位でグローバルに管理する**
-（同じディレクトリ配下は`.claude/usage-state/`の既存gitignore設定でそのままカバーされるため、
-`.gitignore`の変更は不要）。
+（同じディレクトリ配下は上記Aで新設する`/usage/`のgitignore設定でそのままカバーされる）。
 
-### B. 新規行の切り出し・集計（`.claude/hooks/lib/UsageTracking.sh`）
+### C. 新規行の切り出し・集計（`.claude/hooks/lib/UsageTracking.sh`）
 
 - `_usage_read_new_lines(transcript_path, last_line_count)`: `[inputs | select(length > 0)]`で
   空行を除いた全行を配列化し、`.[$last_line_count:]`で前回カーソル以降の新規行のみを返す
@@ -61,7 +84,7 @@ issue #37「対応工数レポートの数値が間違っていそうなので�
     `"([^"]*)"="([^"]*)"`パターンで質問=回答ペアを`scan`抽出する（`.content`が配列の場合はtext
     ブロックを結合してから処理する）。
 
-### C. `activeSeconds`は既存の全件再パース方式を維持
+### D. `activeSeconds`は既存の全件再パース方式を維持
 
 `activeSeconds`（稼働時間）は、gapベースの区間計算が「毎回全件を時系列で走査し直す」ことを前提に
 単調非減少性を保証する設計になっており、新規行だけの断片的な走査では前回pushの「暫定クローズした
@@ -71,14 +94,14 @@ issue #37「対応工数レポートの数値が間違っていそうなので�
 「全件再パースによるactiveSeconds算出」の両方を行うことになるが、後者は既存コードの再利用であり
 実装コストは小さい。
 
-### D. `sync_usage_state` / `_usage_merge_state` の書き換え
+### E. `sync_usage_state` / `_usage_merge_state` の書き換え
 
 - `sync_usage_state`: 新しい流れは以下の通り。
   1. transcriptの総行数（空行除く）を求める。
-  2. `.claude/usage-state/session-cursors/<sessionId>.json`から`lastLineCount`を読む（無ければ0）。
+  2. `usage/state/session-cursors/<sessionId>.json`から`lastLineCount`を読む（無ければ0）。
   3. 総行数が`lastLineCount`以下なら新規行が無い＝**session-logsへのコピー・状態更新をスキップ**
      する（issue本文の「差分がなければコピーしない」に対応）。
-  4. 新規行があれば、既存同様`.claude/session-logs/<branch>/<sessionId>/main.jsonl`へコピーし
+  4. 新規行があれば、既存同様`usage/session-logs/<branch>/<sessionId>/main.jsonl`へコピーし
      （ローカルデバッグ用の複製は維持）、新規行を`_usage_aggregate_new_lines`で集計する。
   5. 併せて全件再パースで`activeSeconds`を算出する。
   6. `_usage_merge_state`で状態を更新し、`session-cursors/<sessionId>.json`の`lastLineCount`を
@@ -96,8 +119,10 @@ issue #37「対応工数レポートの数値が間違っていそうなので�
   transcriptにも同じカーソル管理・diff集計を適用する（`agentId`をカーソルのキーとして使う）。
 - `_usage_reset_since_last_push`: `sinceLastPush.skillCalls`/`agentCalls`/`askUserQuestions`も
   空配列へリセットする対象に追加する。
+- `_usage_safe_branch_name`等、既存コード中の`.claude/usage-state`/`.claude/session-logs`という
+  パス文字列・コメントへの参照はすべて`usage/state`/`usage/session-logs`へ置き換える。
 
-### E. レポート描画（`.claude/hooks/post-push-usage-report.sh`）
+### F. レポート描画（`.claude/hooks/post-push-usage-report.sh`）
 
 既存の「ツール実行回数」セクションの後に、対応する配列が非0件の場合のみ以下を追加する。
 
@@ -112,7 +137,7 @@ issue #37「対応工数レポートの数値が間違っていそうなので�
 jqのコマンド置換CR混入対策（既存箇所と同じ`tr -d '\r'`）を、複数要素をforループで扱う新規箇所すべてに
 適用する。
 
-### F. テスト（`tests/test_usage_tracking.sh`）
+### G. テスト（`tests/test_usage_tracking.sh`）
 
 既存テストのうち`activeSeconds`関連（gapベースの計算・単調非減少性）はロジック変更が無いためそのまま
 維持できる。一方、`_usage_merge_state`のtokens/tools/turns関連テストは「引き算」から「加算」への
@@ -127,12 +152,18 @@ jqのコマンド置換CR混入対策（既存箇所と同じ`tr -d '\r'`）を�
    直接的な回帰テスト）。
 4. 「差分が無ければコピー・状態更新をスキップする」ことの確認。
 5. `_usage_reset_since_last_push`が新規3配列もリセットすることの確認。
+6. テストヘルパー（疑似`~/.claude/projects`ツリー、`_usage_sync_session_logs`の出力先）が
+   `usage/session-logs/`・`usage/state/`を参照するように更新する（`$TMPDIR`配下の疑似ルートを
+   使う既存方式は変えず、コピー先のサブパスのみ追随させる）。
 
-### G. ドキュメント反映（flow-id 16、設計反映時）
+### H. ドキュメント反映（flow-id 16〜17、設計反映時）
 
-`dev-tools/docs/spec/issue-mr-workflow.md`の「対応工数レポート」節を、新しい
-「セッションカーソル＋新規行diff集計（tools/tokens/turns/詳細3種）／全件再パース（activeSecondsのみ）」
-というハイブリッド方式に合わせて書き直す。
+- `dev-tools/docs/spec/issue-mr-workflow.md`の「対応工数レポート」節を、新しい
+  「セッションカーソル＋新規行diff集計（tools/tokens/turns/詳細3種）／全件再パース
+  （activeSecondsのみ）」というハイブリッド方式、および`usage/`ディレクトリへの移設に合わせて
+  書き直す。
+- `.claude/rules/directory-structure.md`のツリーへ`usage/`（gitignore対象・ローカル作業状態）を
+  追記する。
 
 ## 対象外
 
@@ -142,12 +173,16 @@ jqのコマンド置換CR混入対策（既存箇所と同じ`tr -d '\r'`）を�
 - 一つのpushの中で、同一セッションがブランチをまたいで新規行を生成した場合の完全な行単位の
   按分（新規行を現在のブランチのみに帰属させる。他ブランチ分は次にそのブランチでpushされるまで
   カーソルが進まないため、そのタイミングで計上される）。
+- 旧`.claude/usage-state/`・`.claude/session-logs/`（gitignore対象・git管理外）の内容の移行
+  （スキーマ刷新に伴い引き継ぎ不要と判断し、単純に使わなくなる）。
 
 ## 検証方法
 
 - `bash tests/test_usage_tracking.sh` で全テストがpassすることを確認する。
-- 実データ（`.claude/session-logs/feature-45-commit-skill-skip-confirmation/9e53412d-.../main.jsonl`）
-  を使い、疑似的に「別ブランチでの初回push」シナリオ（カーソル未記録の状態からのsync_usage_state
-  呼び出し→2回目呼び出しで新規行が無ければ差分0になること）を手動で再現し、現行方式との挙動差を
-  確認する。
+- 実データ（`.claude/session-logs/feature-45-commit-skill-skip-confirmation/9e53412d-.../main.jsonl`。
+  移設後は`usage/session-logs/`配下の同名ファイル）を使い、疑似的に「別ブランチでの初回push」
+  シナリオ（カーソル未記録の状態からのsync_usage_state呼び出し→2回目呼び出しで新規行が無ければ
+  差分0になること）を手動で再現し、現行方式との挙動差を確認する。
 - 変更した`.sh`ファイルすべてを`bash -n`で構文チェックする。
+- `git status`で`usage/`配下がコミット対象に含まれていないこと（`.gitignore`が効いていること）を
+  確認する。
