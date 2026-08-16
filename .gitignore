@@ -2,9 +2,6 @@
 /build/
 *.exe
 
-# dev-tools/src/extract-frontmatter.sh の生成物（実行のたびに上書きされるため非コミット対象）
-index.jsonl
-
 # エディタ
 .vscode/
 

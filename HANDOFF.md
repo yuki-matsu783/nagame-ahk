@@ -78,7 +78,14 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
   削除、相互に参照する一文を追記。
 - `dev-tools/src/extract-frontmatter.sh`を、`yq`がPATH上にあれば優先利用し、無ければ自前の軽量
   パーサーへフォールバックする構成に変更（新規の必須外部依存にはしない）。3件のスレッドに対応内容を
-  返信済み（worklog参照）。
+  返信済み（worklog参照）。commit・push・PR description更新済み（`5072ce3`）。
+- ユーザーから「各ディレクトリのjsonl出力を実施し、gitignoreにせず管理してほしい」との指示を受け、
+  対象ディレクトリの粒度をAskUserQuestionで確認（「index.mdの主要ディレクトリごと」を選択）。
+  plan（`plans/gilded-tundra-sparrow.md`）を作成・承認を得て対応。
+- `.gitignore`から`index.jsonl`の除外ルールを削除し、markdownファイルを含む8ディレクトリ
+  （`docs/`, `dev-tools/`, `tests/`, `.claude/`, `plans/`, `worklog/`, `.github/ISSUE_TEMPLATE/`,
+  `.gitlab/issue_templates/`）で`extract-frontmatter.sh`を実行、生成された`index.jsonl`をgit管理下に
+  置いた（`src/`, `assets/icons/`, `.gemini/`, `build/`はmarkdownが無いため対象外）。
 
 ## 次にやること
 
@@ -86,9 +93,11 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
   round3）。`comments all`で返信済みスレッドが実際にresolvedになっているか、新規指摘が無いかを
   確認してから設計反映（flow-id 16）へ進む。
 - 設計反映: `plans/purrfect-churning-oasis.md`（round2、`plans/immutable-painting-kitten.md`同様
-  上書きしない） / `plans/ember-quilted-narwhal.md`（round3） / 対応するworklog2件の内容を
-  `dev-tools/docs/spec/`（`extract-frontmatter.sh`の正史仕様）・`.claude/rules/markdown-frontmatter.md`
-  ・`.claude/rules/directory-structure.md`（既に反映済み）へ反映する。
+  上書きしない） / `plans/ember-quilted-narwhal.md`（round3） / `plans/gilded-tundra-sparrow.md`
+  （index.jsonl管理化） / 対応するworklog3件の内容を`dev-tools/docs/spec/`
+  （`extract-frontmatter.sh`の正史仕様。生成物`index.jsonl`を各ディレクトリで手動管理する運用や
+  再生成のタイミングも記載する）・`.claude/rules/markdown-frontmatter.md`・
+  `.claude/rules/directory-structure.md`（既に反映済み）へ反映する。
 
 ## 判断を迷った内容
 
