@@ -16,11 +16,11 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 | 進捗 | flow-id | ステップ | 担当 |
 |----|---|---|---|
-| [] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間 |
-| [] | 2 | issueの内容を取得する | `start <issue番号>` |
-| [] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
-| [] | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
-| [] | 5 | Planに合意する | 人間 |
+| [x] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間 |
+| [x] | 2 | issueの内容を取得する | `start <issue番号>` |
+| [x] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
+| [x] | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
+| [x] | 5 | Planに合意する | 人間 |
 | [] | 6 | commit, push してレビュー依頼を行う | エージェント |
 | [] | 7 | MRで再度planについてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
 | [] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
@@ -42,15 +42,22 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## やったこと
 
-（このタスクではまだ何もしていない）
+- issue #22（ブランチ名のslugをリッチにしたい）の内容取得、ユーザーへの意図確認
+- ブランチ `feature-22-slug` / Draft PR #32 を作成
+- Planを作成しユーザー承認済み（`plans/prancy-snacking-ocean.md`）
+- `worklog/2026-08-16_prancy-snacking-ocean.md` を作成
 
 ## 次にやること
 
-（次のissueに着手する場合は `start <issue番号>` から）
+- flow-id 6: plan/worklog/HANDOFF.mdをcommit・pushし、PR #32でplanのレビュー依頼を行う
+- flow-id 7-8: PRレビューでplanについてコメントをもらう。**レビュー完了連絡があるまで実装（flow-id 11以降）には進まない**
+- レビューOKが出たら計画本体（`plans/prancy-snacking-ocean.md`）の「実施内容」1〜3を実装する
 
 ## 判断を迷った内容
 
-（無し）
+- slugをAI意訳にすると非決定的になり`start`手順2の既存ブランチ確認が壊れる懸念があったため、
+  Provider.shに専用ヘルパー関数を追加するか、SKILL.mdの手順文修正のみで対応するかをユーザーに
+  確認した。ユーザーは後者（SKILL.md修正のみ）を選択（詳細は計画のContext参照）
 
 ## 未解決の内容
 
