@@ -289,12 +289,24 @@ Claude Codeの対応工数（モデル別トークン数・ツール実行回数
     （`activeSeconds`のgapベースtail buffer計算・単調性保証が「毎回全件を時系列で走査し直す」ことを
     前提にしており、オフセット方式にすると単調性証明が崩れるリスクが大きいと判断したため。
     詳細はDDR 0006の追記を参照）。
-  - **スナップショット単位（`agentId`）と表示集約単位（`agentType`）の二段設計**: 累計スナップショットは
-    `agentId`単位で状態ファイルの`agents[<agentId>]`に保存し、既存の`sessions[<sessionId>]`と全く同じ
+  - **`agentId`単位のスナップショット・表示**（issue #34で変更）: 累計スナップショットは`agentId`
+    単位で状態ファイルの`agents[<agentId>]`に保存し、既存の`sessions[<sessionId>]`と全く同じ
     「current - prevSnapshot（下限0）」ロジックを適用する（バックグラウンドで複数pushをまたいで
-    追記され続けるサブエージェントがあっても二重計上・過小計上が起きない）。レポートへの表示・
-    `sinceLastPush.subagentsByType`への集約は`agentType`単位で行い、同じ`agentType`を持つ複数の
-    `agentId`（例: `Explore`を複数回起動）分は自然に合算される。
+    追記され続けるサブエージェントがあっても二重計上・過小計上が起きない）。
+    `sinceLastPush.subagents[<agentId>]`も同じく`agentId`単位で差分を保持し、レポートにも
+    `agentId`ごとに1行を表示する。
+    - **当初は`agentType`単位で合算していたが、issue #34で`agentId`単位（起動したagentごとに1行）
+      へ変更した**: 同じ`agentType`（例: `Explore`）を複数回起動した場合に合算されてしまい、
+      「どのagentがどれだけ使ったか」が見えないというフィードバックを受けたため。`agents[<agentId>]`・
+      `sinceLastPush.subagents[<agentId>]`のいずれにも、表示ラベル用に`agentType`と`description`
+      （`meta.json`の`description`フィールド。サブエージェント起動時の説明文）を付与して保存する。
+    - **差分0のagentはレポートに表示しない**（issue #34の追加指示）: `_usage_filter_nonzero_subagents`
+      で、`tokensByModel`・`toolCalls`・`activeSeconds`のいずれも差分0のagentIdをレポート表示直前に
+      除外する（表示用フィルタであり、状態ファイル側の`agents`/`sinceLastPush.subagents`自体からは
+      削除しない）。同じ考え方で、ツール実行回数の集計（メイン・サブエージェント双方）も差分0の
+      ツールはキーごと表示しないようにしている（元々「記録範囲」節で意図していた挙動だが、
+      `_usage_merge_state`のtoolCalls集計が過去に一度でも使われたツールなら差分0でもキーを作る
+      実装だったため、意図通りに動いていなかった不具合がissue #34で見つかり修正した）。
   - **稼働時間はメインの「対応工数」行には合算しない**: サブエージェント自身のgapベース稼働時間は
     メインの`activeSeconds`とは別集計とし、レポートには参考値として別行で表示する（Taskツールの
     完了待ち区間とサブエージェント内の稼働区間が重複しうるため、単純合算するとwall clock時間より
@@ -313,23 +325,33 @@ Claude Codeの対応工数（モデル別トークン数・ツール実行回数
     算出方法は上記「稼働時間の算出方法」参照）を集計する。前回このセッションで記録した累計との
     **差分**を、ブランチ単位の状態ファイル（`.claude/usage-state/<branch>.json`、gitignore対象）の
     `sinceLastPush` へ加算する（トークン・ツール回数・応答回数・稼働時間のいずれも同じ
-    「差分を加算」方式）。続けて`_usage_aggregate_and_merge_subagents`が`subagents/agent-*.jsonl`を
-    列挙し、1ファイルずつ`_usage_aggregate_transcript`（無改造で再利用）→
-    `_usage_merge_agent_state`（`agentId`単位のスナップショット差分を`sinceLastPush.subagentsByType[agentType]`
-    へ合算）で畳み込む。`_usage_safe_branch_name`はブランチ名のサニタイズ（状態ファイル名・
-    session-logsディレクトリ名に使用）を担う共通ヘルパー。
+    「差分を加算」方式。**`.agents`（サブエージェントの累計スナップショット）は本関数が管理する
+    フィールドではないが、出力へそのまま引き継ぐ（issue #34で修正）。落とすと`sync_usage_state`内で
+    後続の`_usage_aggregate_and_merge_subagents`が毎回「前回スナップショット無し」として扱い、
+    サブエージェント分の差分が常に全量再計上される不具合になる**）。続けて
+    `_usage_aggregate_and_merge_subagents`が`subagents/agent-*.jsonl`を列挙し、1ファイルずつ
+    `_usage_aggregate_transcript`（無改造で再利用）→ `_usage_merge_agent_state`（`agentId`単位の
+    スナップショット差分を`sinceLastPush.subagents[agentId]`へ保持。`agentType`・`description`は
+    `meta.json`から取得）で畳み込む。投稿成功後のリセットは`_usage_reset_since_last_push`が担い
+    （`sinceLastPush`をゼロ初期化、`agents`スナップショットは保持）、レポート表示直前の0件除外は
+    `_usage_filter_nonzero_subagents`が担う（いずれもissue #34でテスト容易性のため関数化した）。
+    `_usage_safe_branch_name`はブランチ名のサニタイズ（状態ファイル名・session-logsディレクトリ名に
+    使用）を担う共通ヘルパー。
   - `.claude/hooks/post-push-usage-report.sh`（`PostToolUse` hook、bash版）: `.claude/settings.json` の
     matcher `Bash|PowerShell` と `if: "Bash(git push*)"` / `if: "PowerShell(git push*)"` により
     `git push` を含むコマンド実行後のみ発火する（マッチしなければプロセス起動自体が行われず、
     通常のBash/PowerShell利用への性能影響は無い）。投稿要否判定の前に自分で `sync_usage_state` を
     呼んで状態を最新化してから投稿する（ターンの途中でのpushでも記録漏れが起きないようにするため）。
     `sinceLastPush` が全て0（メイン＋サブエージェント双方のトークン合計で判定）なら投稿しない。
-    `get_mr_for_branch` でMRが無ければ投稿しない。投稿成功後のみ `sinceLastPush` をリセットする
-    （失敗時は次回pushへ繰り越す。git push自体はブロックしない）。hookの起動コマンドは`"bash"`
-    （PATH解決に依存。詳細: [shell-scripts.md](shell-scripts.md)）。コメント本文には`fmt_duration`
-    （秒→`H時間M分`/`M分`形式）で整形した「対応工数（目安・入力待ち時間を除く）」の行、および
-    サブエージェント分が1件以上あれば「### サブエージェント」セクション（`agentType`×モデルの
-    トークンテーブル・ツール実行回数合計・稼働時間参考値）を含める。
+    `get_mr_for_branch` でMRが無ければ投稿しない。投稿成功後のみ `_usage_reset_since_last_push`で
+    `sinceLastPush` をリセットする（失敗時は次回pushへ繰り越す。git push自体はブロックしない）。
+    hookの起動コマンドは`"bash"`（PATH解決に依存。詳細: [shell-scripts.md](shell-scripts.md)）。
+    コメント本文には`fmt_duration`（秒→`H時間M分`/`M分`形式）で整形した「対応工数（目安・入力待ち
+    時間を除く）」の行、および`_usage_filter_nonzero_subagents`適用後のサブエージェント分が1件以上
+    あれば「### サブエージェント」セクション（`agentId`×モデルの1行テーブル。エージェント種別・
+    説明・モデル別トークン、ツール実行回数合計、稼働時間参考値）を含める。テーブル描画で
+    `agentId`・モデル名等をfor変数として使うループには、Windowsネイティブjqのコマンド置換CR混入
+    対策（`.claude/rules/shell-script-style.md`「文字コード」節参照）として`tr -d '\r'`を挟む。
   - `.claude/settings.json`: `hooks.PostToolUse` を追加。
   - `.gitignore`: `/.claude/usage-state/`, `/.claude/session-logs/` を追加。
 - **`Stop` hookは使わない**: 当初は `Stop`（1ターン完了時に発火）でも同じ集計処理を呼び、
@@ -591,6 +613,33 @@ issue本文の書き方を標準化し、ワークフローの起点（ステッ
   `branch="$(new_issue_branch ...)"`という`$(...)`キャプチャへ混入し、branch変数が複数行文字列に
   なる不具合があった（本issue対応セッションで実際に踏み、手動リカバリ済み。`add_empty_commit_for_draft_mr`
   と同じ`>/dev/null`パターンで解消。flow-id 17のAIアセット改善で対応））
+
+変更（追加分・issue #34: サブエージェント使用量記録のpush差分バグ修正・agent単位表示化）:
+- `.claude/hooks/lib/UsageTracking.sh`
+  - `_usage_merge_state`の戻り値に`.agents`のpassthroughを追加（push差分バグ本体の修正。
+    詳細は本ファイル「サブエージェントの使用量記録」節参照）。
+  - `_usage_merge_agent_state`のスキーマを`agentType`合算（`sinceLastPush.subagentsByType`）から
+    `agentId`単位（`sinceLastPush.subagents`、`description`引数を追加）へ変更。
+  - `_usage_reset_since_last_push`（投稿成功後のリセット処理の切り出し）、
+    `_usage_filter_nonzero_subagents`（差分0のagent除外）を新規追加。
+- `.claude/hooks/post-push-usage-report.sh`
+  - サブエージェントテーブルを`agentType`合算の1行から`agentId`単位の1行（エージェント種別・
+    説明・モデル別トークン）表示へ変更。表示直前に`_usage_filter_nonzero_subagents`を適用。
+  - メイン・サブエージェント双方のツール実行回数表示に`map(select(.value > 0))`を追加し、
+    差分0のツールをキーごと非表示化（レビュー往復で判明した追加のユーザー指示への対応）。
+  - リセット処理を`_usage_reset_since_last_push`呼び出しに置き換え。
+  - 主トークンテーブル・サブエージェントagentId/モデルの3ループに`tr -d '\r'`を追加
+    （Windowsネイティブjqのコマンド置換CR混入バグの回避。実装時に新規発見）。
+- `tests/test_usage_tracking.sh`（新スキーマに合わせて`_usage_merge_agent_state`関連テストを
+  書き換え、`_usage_reset_since_last_push`/`_usage_filter_nonzero_subagents`の単体テスト、
+  `sync_usage_state`を通しで呼ぶpush差分の回帰テスト（push→リセット→次pushは差分0→追記後は
+  差分のみ）を追加。25件→39件）
+- `.claude/rules/shell-script-style.md`（「文字コード」節に、Windowsネイティブjqのコマンド置換
+  経由でのCR混入について追記。ファイルリダイレクト時の既知の挙動と同根だが、
+  `for x in $(... | jq -r ...)`のようなループで2件以上の要素があると最後の要素以外にCRが
+  付いたまま渡ることを新たに確認したもの）
+- `dev-tools/docs/spec/issue-mr-workflow.md`（本セクション「サブエージェントの使用量記録」
+  「コンポーネント」を`agentId`単位表示・関数構成の変更に合わせて更新。本エントリを追加）
 
 ## 設定項目
 

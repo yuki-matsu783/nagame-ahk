@@ -29,10 +29,10 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
 | [x] | 12 | commit, push してレビュー依頼を行う | エージェント |
 | [x] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
-| [] | 14 | MRでレビュー・コメントする | 人間 |
-| [] | 15 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（11〜15の作業ループを合意まで繰り返す） | `comments` / `reply` |
-| [] | 16 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
-| [] | 17 | AIアセット改善: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
+| [x] | 14 | MRでレビュー・コメントする | 人間 |
+| [x] | 15 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（11〜15の作業ループを合意まで繰り返す） | `comments` / `reply` |
+| [x] | 16 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
+| [x] | 17 | AIアセット改善: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
 | [] | 18 | commit, push してレビュー依頼を行う | エージェント |
 | [] | 19 | MRでレビュー・コメントする | 人間 |
 | [] | 20 | レビュー内容を取得し、設計反映・AIアセットの内容を修正する。対応が完了したコメントには対応内容を返信する（16〜20を合意まで繰り返す） | `comments` / `reply` |
@@ -62,10 +62,22 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
     ツール実行回数の0件フィルタ（ユーザー追加指示）。詳細はworklog参照。
 
 - 実装をcommit・push（flow-id 12）。PR #35のdescriptionを実装内容で更新済み（flow-id 13）。
+- ユーザーから「レビューok」の合図を受け、`comments all`で未解決スレッドが0件であることを確認済み
+  （自動投稿の対応工数レポートのみ。flow-id 14〜15）。
+- 設計反映（flow-id 16）:
+  - `dev-tools/docs/spec/issue-mr-workflow.md`「サブエージェントの使用量記録」「コンポーネント」を
+    `agentId`単位表示・関数構成（`_usage_reset_since_last_push`/`_usage_filter_nonzero_subagents`
+    追加）に合わせて更新し、issue #34の変更履歴エントリを追加。
+  - `dev-tools/docs/ddr/0006-...md`へ「agentType単位の表示集約をやめagentId単位表示へ変更」の
+    追記セクションを追加（DDRは追記のみのため、旧記述は変更せず新セクションで上書きを説明）。
+  - `tests/README.md`の`test_usage_tracking.sh`行を更新。
+- AIアセット改善（flow-id 17）: `.claude/rules/shell-script-style.md`「文字コード」節に、
+  Windowsネイティブjqのコマンド置換経由でのCR混入（ファイルリダイレクト時の既知の挙動と同根だが
+  新たに確認したパターン）を追記。
 
 ## 次にやること
 
-- flow-id 14: MRでのレビュー・コメントを待つ（人間の担当）。
+- flow-id 18: 設計反映・AIアセット改善をcommit・pushしてレビュー依頼。
 
 ## 判断を迷った内容
 
