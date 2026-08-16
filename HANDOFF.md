@@ -26,9 +26,9 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
 | [x] | 5 | Planに合意する | 人間 |
 | [x] | 6 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
-| [] | 7 | MRで再度planについてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
-| [] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
-| [] | 9 | planをもとにMR descriptionを更新する | `describe` |
+| [x] | 7 | MRで再度planについてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
+| [x] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
+| [x] | 9 | planをもとにMR descriptionを更新する | `describe` |
 | [] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
 | [] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
 | [] | 12 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
@@ -66,12 +66,15 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 - push直後、ユーザーから追加指示: session-logs/usage-stateを`.claude/`配下から`usage/`
   ディレクトリへ移設してほしい → 実装未着手だったためplan（対応方針A、E、G、H）へ反映し、
   追加commit・push済み
+- 「レビューOK」の連絡を受け、`comments all`で未解決スレッドが無いことを確認（自動投稿の
+  工数レポートコメントのみで、レビュースレッドは無し）
+- flow-id 9: `describe`でPR #47のdescriptionをplan要約で更新済み
 
 ## 次にやること
 
-- flow-id 7: MRでのplanレビューを待つ（レビュー完了済み連絡があるまで実装に進まない）
-- レビュー完了後、flow-id 9でMR descriptionを更新（`describe`）→flow-id 11で
-  `plans/inherited-gathering-biscuit.md`の対応方針A〜Hに沿って実装
+- flow-id 10: セッションのcompactを検討（人間判断）
+- flow-id 11: `plans/inherited-gathering-biscuit.md`の対応方針A〜Hに沿って実装、作業内容は
+  `worklog/20260817_inherited-gathering-biscuit.md`に追記していく
 
 ## 判断を迷った内容
 
