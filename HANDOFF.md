@@ -19,8 +19,8 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間 |
 | [x] | 2 | issueの内容を取得する | `start <issue番号>` |
 | [x] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
-| [] | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
-| [] | 5 | Planに合意する | 人間 |
+| [x] | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
+| [x] | 5 | Planに合意する | 人間 |
 | [] | 6 | commit, push してレビュー依頼を行う | エージェント |
 | [] | 7 | MRで再度planについてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
 | [] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
@@ -45,12 +45,15 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 - issue #34（対応工数レポートのサブエージェント分が前回pushからの差分になってなさそう）を取得。
   4見出しの過不足なし。
 - `feature-34-fix-subagent-effort-diff-since-last-push` ブランチを作成し、Draft PR #35 を作成。
+- 原因調査（`_usage_merge_state`が`.agents`スナップショットを引き継がずサブエージェント分が
+  常に「差分ゼロ」の前回状態から再計算される不具合）を特定し、再現・修正案の動作確認まで完了。
+- ユーザーからの追加指示（agent単位の1行表示化、差分0のagent非表示）を含めてplanを拡張し承認を得た
+  （`plans/cheeky-sprouting-pine.md`。旧版は`plans/cheeky-sprouting-pine_act1.md`へ退避）。
 
 ## 次にやること
 
-- Planモードで実行手順を作成する（flow-id 4）。issue #34の内容から、サブエージェント分の
-  対応工数集計が「前回pushからの差分」になっていない箇所（対応工数レポート生成ロジック）を
-  調査するところから着手する。
+- plan（`plans/cheeky-sprouting-pine.md`）に沿って実装（flow-id 11相当だが、レビュー往復の
+  順序上は次にflow-id 6: plan自体のcommit・push・レビュー依頼）。
 
 ## 判断を迷った内容
 
