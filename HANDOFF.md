@@ -32,8 +32,8 @@ issue #28（対応工数レポート）は一度flow-id 22まで完了しPR #29�
 | [-] | 9 | planをもとにMR descriptionを更新する | `describe` |
 | [-] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
 | [x] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
-| [] | 12 | commit, push してレビュー依頼を行う | エージェント |
-| [] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
+| [x] | 12 | commit, push してレビュー依頼を行う | エージェント |
+| [x] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
 | [] | 14 | MRでレビュー・コメントする | 人間 |
 | [] | 15 | レビュー内容を取得し、実装・ドキュメントを修正する（11〜15を合意まで繰り返す） | `comments` / `reply` |
 | [] | 16 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
