@@ -52,9 +52,24 @@ keywords: [to_slug, new_issue_branch, 意訳, slug, ブランチ名, Provider.sh
   `git branch --list "feature-22-*"` → `feature-22-slug`がヒット、
   `git ls-remote --heads origin "feature-22-*"` → 同様にヒット。想定どおり動作した。
 
+## 設計反映（flow-id 16）
+
+- 新規DDR `dev-tools/docs/ddr/0010-ブランチslugの意訳生成はAIエージェントが行う.md` を作成。
+  背景・決定（AIエージェントが意訳／`Provider.sh`は翻訳API非採用／existence確認をissue番号
+  prefixパターン一致へ変更）・却下した案（翻訳API呼び出し、ローマ字変換、専用ヘルパー関数追加、
+  未使用`slug`フィールドの整理）を記録した。
+- `dev-tools/docs/spec/issue-mr-workflow.md`:
+  - 「提供関数」テーブルの`new_issue_branch`行を`<title>`→`<slugSource>`に更新し、DDR 0010へのリンクを追加
+  - 「未決定事項・懸念点」節の「全角文字のみのissueタイトルのスラッグ化」項目を
+    `（issue #22で対応済み）`マーカー付きで解決済みとして更新（既存の`（issue #6でbash化に伴い解消）`
+    項目の書き方に合わせた）
+
+## AIアセット改善（flow-id 17）
+
+今回の変更そのものが`.claude/skills/issue-mr-flow/SKILL.md`の改善（flow-id 11で実施済み）に
+あたるため、追加の対応は不要と判断した。
+
 ## 次にやること
 
-- flow-id 12: commit・pushしてレビュー依頼を行う
-- flow-id 13: 作業内容をもとにMR descriptionを更新する（`describe`）
-- flow-id 16（設計反映）で `dev-tools/docs/spec/issue-mr-workflow.md` へ反映する
-  （反映すべき骨子は計画の「実施内容4」参照）
+- flow-id 18: commit・push・レビュー依頼
+- flow-id 19-20: 設計反映・AIアセットの内容についてレビューを受け、対応する
