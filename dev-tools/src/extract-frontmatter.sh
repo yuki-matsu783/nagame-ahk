@@ -166,13 +166,16 @@ main() {
     epoch="$(stat -c %Y "$file")"
     local mtime
     mtime="$(date -d "@$epoch" +"%Y-%m-%dT%H:%M:%S")"
+    # Windows版jqバイナリ（native、MSYS版ではない）は行末にCRを付与することがあるため、
+    # ファイルへ直接書き出す最終出力のみtrで取り除きLF改行に統一する（詳細:
+    # .claude/rules/shell-script-style.md「保存形式」）。
     jq -nc \
       --arg concept_id "$concept_id" \
       --arg directory "$dir" \
       --argjson frontmatter "$fm" \
       --arg mtime "$mtime" \
       '{concept_id: $concept_id, directory: $directory, frontmatter: $frontmatter, mtime: $mtime}' \
-      >>"$out_file"
+      | tr -d '\r' >>"$out_file"
   done < <(find "$target_dir" -type f -name '*.md' -print0 | sort -z)
 
   echo "wrote: $out_file" >&2
