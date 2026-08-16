@@ -16,9 +16,9 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 | 進捗 | flow-id | ステップ | 担当 |
 |----|---|---|---|
-| [] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間 |
-| [] | 2 | issueの内容を取得する | `start <issue番号>` |
-| [] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
+| [x] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間 |
+| [x] | 2 | issueの内容を取得する | `start <issue番号>` |
+| [x] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
 | [] | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
 | [] | 5 | Planに合意する | 人間 |
 | [] | 6 | commit, push してレビュー依頼を行う | エージェント |
@@ -42,11 +42,15 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## やったこと
 
-（このタスクではまだ何もしていない）
+- issue #34（対応工数レポートのサブエージェント分が前回pushからの差分になってなさそう）を取得。
+  4見出しの過不足なし。
+- `feature-34-fix-subagent-effort-diff-since-last-push` ブランチを作成し、Draft PR #35 を作成。
 
 ## 次にやること
 
-（次のissueに着手する場合は `start <issue番号>` から）
+- Planモードで実行手順を作成する（flow-id 4）。issue #34の内容から、サブエージェント分の
+  対応工数集計が「前回pushからの差分」になっていない箇所（対応工数レポート生成ロジック）を
+  調査するところから着手する。
 
 ## 判断を迷った内容
 
