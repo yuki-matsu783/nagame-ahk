@@ -28,9 +28,33 @@ keywords: [to_slug, new_issue_branch, 意訳, slug, ブランチ名, Provider.sh
   対応方式についてユーザーに確認し、「Provider.shに専用関数を追加せず、SKILL.mdの手順文だけを
   修正する」方式を選択した（スコープを本issueの主題に近く保つため）。
 
+## 実装（flow-id 11）
+
+計画の「実施内容」1〜3をすべて実装した。
+
+1. `.claude/skills/issue-mr-flow/SKILL.md`: `start`手順2を、issue番号prefixパターンでの既存
+   ブランチ確認＋新規作成時のみ英語意訳フレーズを生成する手順に書き換えた。
+2. `dev-tools/src/vcs/Provider.sh`: `new_issue_branch()`のローカル変数`title`→`slug_source`に
+   リネームし、関数直前のコメントに「第2引数は英語の意訳フレーズ等でよい」旨を追記した
+   （ロジックは無変更）。
+3. `tests/test_vcs_provider.sh`: `to_slug 'enrich branch slug'` → `enrich-branch-slug` の
+   回帰テストを1件追加した。
+
+### 検証結果
+
+- `bash -n dev-tools/src/vcs/Provider.sh` → 構文OK
+- `bash tests/test_vcs_provider.sh` → `passed=11 failures=0`（既存10件＋新規1件、すべて通過）
+- 手動確認: `to_slug "enrich branch slug"` → `enrich-branch-slug`、
+  `to_slug "improve branch naming"` → `improve-branch-naming`（複数の意訳候補で一貫した変換）
+- `get_issue_number_from_branch 'feature-22-enrich-branch-slug'` → `22`（意訳由来の多語slugでも
+  既存のissue番号抽出ロジックが問題なく動作）
+- SKILL.mdに記載したprefixパターン検索コマンドを実機で確認:
+  `git branch --list "feature-22-*"` → `feature-22-slug`がヒット、
+  `git ls-remote --heads origin "feature-22-*"` → 同様にヒット。想定どおり動作した。
+
 ## 次にやること
 
-- `plans/prancy-snacking-ocean.md` の「実施内容」1〜3を実装する
-- 検証方法に沿って `bash -n` / `tests/test_vcs_provider.sh` / 手動確認を実施する
+- flow-id 12: commit・pushしてレビュー依頼を行う
+- flow-id 13: 作業内容をもとにMR descriptionを更新する（`describe`）
 - flow-id 16（設計反映）で `dev-tools/docs/spec/issue-mr-workflow.md` へ反映する
   （反映すべき骨子は計画の「実施内容4」参照）

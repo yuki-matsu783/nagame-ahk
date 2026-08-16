@@ -78,11 +78,23 @@ HANDOFF.mdとの矛盾など、ブランチ名だけでは分からない「こ�
    （目的・現状・期待する動作・受け入れ条件。`.github/ISSUE_TEMPLATE/task.md` /
    `.gitlab/issue_templates/task.md` 参照）の過不足を確認する。欠けている見出しがあれば
    「issue本文に以下の見出しがありません: ...」とユーザーに警告する（処理は止めず、そのまま次へ進む）。
-2. `.mrworkflow.json` の `branchPrefixTemplate` から算出されるブランチ名
-   （既定 `feature-<issue番号>-<slug>`）が既にローカル/リモートに存在するか確認する。
-   - 存在しなければ: `new_issue_branch <n> "<issue.Title>"` でブランチを作成・checkout・push、
-     続けて `new_draft_merge_request <n> "<branch>" "<issue.Title>"` でDraft MRを作成する。
-   - 既に存在すれば（セッション再開）: `sync_branch "<branch>"` でfetch・checkoutのみ行う。
+2. issue番号をキーに、既存ブランチの有無を確認する。`.mrworkflow.json` の `branchPrefixTemplate` の
+   `{issue}` をissue番号に置換し `{slug}` 以降を `*` に置き換えたパターン
+   （既定なら `feature-<issue番号>-*`）で `git branch --list "<pattern>"`（ローカル）・
+   `git ls-remote --heads origin "<pattern>"`（リモート）を検索する。slug部分の内容は問わず、
+   issue番号のprefix一致のみで判定する（次項の意訳フレーズはAIが都度生成するため非決定的であり、
+   slugまで含めた完全一致では同一issueに対して重複してブランチ・Draft MRを作成しかねないため）。
+   - 見つかった場合（セッション再開）: そのブランチ名をそのまま使い `sync_branch "<既存ブランチ名>"`
+     でfetch・checkoutのみ行う。
+   - 見つからない場合（新規作成）:
+     a. issueタイトルの意味を汲んだ、ブランチslug用の英語フレーズを考える（3〜6語程度、
+        スペース区切りの単語列でよい。kebab-case化・記号除去・小文字化は `to_slug` が行うため
+        ここでは不要。直訳ではなく意訳でよい。例:「ブランチ名のslugをリッチにしたい」→
+        `enrich branch slug`）。タイトルが元々英語主体の場合はタイトルをそのまま使ってよい。
+     b. `new_issue_branch <n> "<a.で考えた英語フレーズ>"` でブランチを作成・checkout・push、
+        続けて `new_draft_merge_request <n> "<branch>" "<issue.Title>"`
+        （**Draft MRのタイトルには引き続き生のissueタイトルを使う。英語フレーズはブランチ名専用**）
+        でDraft MRを作成する。
 3. 取得したissue内容をもとに、全体フロー4（Planモードでの実行手順作成）に進む旨をユーザーに案内する。
 
 ### `comments [all]` — MRレビューコメントの取得（全体フロー8・15）

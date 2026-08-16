@@ -22,11 +22,11 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
 | [x] | 5 | Planに合意する | 人間 |
 | [x] | 6 | commit, push してレビュー依頼を行う | エージェント |
-| [] | 7 | MRで再度planについてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
-| [] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
-| [] | 9 | planをもとにMR descriptionを更新する | `describe` |
+| [x] | 7 | MRで再度planについてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
+| [x] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
+| [x] | 9 | planをもとにMR descriptionを更新する | `describe` |
 | [] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
-| [] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
+| [x] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
 | [] | 12 | commit, push してレビュー依頼を行う | エージェント |
 | [] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
 | [] | 14 | MRでレビュー・コメントする | 人間 |
@@ -46,12 +46,18 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 - ブランチ `feature-22-slug` / Draft PR #32 を作成
 - Planを作成しユーザー承認済み（`plans/prancy-snacking-ocean.md`）
 - `worklog/2026-08-16_prancy-snacking-ocean.md` を作成
+- plan/worklog/HANDOFF.mdをcommit・push、PR #32でレビュー依頼
+- ユーザーから「レビューOK」を受領。`comments all`で未解決スレッド無し（自動投稿の工数レポートのみ）を確認済み
+- PR #32のdescriptionをplan内容で更新（`describe`）
+
+- 計画の実施内容1〜3を実装（SKILL.md, Provider.sh, tests/test_vcs_provider.sh）、検証も完了
+  （`bash -n`構文OK、`passed=11 failures=0`、手動確認も想定どおり）
 
 ## 次にやること
 
-- flow-id 6: plan/worklog/HANDOFF.mdをcommit・pushし、PR #32でplanのレビュー依頼を行う
-- flow-id 7-8: PRレビューでplanについてコメントをもらう。**レビュー完了連絡があるまで実装（flow-id 11以降）には進まない**
-- レビューOKが出たら計画本体（`plans/prancy-snacking-ocean.md`）の「実施内容」1〜3を実装する
+- flow-id 12: commit・pushしてレビュー依頼を行う
+- flow-id 13: `describe`でMR descriptionを実装状況に更新する
+- flow-id 14-15: 実装のレビューを受け、対応する
 
 ## 判断を迷った内容
 
