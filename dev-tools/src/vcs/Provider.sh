@@ -189,9 +189,9 @@ new_issue_branch() {
   branch="${template//\{issue\}/$issue_number}"
   branch="${branch//\{slug\}/$slug}"
 
-  git fetch origin "$base_branch"
-  git switch -c "$branch" "origin/$base_branch"
-  git push -u origin "$branch"
+  git fetch origin "$base_branch" >/dev/null
+  git switch -c "$branch" "origin/$base_branch" >/dev/null
+  git push -u origin "$branch" >/dev/null
 
   printf '%s\n' "$branch"
 }

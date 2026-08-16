@@ -75,7 +75,35 @@ keywords: [PostToolUse, additionalContext, session-start.sh, post-push-usage-rep
   が実際に注入されることを確認できた。`PostToolUse`での`hookSpecificOutput.additionalContext`は
   このリポジトリに前例が無かったが、`SessionStart`と同様に機能することを実地検証できた。
 
+### レビュー（flow-id 14〜15）
+
+- ユーザーから「レビューOK」の合図を受領。`get_mr_unresolved_comments 33 true`で再確認したところ、
+  未解決スレッドは0件（自動投稿の対応工数レポートコメントのみで、実装への指摘コメントは無し）。
+  対応すべきレビューコメントが無かったため、flow-id 15（修正・返信）は実質何もせず完了とした。
+
+### 設計反映（flow-id 16）
+
+- `dev-tools/docs/spec/issue-mr-workflow.md`へ反映:
+  - 「コンポーネント構成」ツリーに`post-push-compact-prompt.sh`を追加。
+  - 新規サブセクション「/compact実施の呼びかけ（PostToolUse hook, git push検知）」を、既存の
+    「対応工数レポート」節・「セッション開始時の自動コンテキスト注入」節の直後（「ブランチ命名」節の
+    直前）に追加。検知ロジックの流用元、伝達手段（`additionalContext`）、実地検証結果、既知の制約を記載。
+  - 「影響範囲」に issue #11 分の新規／変更ファイル一覧を追加。
+- 本issueの変更はAHKアプリ本体には影響しないため`docs/spec/`（AHK機能向け）への反映は無し。
+- 新規DDRは作成しなかった（対象外とした3案は`plans/silly-puzzling-ember.md`の「対象外」節に留まる
+  小粒な判断で、`post-push-usage-report.sh`と同規模の`SessionStart` hook追加（issue #5）でも
+  DDRは作成していない前例と整合的と判断）。
+
+### AIアセット改善（flow-id 17）
+
+- HANDOFF.mdの「未解決の内容」に記録していた`new_issue_branch`（`dev-tools/src/vcs/Provider.sh`）の
+  stdout汚染バグを修正。`git fetch`/`git switch`/`git push`の標準出力を`>/dev/null`へ捨てるよう変更
+  （`add_empty_commit_for_draft_mr`と同じパターン）。`bash -n`で構文チェックOK。既存の単体テスト
+  （`tests/test_vcs_provider.sh`）は`new_issue_branch`を対象にしていない（git remote操作を伴うため
+  純粋ロジックの単体テスト対象外）ため変更不要。
+- `dev-tools/docs/spec/issue-mr-workflow.md`の「影響範囲」issue #11分に本修正を追記済み。
+- 他に気づいたルール・スキルの不備は無し。
+
 ## 次にやること
 
-- flow-id 12（commit, push してレビュー依頼）を実施 → flow-id 13（describe）→
-  flow-id 14（人間による実装レビュー）待ち。
+- flow-id 18（commit, push してレビュー依頼）を実施 → flow-id 19（人間による設計反映レビュー）待ち。
