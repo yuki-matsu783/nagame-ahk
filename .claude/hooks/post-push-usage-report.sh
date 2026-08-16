@@ -112,7 +112,10 @@ main() {
   fi
   local usage subagent_usage
   usage="$(printf '%s' "$state" | jq -c '.sinceLastPush')"
-  subagent_usage="$(printf '%s' "$state" | jq -c '.sinceLastPush.subagentsByType // {}')"
+  # サブエージェントはagentId単位で保持されている（issue #34: agentType単位の合算からagentIdごと
+  # の表示へ変更）。投稿要否判定の合計計算はagentId単位のままでも合計値に影響しない
+  # （0件除外は合計を変えないため、表示用フィルタは後段でのみ適用する）。
+  subagent_usage="$(printf '%s' "$state" | jq -c '.sinceLastPush.subagents // {}')"
 
   # 合計が0なら投稿しない（初回push・使用量が積み上がっていないpush対策）。メイン自身の消費が
   # ほぼ0でも、サブエージェント作業だけが行われたpushでレポートが握りつぶされないよう、
@@ -123,6 +126,10 @@ main() {
     + ([$subagentUsage[] | .tokensByModel[]? | ((.input // 0) + (.output // 0) + (.cacheCreate // 0) + (.cacheRead // 0))] | add // 0)
   ')"
   [ "$total" != "0" ] || exit 0
+
+  # 表示は「差分0のagentは出力しない」方針（issue #34のユーザー指示）。合計計算後、
+  # テーブル描画・稼働時間参考値等の表示処理はすべてこのフィルタ後の値に対して行う。
+  subagent_usage="$(_usage_filter_nonzero_subagents "$subagent_usage")"
 
   local mr
   mr="$(get_mr_for_branch "$branch")"
@@ -151,7 +158,13 @@ main() {
     echo "| モデル | Input | Output | Cache Write | Cache Read |"
     echo "|---|---:|---:|---:|---:|"
     local model
-    for model in $(printf '%s' "$usage" | jq -r '.tokensByModel | keys[]' | sort); do
+    # 注意（`tr -d '\r'`）: このマシンのWindowsネイティブjq（`C:\Program Files\jq\jq.exe`）は
+    # `jq -r`の出力の各行末に`\r`を付与する（shell-script-style.md「文字コード」節が挙げる
+    # ファイルリダイレクト時の既知の挙動と同根だが、コマンド置換でも発生することを本issue #34の
+    # 実装時に確認した）。`$(...)`によるコマンド置換は最後の行の末尾改行のみを取り除くため、
+    # 2件以上の要素がある場合、最後の要素以外はfor変数に`\r`が付いたまま渡り、以降の
+    # `--arg`によるキー参照が一致せずnullになる（実際に本テーブルで再現・修正した）。
+    for model in $(printf '%s' "$usage" | jq -r '.tokensByModel | keys[]' | tr -d '\r' | sort); do
       local m input_v output_v create_v read_v
       m="$(printf '%s' "$usage" | jq -c --arg model "$model" '.tokensByModel[$model]')"
       input_v="$(printf '%s' "$m" | jq -r '.input // 0')"
@@ -167,7 +180,10 @@ main() {
     done
     echo ""
     local tool_summary
-    tool_summary="$(printf '%s' "$usage" | jq -r '.toolCalls | to_entries | sort_by(.key) | map("\(.key): \(.value)") | join(", ")')"
+    # 差分0のツールはキーごと表示しない（`_usage_merge_state`のtoolCalls集計は、過去に一度でも
+    # 使われたツールなら差分0でもキー自体は必ず作る仕様のため、フィルタしないと「XXXツール: 0」が
+    # 過去に使ったツール分だけ延々と残り続けてしまう。トークンテーブルの0行除外と同じ考え方）
+    tool_summary="$(printf '%s' "$usage" | jq -r '.toolCalls | to_entries | map(select(.value > 0)) | sort_by(.key) | map("\(.key): \(.value)") | join(", ")')"
     if [ -n "$tool_summary" ]; then
       echo "**ツール実行回数**: ${tool_summary}"
       echo ""
@@ -175,22 +191,31 @@ main() {
     # サブエージェント（Task/Agentツール等で起動された別セッション）の使用量。メインセッションの
     # 数値には含まれないため独立セクションとして表示する（既存テーブルへの行追加ではなく、
     # 主体が異なる数値を明確に区別するため。PR #29レビュー指摘）。ネストしたサブエージェント
-    # （depth 2以降）は対象外。
+    # （depth 2以降）は対象外。agentId単位で1行ずつ表示する（issue #34: 同じagentTypeを複数回
+    # 起動してもどのagentがどれだけ使ったか見えるようにするため、agentType合算表示から変更）。
+    # 差分0のagentは呼び出し元で`_usage_filter_nonzero_subagents`により除外済み。
     if [ "$(printf '%s' "$subagent_usage" | jq 'keys | length')" != "0" ]; then
       echo "### サブエージェント"
       echo ""
       echo "Task/Agentツールで起動されたサブエージェント内の使用量です（メインセッションの数値には"
-      echo "含まれません。ネストしたサブエージェントは対象外です）。"
+      echo "含まれません。ネストしたサブエージェントは対象外です。前回pushから差分の無いagentは"
+      echo "表示していません）。"
       echo ""
-      echo "| エージェント種別 | モデル | Input | Output | Cache Write | Cache Read |"
-      echo "|---|---|---:|---:|---:|---:|"
-      local agent_type
-      for agent_type in $(printf '%s' "$subagent_usage" | jq -r 'keys[]' | sort); do
-        local at_usage model
-        at_usage="$(printf '%s' "$subagent_usage" | jq -c --arg t "$agent_type" '.[$t]')"
-        for model in $(printf '%s' "$at_usage" | jq -r '.tokensByModel | keys[]' | sort); do
+      echo "| エージェント種別 | 説明 | モデル | Input | Output | Cache Write | Cache Read |"
+      echo "|---|---|---|---:|---:|---:|---:|"
+      local agent_id
+      # `tr -d '\r'`の理由は上のモデルループのコメントと同じ（Windowsネイティブjqのコマンド置換
+      # 経由でのCR混入対策）。agentIdが2件以上ある場合に必ず顕在化するため、
+      # このagent単位表示（issue #34の主目的）では特に重要。
+      for agent_id in $(printf '%s' "$subagent_usage" | jq -r 'to_entries | sort_by(.value.agentType, .value.description) | .[].key' | tr -d '\r'); do
+        local a_usage a_type a_desc model
+        a_usage="$(printf '%s' "$subagent_usage" | jq -c --arg id "$agent_id" '.[$id]')"
+        a_type="$(printf '%s' "$a_usage" | jq -r '.agentType // "unknown"')"
+        # description中の"|"はMarkdownテーブルの区切りと衝突するためエスケープする
+        a_desc="$(printf '%s' "$a_usage" | jq -r '.description // ""' | sed 's/|/\\|/g')"
+        for model in $(printf '%s' "$a_usage" | jq -r '.tokensByModel | keys[]' | tr -d '\r' | sort); do
           local m input_v output_v create_v read_v
-          m="$(printf '%s' "$at_usage" | jq -c --arg model "$model" '.tokensByModel[$model]')"
+          m="$(printf '%s' "$a_usage" | jq -c --arg model "$model" '.tokensByModel[$model]')"
           input_v="$(printf '%s' "$m" | jq -r '.input // 0')"
           output_v="$(printf '%s' "$m" | jq -r '.output // 0')"
           create_v="$(printf '%s' "$m" | jq -r '.cacheCreate // 0')"
@@ -199,15 +224,17 @@ main() {
           if [ "$input_v" = "0" ] && [ "$output_v" = "0" ] && [ "$create_v" = "0" ] && [ "$read_v" = "0" ]; then
             continue
           fi
-          echo "| ${agent_type} | ${model} | $(fmt_num "$input_v") | $(fmt_num "$output_v") | $(fmt_num "$create_v") | $(fmt_num "$read_v") |"
+          echo "| ${a_type} | ${a_desc} | ${model} | $(fmt_num "$input_v") | $(fmt_num "$output_v") | $(fmt_num "$create_v") | $(fmt_num "$read_v") |"
         done
       done
       echo ""
       local subagent_tool_summary
+      # 差分0のツールはキーごと表示しない（メインのtool_summaryと同じ理由）
       subagent_tool_summary="$(printf '%s' "$subagent_usage" | jq -r '
         [.[] | .toolCalls | to_entries[]]
         | group_by(.key)
         | map({key: .[0].key, value: (map(.value) | add)})
+        | map(select(.value > 0))
         | sort_by(.key)
         | map("\(.key): \(.value)")
         | join(", ")
@@ -235,11 +262,11 @@ main() {
   rm -f "$tmp_file"
 
   # 投稿成功時のみ sinceLastPush をリセットする（失敗時は次回pushへ繰り越す。
-  # add_mr_commentが失敗した場合はここに到達せず、set -e により main ごと中断される）
+  # add_mr_commentが失敗した場合はここに到達せず、set -e により main ごと中断される）。
+  # リセットロジック本体は UsageTracking.sh の _usage_reset_since_last_push に切り出してある
+  # （tests/test_usage_tracking.sh から同じロジックで「2回目push」を再現できるようにするため）。
   local reset_state
-  reset_state="$(printf '%s' "$state" | jq \
-    --arg postedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-    '.sinceLastPush = {tokensByModel: {}, toolCalls: {}, turns: 0, activeSeconds: 0, subagentsByType: {}} | .lastPostedAt = $postedAt')"
+  reset_state="$(_usage_reset_since_last_push "$state")"
   mkdir -p "$state_dir"
   printf '%s' "$reset_state" > "$state_file"
 }
