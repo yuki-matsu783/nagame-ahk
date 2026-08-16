@@ -25,12 +25,12 @@ issue #39「コミットSkillを利用するようにルールを記載する」
 | [x] | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
 | [x] | 5 | Planに合意する | 人間 |
 | [x] | 6 | commit, push してレビュー依頼を行う | エージェント |
-| [] | 7 | MRで再度planについてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
-| [] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
+| [x] | 7 | MRで再度planについてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
+| [x] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
 | [x] | 9 | planをもとにMR descriptionを更新する | `describe` |
-| [] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
-| [] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
-| [] | 12 | commit, push してレビュー依頼を行う | エージェント |
+| [x] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
+| [x] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
+| [x] | 12 | commit, push してレビュー依頼を行う | エージェント |
 | [] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
 | [] | 14 | MRでレビュー・コメントする | 人間 |
 | [] | 15 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（11〜15の作業ループを合意まで繰り返す） | `comments` / `reply` |
@@ -50,19 +50,23 @@ issue #39「コミットSkillを利用するようにルールを記載する」
   ラッパースクリプト＋PreToolUse hookによる技術的強制を含む計画へ拡張し承認取得
   （`plans/tranquil-strolling-shannon.md`。1回目の内容は`_act1`へ退避済み）。
 - plan/worklogをcommit・push（flow-id 6）、MR descriptionを更新（flow-id 9）。
+- flow-id 7-8: ユーザーから「レビュー完了」の合図を受領後、`comments all`
+  （`get_mr_unresolved_comments 40 true`）で未解決スレッドが無いことを確認（自動投稿の対応工数
+  レポートのみで、実際のレビューコメントは無かった）。
+- flow-id 11: planどおり8ファイルを実装。`dev-tools/src/create-commit.sh`（新規ラッパー）、
+  `.claude/hooks/block-direct-git-commit.sh`（新規PreToolUse hook）、`.claude/settings.json`
+  （`permissions.deny` + `hooks.PreToolUse`追加）、`.claude/skills/commit/SKILL.md` /
+  `.claude/rules/git-workflow.md` / `.claude/skills/issue-mr-flow/SKILL.md` の更新、
+  `dev-tools/docs/ddr/0012-...md`（新規DDR）、`extract-frontmatter.sh`によるindex.jsonl再生成。
+  詳細は`worklog/2026-08-17_tranquil-strolling-shannon.md`参照。
+- エンドツーエンド検証: 直接`git commit`がhookにブロックされること、
+  `dev-tools/src/create-commit.sh`経由なら成功することを確認済み。
+- flow-id 12: 3コミット（`7a1254e` feat / `c04bc77` docs / `cea4140` chore）＋worklog反映コミット
+  （`7406b72`）を作成しpush済み。
 
 ## 次にやること
 
-flow-id 7（人間によるMRでのplanレビュー）待ち。レビューOKの合図を受けたら、`comments all` で
-未解決スレッドが無いことを確認してから flow-id 11（実装）へ進む。
-
-実装内容（plan本体参照）:
-- `dev-tools/src/create-commit.sh`（新規、commitスキル用ラッパー）
-- `.claude/hooks/block-direct-git-commit.sh`（新規、PreToolUse hook）
-- `.claude/settings.json`（`permissions.deny` + `hooks.PreToolUse` 追加）
-- `.claude/skills/commit/SKILL.md` / `.claude/rules/git-workflow.md` /
-  `.claude/skills/issue-mr-flow/SKILL.md` の3ファイル更新
-- `dev-tools/docs/ddr/0012-...md`（新規DDR）＋ `extract-frontmatter.sh` での index.jsonl再生成
+flow-id 13（`describe`でMR descriptionを実装内容ベースへ更新）→ flow-id 14（人間レビュー待ち）。
 
 ## 判断を迷った内容
 
@@ -73,7 +77,10 @@ flow-id 7（人間によるMRでのplanレビュー）待ち。レビューOKの
 
 ## 未解決の内容
 
-（無し）
+- hookの部分文字列マッチによる誤検知が、このタスク自身の最初のコミットメッセージ案
+  （「git commitの直接実行を...」という日本語文中の"git commit"）で実際に発生した。plan/DDR
+  0012で明記済みの既知トレードオフの範囲内であり、追加対応はしていない
+  （メッセージを言い換えて回避した）。
 
 ## 守るべき条件・触ってはいけない範囲
 
