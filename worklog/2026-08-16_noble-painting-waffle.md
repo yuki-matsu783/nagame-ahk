@@ -46,4 +46,25 @@ issue #28（対応工数レポート）は一度flow-id 21まで完了しDraft�
 
 ## 実装ログ
 
-（実装しながら追記）
+- `.claude/hooks/lib/UsageTracking.sh`: `_usage_safe_branch_name`（3箇所目の重複を関数化）、
+  `_usage_sync_session_logs`（メイン・サブエージェントtranscriptを`.claude/session-logs/`へ
+  コピー）、`_usage_merge_agent_state`（`_usage_merge_state`を「疑似existing」でラップして再利用、
+  `agentId`単位のスナップショット・`agentType`単位の表示集約）、
+  `_usage_aggregate_and_merge_subagents`（コピー済みディレクトリの走査→集計→マージ）を実装。
+  `_usage_aggregate_transcript`/`_usage_merge_state`本体は無改造。
+- `.claude/hooks/post-push-usage-report.sh`: 投稿要否判定の`total`にサブエージェント分を含める、
+  「### サブエージェント」セクション（`agentType`×モデルのテーブル・ツール実行回数合計・
+  稼働時間参考値。全項目0行は既存ロジックと同様に除外）を追加、リセットJSONへ
+  `subagentsByType: {}`追加、`safe_branch`計算を`_usage_safe_branch_name`へ統一。
+- `.gitignore`: `/.claude/session-logs/`を追加。
+- `tests/test_usage_tracking.sh`: 13アサーション追加（合計25、全合格）。`agentId`単位の差分・
+  `agentType`単位の合算・二重計上防止・疑似`~/.claude/projects`ツリーからのコピー・
+  エンドツーエンド集計を検証。
+- 手動検証: レポート整形ロジック（サブエージェントセクション・`<synthetic>`ゼロ行除外・
+  投稿要否判定のtotal計算）をjqで単体検証、期待通りの出力を確認。
+- `bash -n`全ファイル通過、`test_usage_tracking.sh`（25/25）・`test_vcs_provider.sh`（10/10）
+  全合格。
+- ドキュメント反映: `dev-tools/docs/spec/issue-mr-workflow.md`（記録範囲・新規サブセクション
+  「サブエージェントの使用量記録」・コンポーネント説明・影響範囲・未決定事項）、
+  DDR 0006への追記（session-logsコピー方式・二段設計・ネスト対象外の理由）、
+  `tests/README.md`の対象欄更新。

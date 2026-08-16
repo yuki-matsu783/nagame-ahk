@@ -32,6 +32,13 @@
 # tail-buffer相当。既定値もそれに合わせて30秒とした）。
 : "${TAIL_BUFFER_SECONDS:=30}"
 
+# ブランチ名を状態ファイル名・ディレクトリ名に使える形へサニタイズする（英数字・ハイフン・
+# アンダースコア以外を`_`へ置換）。sync_usage_state / _usage_sync_session_logs /
+# post-push-usage-report.sh の3箇所で同じ変換が必要になったため関数化した。
+_usage_safe_branch_name() {
+  printf '%s' "$1" | sed -E 's/[^a-zA-Z0-9_-]/_/g'
+}
+
 # transcript(JSONL)を集計し、{tokens, tools, assistantCount, activeSeconds} のJSONをstdoutへ
 # 出力する。空行・不正なJSON行は無視する（ベストエフォート）。指定ブランチ以外のassistantエントリは
 # 除外する。
@@ -180,10 +187,121 @@ JQ
     "$jq_program"
 }
 
+# git push検知時に、集計対象のtranscript（メイン＋サブエージェント）をリポジトリ内の
+# gitignore対象ディレクトリ（.claude/session-logs/<safeBranch>/<sessionId>/）へコピーする
+# （PR #29レビュー指摘: `~/.claude/projects`という非公開・ユーザープロファイル配下の揮発性のある
+# パスに集計処理が直接依存し続けるのを避け、pushのたびにリポジトリ内へスナップショットを退避する）。
+# コピー先ディレクトリパスをstdoutへ返す。
+#
+# メインtranscriptのコピー失敗はそのまま呼び出し元へエラー伝播させる（sync_usage_state側の
+# `[ -f "$transcript_path" ]` チェックと同格の致命条件のため、set -eに任せる）。個々のサブエージェント
+# ファイルのコピー失敗は`|| true`で握りつぶし他のファイルへ波及させない（次回pushの全件再パースで
+# 自然に回収されるため、1ファイルの失敗でpush全体の記録が止まる必要は無い）。
+#
+# サブエージェントの発見: `${transcript_path%.jsonl}/subagents/agent-*.jsonl` のみを対象とする
+# （直接の子、spawnDepth 1相当）。サブエージェントがさらに起動するネストしたサブエージェント
+# （depth 2以降）は対象外（実データで未観測かつディレクトリ構造・スキーマが未確認のため。詳細:
+# dev-tools/docs/spec/issue-mr-workflow.md「サブエージェントの使用量記録」節）。
+_usage_sync_session_logs() {
+  local repo_root="$1" branch="$2" session_id="$3" transcript_path="$4"
+
+  local safe_branch
+  safe_branch="$(_usage_safe_branch_name "$branch")"
+  local log_dir="${repo_root}/.claude/session-logs/${safe_branch}/${session_id}"
+  mkdir -p "${log_dir}/subagents"
+  cp "$transcript_path" "${log_dir}/main.jsonl"
+
+  local session_dir="${transcript_path%.jsonl}"
+  if [ -d "${session_dir}/subagents" ]; then
+    local f meta
+    for f in "${session_dir}/subagents"/agent-*.jsonl; do
+      [ -e "$f" ] || continue
+      cp "$f" "${log_dir}/subagents/" 2>/dev/null || true
+      meta="${f%.jsonl}.meta.json"
+      if [ -f "$meta" ]; then
+        cp "$meta" "${log_dir}/subagents/" 2>/dev/null || true
+      fi
+    done
+  fi
+
+  printf '%s' "$log_dir"
+}
+
+# 1つのサブエージェント（agentId単位）について、_usage_merge_state と全く同じ
+# 「current - prevSnapshot（下限0）」ロジックを適用する。累計スナップショットはagentId単位で
+# 保持する（バックグラウンドで複数pushをまたいで追記され続けるサブエージェントがあっても、
+# 既存の単調性保証がそのまま効き二重計上・過小計上が起きないようにするため）。表示・レポート集約は
+# agentType単位（`existing.sinceLastPush.subagentsByType[agentType]`）で行い、同じagentTypeを持つ
+# 複数のagentId分の差分はここで自然に合算される。
+#
+# _usage_aggregate_transcript / _usage_merge_state 本体は無改造のまま、agentId を「疑似session_id」、
+# agentType別の累計を「疑似sinceLastPush」としてラップして渡すことで、既存の差分計算ロジックを
+# そのまま再利用する。
+_usage_merge_agent_state() {
+  local existing="$1" agent_id="$2" agent_type="$3" current="$4" branch="$5"
+
+  local pseudo_existing
+  pseudo_existing="$(printf '%s' "$existing" | jq -c --arg agentId "$agent_id" --arg agentType "$agent_type" '
+    {
+      sessions: {($agentId): (.agents[$agentId] // {})},
+      sinceLastPush: (.sinceLastPush.subagentsByType[$agentType]
+        // {tokensByModel: {}, toolCalls: {}, turns: 0, activeSeconds: 0})
+    }
+  ')"
+
+  local merged
+  merged="$(_usage_merge_state "$pseudo_existing" "$current" "$agent_id" "$branch")"
+
+  jq -n --argjson existing "$existing" --argjson merged "$merged" \
+    --arg agentId "$agent_id" --arg agentType "$agent_type" '
+    $existing
+    | .agents[$agentId] = ($merged.sessions[$agentId] + {agentType: $agentType})
+    | .sinceLastPush.subagentsByType[$agentType] = $merged.sinceLastPush
+  '
+}
+
+# コピー済みディレクトリ（_usage_sync_session_logsの戻り値）配下のサブエージェントtranscriptを
+# 列挙し、1ファイルずつ _usage_aggregate_transcript で集計→_usage_merge_agent_state で
+# existing へ畳み込む。サブエージェントが1件も無ければexistingをそのまま返す。
+_usage_aggregate_and_merge_subagents() {
+  local existing="$1" log_dir="$2" branch="$3"
+  local subagents_dir="${log_dir}/subagents"
+
+  if [ ! -d "$subagents_dir" ]; then
+    printf '%s' "$existing"
+    return 0
+  fi
+
+  local f
+  for f in "$subagents_dir"/agent-*.jsonl; do
+    [ -e "$f" ] || continue
+    local agent_id agent_type meta_file current
+    agent_id="$(basename "$f" .jsonl)"
+    agent_id="${agent_id#agent-}"
+    meta_file="${f%.jsonl}.meta.json"
+    if [ -f "$meta_file" ]; then
+      agent_type="$(jq -r '.agentType // "unknown"' "$meta_file" 2>/dev/null || echo "unknown")"
+    else
+      agent_type="unknown"
+    fi
+    [ -n "$agent_type" ] || agent_type="unknown"
+
+    current="$(_usage_aggregate_transcript "$f" "$branch")"
+    existing="$(_usage_merge_agent_state "$existing" "$agent_id" "$agent_type" "$current" "$branch")"
+  done
+
+  printf '%s' "$existing"
+}
+
 # 指定ブランチ・セッションのtranscriptを集計し、状態ファイル（.claude/usage-state/<branch>.json）の
 # sinceLastPush へ「前回このセッションで記録した累計との差分」を加算して保存する。更新後の状態JSONを
 # stdoutへ出力する。呼び出し元は post-push-usage-report.sh（PostToolUse, git push検知）。
 # transcript_pathが存在しない場合は何も出力せず終了コード1を返す。
+#
+# 集計前に _usage_sync_session_logs でメイン・サブエージェント両方のtranscriptを
+# .claude/session-logs/ 配下へコピーし、以降の集計はすべてこのローカルコピーを対象に行う
+# （PR #29レビュー指摘対応）。全件再パース＋スナップショット差分方式そのものは変更しない
+# （activeSecondsの単調性保証が「毎回全件を時系列で走査し直す」ことを前提にしているため）。
 sync_usage_state() {
   local repo_root="$1" branch="$2" session_id="$3" transcript_path="$4"
 
@@ -191,13 +309,16 @@ sync_usage_state() {
     return 1
   fi
 
+  local log_dir
+  log_dir="$(_usage_sync_session_logs "$repo_root" "$branch" "$session_id" "$transcript_path")"
+
   local current
-  current="$(_usage_aggregate_transcript "$transcript_path" "$branch")"
+  current="$(_usage_aggregate_transcript "${log_dir}/main.jsonl" "$branch")"
 
   local state_dir="${repo_root}/.claude/usage-state"
   mkdir -p "$state_dir"
   local safe_branch
-  safe_branch="$(printf '%s' "$branch" | sed -E 's/[^a-zA-Z0-9_-]/_/g')"
+  safe_branch="$(_usage_safe_branch_name "$branch")"
   local state_file="${state_dir}/${safe_branch}.json"
 
   local existing="{}"
@@ -207,6 +328,7 @@ sync_usage_state() {
 
   local new_state
   new_state="$(_usage_merge_state "$existing" "$current" "$session_id" "$branch")"
+  new_state="$(_usage_aggregate_and_merge_subagents "$new_state" "$log_dir" "$branch")"
 
   printf '%s' "$new_state" > "$state_file"
   printf '%s' "$new_state"

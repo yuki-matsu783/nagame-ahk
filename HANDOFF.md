@@ -26,12 +26,12 @@ issue #28（対応工数レポート）は一度flow-id 22まで完了しPR #29�
 | [x] | 3 | featureブランチとDraft MRを作成する | `start` |
 | [x] | 4 | Planモードで実行手順を作成する（今回分: サブエージェント集計＋session-logsコピー方式） | エージェント |
 | [x] | 5 | Planに合意する | 人間 |
-| [] | 6 | commit, push してレビュー依頼を行う | エージェント |
-| [] | 7 | MRで再度planについてレビュー・コメントする | 人間 |
-| [] | 8 | レビュー内容を取得し、planを修正する（7〜8を合意まで繰り返す） | `comments` / `reply` |
-| [] | 9 | planをもとにMR descriptionを更新する | `describe` |
-| [] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
-| [] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
+| [x] | 6 | commit, push してレビュー依頼を行う | エージェント |
+| [-] | 7 | MRで再度planについてレビュー・コメントする（ExitPlanModeでの対話的承認をもって代替） | 人間 |
+| [-] | 8 | レビュー内容を取得し、planを修正する | `comments` / `reply` |
+| [-] | 9 | planをもとにMR descriptionを更新する | `describe` |
+| [-] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
+| [x] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
 | [] | 12 | commit, push してレビュー依頼を行う | エージェント |
 | [] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
 | [] | 14 | MRでレビュー・コメントする | 人間 |
@@ -51,16 +51,18 @@ issue #28（対応工数レポート）は一度flow-id 22まで完了しPR #29�
   参照。gitログ参照: commit `4d8edf6`〜`ee31174`〜`6c4914a`）。
 - レビューで追加指摘（`<synthetic>`行除外、ツール実行回数の記録範囲説明）は対応済み
   （commit `ee31174`, `6c4914a`）。
-- サブエージェント集計＋session-logsコピー方式について、実機で`~/.claude/projects`配下の
-  サブエージェントtranscript構造を調査し、Planエージェントで設計検証のうえPlan承認済み
-  （`plans/noble-painting-waffle.md`）。
+- サブエージェント集計＋session-logsコピー方式: 実機調査→Planエージェントで設計検証→Plan承認
+  （`plans/noble-painting-waffle.md`）→実装完了。`UsageTracking.sh`（新規4関数）、
+  `post-push-usage-report.sh`（サブエージェントセクション追加）、`.gitignore`、テスト13件追加
+  （合計25/25合格）、ドキュメント反映（spec本文・DDR 0006追記・tests/README.md）まで完了。
+  未push（次のアクション）。
 
 ## 次にやること
 
-- flow-id 6〜: Planに基づき`.claude/hooks/lib/UsageTracking.sh` / `post-push-usage-report.sh` /
-  `.gitignore` / `tests/test_usage_tracking.sh` / ドキュメントを実装する。
-- 実装後、`bash tests/test_usage_tracking.sh` / `bash tests/test_vcs_provider.sh` で回帰確認。
-- commit・push後、レビュースレッド（`PRRT_kwDOT4Y-5s6ZlDso`）へ対応内容を返信する。
+- flow-id 12: 実装をcommit・push。
+- push後、レビュースレッド（`PRRT_kwDOT4Y-5s6ZlDso`）へ対応内容を返信する。
+- 実地確認: 次回サブエージェント（`issue-mr-resume`等）を起動した後のpushで、「### サブエージェント」
+  セクションが自動投稿コメントに表示されることを確認する。
 
 ## 判断を迷った内容
 
