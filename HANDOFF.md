@@ -27,8 +27,8 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 9 | planをもとにMR descriptionを更新する | `describe` |
 | [x] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
 | [x] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
-| [] | 12 | commit, push してレビュー依頼を行う | エージェント |
-| [] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
+| [x] | 12 | commit, push してレビュー依頼を行う | エージェント |
+| [x] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
 | [] | 14 | MRでレビュー・コメントする | 人間 |
 | [] | 15 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（11〜15の作業ループを合意まで繰り返す） | `comments` / `reply` |
 | [] | 16 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
@@ -63,8 +63,9 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## 次にやること
 
-- flow-id 12: 変更をcommit, pushしてレビュー依頼を行う。
-- flow-id 13: `describe` でMR descriptionを実装状況込みで更新する。
+- flow-id 12・13完了（commit `028d8c7` push済み、PR #29 descriptionを実装状況込みで更新済み）。
+  実際のpushでPostToolUse hookが発火し、「対応工数（目安・入力待ち時間を除く）: 36分」の行が
+  自動投稿コメントに表示されることを実地確認済み。
 - flow-id 14: 人間レビュー待ち。レビューOKの合図を受けても`get_mr_unresolved_comments 29 true`で
   未解決スレッドが無いことを必ず確認してから次へ進む。
 
