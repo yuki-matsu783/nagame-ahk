@@ -1,6 +1,6 @@
 ---
 name: commit
-description: 'Generate a Japanese commit message with Conventional Commits prefix and create one or more atomic commits. Use ONLY when the user explicitly invokes /commit. Flow: git status → confirm with user via AskUserQuestion → filter sensitive/junk files → git add specific files → git commit (NO Claude footer)'
+description: 'Generate a Japanese commit message with Conventional Commits prefix and create one or more atomic commits. Use whenever a commit needs to be made in this repository — both when the user explicitly invokes /commit AND whenever an AI agent commits autonomously as part of the issue-mr-flow (flow-id 6/12/18/22). All commits in this repo MUST go through this skill; direct git commit is blocked by a PreToolUse hook. Flow: git status → confirm with user via AskUserQuestion → filter sensitive/junk files → dev-tools/src/create-commit.sh (NO Claude footer)'
 title: git commit標準化
 type: skill
 tags: [issue-mr-flow, workflow, skill]
@@ -10,6 +10,21 @@ keywords: [commit, コミット]
 # /commit スキル
 
 `/commit` が呼ばれた時、変更内容を分析して日本語のコミットメッセージを自動生成し、コミット作成までを対話的に進める。
+
+## 呼び出しタイミング
+
+このスキルは以下の2パターンいずれでも使う（issue #39: 「すべてのコミットがスキルを利用して
+行われる」が受け入れ条件）。
+
+- ユーザーが明示的に `/commit` と入力した場合
+- AIエージェントが本リポジトリでコミットを作成する場面全般
+  （`.claude/skills/issue-mr-flow/SKILL.md` の全体フローflow-id 6/12/18/22
+  「commit, push してレビュー依頼を行う」等）
+
+`git commit` の直接実行は `.claude/hooks/block-direct-git-commit.sh`（PreToolUse hook）により
+機構的にブロックされる（`.claude/rules/git-workflow.md` の「コミット運用」節参照）。このスキルの
+Step 5は `dev-tools/src/create-commit.sh` というラッパースクリプト経由でコミットするため、
+hookの対象にならず正規に実行できる。
 
 ## 絶対ルール
 
@@ -117,7 +132,12 @@ keywords: [commit, コミット]
 
 ### Step 5: コミット実行
 
-`git add <個別ファイル名>` を使い、`git commit -m "..."` で作成。
+`git add` / `git commit` を直接実行せず、`dev-tools/src/create-commit.sh` を使う
+（`git commit` の直接実行は `.claude/hooks/block-direct-git-commit.sh` によりブロックされる）。
+
+```
+bash dev-tools/src/create-commit.sh --message "<prefix>: <日本語サマリ>" -- <file1> [file2 ...]
+```
 
 **コミットメッセージ形式：**
 - `<prefix>: <日本語サマリ>` の **1行のみ**
