@@ -4,7 +4,7 @@ description: nagame-ahkの開発フロー全体（issue起票〜マージ）の�
 title: issue駆動 開発フロー
 type: skill
 tags: [issue-mr-flow, workflow, skill]
-timestamp: "2026-08-16T05:31:36"
+keywords: [start, resume, sync, comments, reply, describe, draft-pr, provider-sh, squash-merge, mrworkflow-json]
 ---
 
 # issue駆動 開発フロー（唯一の実装フロー定義）

@@ -6,7 +6,7 @@ title: コーディングルール（AutoHotkey v2）
 type: rule
 description: AutoHotkey v2のコーディング規約（文字コード・インデント・命名等）を定めたルール
 tags: [ahk, coding-style, rule]
-timestamp: "2026-08-16T05:31:36"
+keywords: [autohotkey-v2, naming-convention, error-handling, settings, hotif, fat-arrow, settimer, utf-8, comment, include-order]
 ---
 
 # コーディングルール（AutoHotkey v2）

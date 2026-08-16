@@ -3,7 +3,7 @@ title: "0007. Claude Code hookの起動コマンドはPATH解決方式（`\"bash
 type: ddr
 description: Claude Code hookの起動コマンドをPATH解決方式（bash）へ変更した経緯を記録したDDR
 tags: [hook, bash, ddr]
-timestamp: "2026-08-16T05:31:36"
+keywords: [path-resolution, wsl-stub, system32, machine-scope, settings-json]
 ---
 
 # 0007. Claude Code hookの起動コマンドはPATH解決方式（`"bash"`）を採用し、フルパス直書きは採用しない

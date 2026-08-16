@@ -3,7 +3,7 @@ title: docs配下の目次
 type: guide
 description: docs/spec・docs/ddrの位置づけと各ドキュメントへのリンクをまとめた目次
 tags: [docs, index, guide]
-timestamp: "2026-08-16T05:31:36"
+keywords: [spec, ddr, activity-status, external-command-server, logger, office-file-watcher, pdf-file-watcher, recent-docs-watcher]
 ---
 
 # docs 配下の目次

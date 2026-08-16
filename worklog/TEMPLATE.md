@@ -3,7 +3,7 @@ title: worklogテンプレート
 type: template
 description: worklog作成時にコピーして使うテンプレートファイル
 tags: [worklog, template]
-timestamp: "2026-08-16T05:31:36"
+keywords: [worklog, plan, try, success, failure, next-step]
 ---
 
 <!--

@@ -3,7 +3,7 @@ title: tests/
 type: guide
 description: 手動/自動テスト用スクリプトの一覧と、各スクリプトの対象・副作用・実行方法をまとめたガイド
 tags: [tests, guide]
-timestamp: "2026-08-16T05:31:36"
+keywords: [ahk-test, bash-test, assert, test-json, vcs-provider, external-command-server, manual-verification]
 ---
 
 # tests/
@@ -17,6 +17,7 @@ timestamp: "2026-08-16T05:31:36"
 |---|---|---|---|
 | `test_json.ahk` | `src/lib/Json.ahk`（エンコード/デコード） | なし。GUIを開かずアサーション結果を標準出力してExitApp() | `AutoHotkey64.exe tests\test_json.ahk` |
 | `test_vcs_provider.sh` | `dev-tools/src/vcs/Provider.sh`のうち、gh/glab呼び出しを伴わない純粋ロジック（`to_slug`・`test_issue_sections`・`get_issue_number_from_branch`） | なし。アサーション結果を標準出力する | `bash tests/test_vcs_provider.sh`（git bash） |
+| `test_extract_frontmatter.sh` | `dev-tools/src/extract-frontmatter.sh`のうち、find/stat呼び出しを伴わない純粋ロジック（`frontmatter_to_json`のYAML→JSON変換、concept_id/directoryの導出） | あり（`$TMPDIR`配下に一時ファイルを作成・削除するのみ） | `bash tests/test_extract_frontmatter.sh`（git bash） |
 | `test_external_command_server.sh` | `docs/spec/external-command-server.md` の実装一式（TCPサーバー・認証・コマンドディスパッチ） | あり。`src/main.ahk` を実際に起動し、クリップボードを書き換え、トースト通知を表示する。実行中の `AutoHotkey64.exe` プロセスを名前で終了させる | `bash tests/test_external_command_server.sh`（git bash） |
 | `test_window_open_watcher.ahk` | `src/lib/WindowOpenWatcher.ahk`のうち、対象プロセス判定・複数インスタンスの独立性・通知済みhwnd管理など実ウィンドウ/実フック無しで検証できるロジック（`OfficeFileWatcher`/`PdfFileWatcher`共通の検出基盤） | なし。GUIを開かずアサーション結果を標準出力してExitApp() | `AutoHotkey64.exe tests\test_window_open_watcher.ahk` |
 | `test_file_open_notifier.ahk` | `src/lib/FileOpenNotifier.ahk`のうち、検出結果のJSON整形ロジック（`OfficeFileWatcher`/`PdfFileWatcher`共通の表示基盤） | なし。GUIを開かずアサーション結果を標準出力してExitApp() | `AutoHotkey64.exe tests\test_file_open_notifier.ahk` |

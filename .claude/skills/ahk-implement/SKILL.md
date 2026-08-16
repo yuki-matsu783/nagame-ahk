@@ -4,7 +4,7 @@ description: nagame-ahk（AutoHotkey v2）で新機能の追加や既存動作�
 title: nagame-ahk 実装フロー
 type: skill
 tags: [ahk, implement, skill]
-timestamp: "2026-08-16T05:31:36"
+keywords: [design-doc, docs-spec, plan-mode, worklog, handoff, issue-mr-flow, logger, coding-rule]
 ---
 
 # nagame-ahk 実装フロー

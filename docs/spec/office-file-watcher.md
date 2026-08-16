@@ -3,7 +3,7 @@ title: MS Officeファイル監視・情報表示（OfficeFileWatcher）
 type: spec
 description: Word/Excel/PowerPoint/Visioで開かれたファイルの名前・パス・プロセス情報を表示する機能の仕様
 tags: [office-file-watcher, ahk, spec]
-timestamp: "2026-08-16T05:31:36"
+keywords: [setwineventhook, accessibleobjectfromwindow, windowopenwatcher, fileopennotifier, traytip, com]
 ---
 
 # MS Officeファイル監視・情報表示（OfficeFileWatcher）

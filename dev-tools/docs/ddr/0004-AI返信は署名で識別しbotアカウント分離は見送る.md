@@ -3,7 +3,7 @@ title: 0004. AIエージェントのレビュー返信は本文への署名で�
 type: ddr
 description: AIエージェントのレビュー返信を本文署名で識別し、botアカウント分離を見送った経緯を記録したDDR
 tags: [review, signature, ddr]
-timestamp: "2026-08-16T05:31:36"
+keywords: [claude-codeより, signature, bot-account, reply, identity]
 ---
 
 # 0004. AIエージェントのレビュー返信は本文への署名で識別し、botアカウント分離は見送る

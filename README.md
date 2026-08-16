@@ -3,7 +3,7 @@ title: nagame-ahk
 type: guide
 description: nagame-ahk（配布exeを使うエンドユーザー向け）の入手方法・使い方を説明するガイド
 tags: [readme, user-guide]
-timestamp: "2026-08-16T05:31:36"
+keywords: [tray, hotkey, office-watcher, pdf-watcher, recent-docs-watcher, external-command-server, activity-status, log]
 ---
 
 # nagame-ahk

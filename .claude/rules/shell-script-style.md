@@ -3,7 +3,7 @@ title: bashスクリプトの規約
 type: rule
 description: 開発補助bashスクリプトの保存形式・エラー方針・命名規則等を定めたルール
 tags: [bash, shell-script, rule]
-timestamp: "2026-08-16T05:31:36"
+keywords: [set-euo-pipefail, jq, subshell, snake-case, path-conversion, bom-less-utf-8, lf, claude-code-hook]
 ---
 
 # bashスクリプトの規約

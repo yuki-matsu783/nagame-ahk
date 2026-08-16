@@ -6,7 +6,7 @@ model: sonnet
 title: issue-mr-flow途中引き継ぎエージェント
 type: agent
 tags: [issue-mr-flow, resume, agent]
-timestamp: "2026-08-16T05:31:36"
+keywords: [issue-mr-flow, resume, branch, pull-request, unresolved-comments, handoff, provider, current-location-summary, readonly, worklog]
 ---
 
 あなたはnagame-ahkのissue駆動MRワークフロー（`.claude/skills/issue-mr-flow/SKILL.md`）における
