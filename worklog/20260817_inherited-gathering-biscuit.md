@@ -82,3 +82,48 @@ plan策定・commit後、ユーザーから追加指示があった。
 - 実装順序の目安: A（`usage/`ディレクトリ移設・`.gitignore`更新）→B（カーソル管理）
   →C（新規行diff集計）→E（sync_usage_state/merge_state書き換え）→F（レポート描画）→G（テスト）
   →H（ドキュメント反映、flow-id 16〜17）。
+
+## 実装状況（flow-id 11）
+
+対応方針A〜Gを実装した。
+
+- A: `.claude/usage-state/`・`.claude/session-logs/`を削除し（gitignore対象・git管理外のため
+  移行不要）、`.gitignore`を`/usage/`1行へ統合。
+- B・C・E: `.claude/hooks/lib/UsageTracking.sh`を全面的に書き換え。
+  `_usage_read_new_lines`/`_usage_aggregate_new_lines`（新規行diff集計・skillCalls/agentCalls/
+  askUserQuestions抽出）を追加し、`_usage_merge_state`を「delta加算＋activeSecondsのみ差分」方式へ
+  変更。`_usage_merge_agent_state`/`_usage_aggregate_and_merge_subagents`もagentId単位の
+  カーソル管理を組み込んで書き換え。`_usage_aggregate_transcript`自体はactiveSeconds算出専用として
+  無改造のまま維持。
+- F: `.claude/hooks/post-push-usage-report.sh`に「skill呼び出し」「Agent呼び出し」
+  「ユーザーへの質問」の3テーブルを追加。state_dirのパスも`usage/state`へ更新。
+- G: `tests/test_usage_tracking.sh`を全面的に書き換え（66件、全pass）。
+
+### テスト設計で気づいたこと（重要）
+
+当初、「セッションが別ブランチで初めてpushされる際に過去分が二重計上されない」ことを示す
+回帰テストを、実データに似せて「既存3行を新しいブランチラベルで複製した上で1行追記する」
+シナリオで書いたが、**期待値が誤っていた**（実際の結果は1ではなく4）。
+
+理由: Claude Code側のresumeでtranscript行が複製される場合、複製は新しい物理行として
+ファイル末尾に追記される（＝カーソル位置より後ろに来る）ため、カーソル方式であっても
+複製された行自体は「新規行」として数えられてしまう。カーソル方式が確実に防ぐのは
+「同じ行を同じ位置から二重に読むこと」であり、「重複した内容が新しい位置に現れること」までは
+防げない（plan Context節にも記載の通り、行の中身を判別して除外することは意図的に行わない
+設計のため）。
+
+そのため回帰テストは、「カーソルがブランチ単位ではなくセッション単位でグローバルに保持される」
+という、この設計が確実に保証する性質のみを検証する形に修正した
+（同一transcriptのままブランチだけ切り替えてpushした場合に、新規行が無いため状態が更新
+されないことを確認するテスト）。plan本文の記述自体（「新しいブランチで初めてpushされた際、
+prevSessionが存在せず蓄積済みの全件が計上されてしまう」）はこの性質を指しており、
+実装・plan・テストの整合は取れている。
+
+### 検証方法の変更点
+
+plan「検証方法」節では、実データ（`.claude/session-logs/feature-45-.../main.jsonl`）を使った
+手動再現を挙げていたが、対応方針Aの実施（`.claude/usage-state/`・`.claude/session-logs/`の削除、
+gitignore対象＝git管理外のため実行済み）でこのファイル自体が無くなった。代わりに、上記の
+「カーソルがセッション単位でグローバルに保持される」ことを検証する自動テストを
+`tests/test_usage_tracking.sh`に追加し、同等の検証を再現可能な形でカバーしている
+（`bash tests/test_usage_tracking.sh` で66件すべてpass）。

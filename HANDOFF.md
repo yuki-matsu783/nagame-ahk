@@ -30,7 +30,7 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
 | [x] | 9 | planをもとにMR descriptionを更新する | `describe` |
 | [] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
-| [] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
+| [x] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
 | [] | 12 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | [] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
 | [] | 14 | MRでレビュー・コメントする。レビュー済み連絡をするまで以降の作業は行わない。 | 人間 |
@@ -70,11 +70,13 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
   工数レポートコメントのみで、レビュースレッドは無し）
 - flow-id 9: `describe`でPR #47のdescriptionをplan要約で更新済み
 
+- flow-id 11完了: plan対応方針A〜G（`usage/`ディレクトリ移設、カーソル管理、新規行diff集計、
+  merge_state書き換え、レポート描画、テスト）を実装。`bash tests/test_usage_tracking.sh`は
+  66件全pass。対応方針H（ドキュメント反映）はflow-id 16〜17で実施予定のため未着手
+
 ## 次にやること
 
-- flow-id 10: セッションのcompactを検討（人間判断）
-- flow-id 11: `plans/inherited-gathering-biscuit.md`の対応方針A〜Hに沿って実装、作業内容は
-  `worklog/20260817_inherited-gathering-biscuit.md`に追記していく
+- flow-id 12: `commit`スキルでcommit・push（レビュー依頼）
 
 ## 判断を迷った内容
 
