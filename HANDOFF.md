@@ -25,8 +25,8 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 7 | MRで再度planについてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
 | [x] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
 | [x] | 9 | planをもとにMR descriptionを更新する | `describe` |
-| [] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
-| [] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
+| [x] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
+| [x] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
 | [] | 12 | commit, push してレビュー依頼を行う | エージェント |
 | [] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
 | [] | 14 | MRでレビュー・コメントする | 人間 |
@@ -46,16 +46,27 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
   `feature-28-issue` ブランチ・Draft PR #29 を作成。
 - ブランチ作成直後、出所不明の未コミット差分（7ファイル、issue #28の意図と一致する文言統一）を
   発見。ユーザーに確認し、活用する方針で合意（詳細は `worklog/2026-08-16_noble-painting-waffle.md`）。
+  この7ファイルはその後 `ff702e7 タイトルを修正` コミットで既にコミット済みになっていることを
+  flow-id 11着手時に確認した（コミット済みのため実装コミットへ含める対応は不要になった）。
 - Planを作成・承認済み（`plans/noble-painting-waffle.md`）。
 - Planレビュー1回目: 「入力待ち時間を稼働時間から除外するロジックになっているか」の指摘を受け、
   gapベースの除外方式にPlanを修正・返信・再レビューOKまで完了（flow-id 7〜8ループ終了）。
+- flow-id 11: ユーザー用意の参考実装2件（`参考ディレクトリ/claude-work-timer`,
+  `claude-code-time-tracking`。いずれもローカルclone、`.gitignore`で除外済み）を調査し、
+  tail buffer（既定30秒）をPlanへ追加。実装中に、開発機のjq（Windowsネイティブ版jq 1.6）が
+  `strptime`/`mktime`未実装で`fromdateiso8601`が使えないことが判明したため、自前実装
+  （`days_from_civil`アルゴリズム）で代替した。`.claude/hooks/lib/UsageTracking.sh` /
+  `post-push-usage-report.sh` の実装、`tests/test_usage_tracking.sh`（新設、12アサーション
+  全合格）、ドキュメント（`dev-tools/docs/spec/issue-mr-workflow.md`, `tests/README.md`,
+  `.claude/rules/shell-script-style.md`）を更新済み。詳細は
+  `worklog/2026-08-16_noble-painting-waffle.md` 参照。
 
 ## 次にやること
 
-- コンテキスト削減のためセッションをcompactする（flow-id 10, 人間作業）。
-- compact後、flow-id 11からPlanをもとに実装（`.claude/hooks/lib/UsageTracking.sh` の稼働時間集計、
-  `post-push-usage-report.sh` のレポート表示、ドキュメント・テスト追加）に着手する。
-  出所不明差分（7ファイル）は未コミットのまま残っているため、実装コミットに含める。
+- flow-id 12: 変更をcommit, pushしてレビュー依頼を行う。
+- flow-id 13: `describe` でMR descriptionを実装状況込みで更新する。
+- flow-id 14: 人間レビュー待ち。レビューOKの合図を受けても`get_mr_unresolved_comments 29 true`で
+  未解決スレッドが無いことを必ず確認してから次へ進む。
 
 ## 判断を迷った内容
 

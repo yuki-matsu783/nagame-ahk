@@ -36,9 +36,76 @@ keywords: [対応工数, 経過時間, transcript, timestamp, usage-tracking, my
 （`dev-tools/docs/spec/issue-mr-workflow.md`）とテスト（`tests/test_usage_tracking.sh`新設）も
 合わせて対応する。
 
+## 参考実装調査（flow-id 11着手時）
+
+- ユーザーが用意した参考実装2件（`参考ディレクトリ/claude-work-timer`（TypeScript）、
+  `参考ディレクトリ/claude-code-time-tracking`（Python）。いずれもClaude Codeのtranscriptから
+  実働時間を算出する同種のOSS）を調査した。
+- 両実装とも「gapベースのidle検出（既定5分閾値）」を採用しており、レビュー反映済みのPlan設計
+  （`IDLE_GAP_THRESHOLD_SECONDS`）の妥当性を裏付ける先行事例として参照した。
+- `claude-work-timer`（`src/core/idle-detector.ts`）は、各作業区間（セグメント）の末尾に固定の
+  **tail buffer**（既定30秒）を加算する設計を持っており、本Planに無かった要素だったため取り込んだ。
+  1イベントのみのセッションでも `activeSeconds` が0にならず、tail buffer分が計上されるようになる
+  （旧設計の意図しない挙動を修正）。
+  - 境界値の扱い（gapがちょうど閾値の場合は「待ち」側とする）も `claude-work-timer` の
+    `idle-detector.test.ts`（`handles exact threshold as idle`）に合わせた。
+  - 手計算で複数パターン（1件のみ／2件・閾値内／3件・閾値超1回）を検証し、`claude-work-timer`の
+    セグメント定義と一致する結果になることを確認した。加えて、「累計seconds値を毎回re-scanして
+    差分を取る」既存の状態マージパターンに対して、tail bufferの暫定加算（走査完了時点でまだ
+    閉じていない末尾セグメントに対する加算）が単調非減少性を壊さないことも手計算で確認した
+    （次回pushで実gapに置き換わっても差分は必ず0以上になる）。
+- `claude-work-timer`のoverlap dedup（複数セッション同時進行時の区間重複除去）は、本issueのスコープ
+  （単一ブランチ・単一セッション）では不要と判断し見送った。「対象外」に明記済み。
+- `plans/noble-painting-waffle.md` の「1.」節・「対象外」節・「4.」節を上記を反映して更新した。
+
+## 実装中に判明した問題: `fromdateiso8601`が開発機のjqで動かない
+
+- tail buffer込みの設計を`_usage_aggregate_transcript`へ実装し、手計算した期待値と突き合わせる
+  ミニテスト（`jq -nc`で合成JSONLを作り関数を直接呼ぶ）を実行したところ、全ケースで
+  `activeSeconds`が常に0または`null`になる不具合を発見した。
+- 切り分けの結果、`fromdateiso8601`自体が開発機のjq（`C:\Program Files\jq\jq.exe`、jq 1.6、
+  Windowsネイティブ版）で`jq: error (at <unknown>): strptime/1 not implemented on this platform`
+  として失敗することが原因と判明した（`gmtime`/`strftime`は動くが、`mktime`/`fromdateiso8601`/
+  `strptime`は軒並み未実装）。
+- さらに厄介だったのは、この失敗が既存の`(try fromjson catch empty)`（不正なJSON行を無視するための
+  ガード。パイプラインの前段にある）と組み合わさると、jqが**エラーメッセージを一切出さず終了コード0で
+  出力全体が`null`になる**という現象だったこと。`try/catch`を含まない・`select`を含まない最小再現
+  ケースでは通常どおり`strptime/1 not implemented...`のエラーが出て終了コード5になることを確認して
+  おり、`try/catch`と`select`の組み合わせが後段の無関係なエラーの伝播を壊す、というjq側の未調査の
+  癖であることを手動の二分探索で特定した。
+- 対応として、`strptime`/`mktime`に依存しない自前のISO8601→epoch秒変換
+  （`days_from_civil`アルゴリズムによる四則演算のみの実装）を`_usage_aggregate_transcript`内に
+  追加した。`date -u -d <iso8601> +%s`（git bash付属のGNU coreutils date、これは正常に動作する）の
+  結果と複数の日付（うるう年境界含む）で一致することを手動確認した。実際のtranscriptタイムスタンプ
+  形式（`2026-08-16T02:37:32.461Z`のようにミリ秒付き）でも、固定位置の先頭19文字だけを読む実装のため
+  問題なく動作することを実データで確認した。
+- `.claude/rules/shell-script-style.md`「JSON操作」節に、今後jqで日付文字列→エポック秒変換が
+  必要になった場合のための一般的な注意事項として追記した（issue #28以外の将来のスクリプトにも
+  関わる普遍的な制約のため）。
+
+## flow-id 11 実装完了
+
+- `.claude/hooks/lib/UsageTracking.sh`: `IDLE_GAP_THRESHOLD_SECONDS`/`TAIL_BUFFER_SECONDS`定数、
+  gapベース＋tail bufferの`activeSeconds`集計ロジック、自前実装`epoch_from_iso8601`
+  （`days_from_civil`アルゴリズム）を追加。`_usage_merge_state`に`activeSeconds`の累計差分計算を追加。
+- `.claude/hooks/post-push-usage-report.sh`: `fmt_duration`、「対応工数（目安・入力待ち時間を除く）」
+  行、`sinceLastPush`リセット形への`activeSeconds: 0`追加。
+- `tests/test_usage_tracking.sh`（新設）: 12アサーション、全て合格（`passed=12 failures=0`）。
+  既存の`tests/test_vcs_provider.sh`も回帰確認済み（`passed=10 failures=0`）。
+- `dev-tools/docs/spec/issue-mr-workflow.md`: 「対応工数レポート」節に稼働時間の算出方法・
+  jqのstrptime制約を追記、「未決定事項・懸念点」に既知の誤差要因・overlap dedup未対応を追記、
+  「影響範囲」にissue #28分の新規・変更ファイルを追記。
+- `tests/README.md`: `test_usage_tracking.sh`の行を追加。
+- `.claude/rules/shell-script-style.md`: Windowsネイティブjqの`strptime`/`mktime`未実装という
+  一般的な注意事項を「JSON操作」節に追記（issue #28以外の将来のスクリプトにも関わるため）。
+- `.gitignore`: 参考実装調査用にローカルへcloneした`参考ディレクトリ/`を除外対象に追加
+  （リポジトリ本体には含めない）。
+- 全ての変更した`.sh`は`bash -n`で構文チェック済み。
+
 ## 次にやること
 
-- 人間によるPlanレビュー完了後、flow-id 11から実装に着手する。
+- コミット・push（flow-id 12）→ `describe`でMR descriptionを更新（flow-id 13）→
+  人間レビュー待ち（flow-id 14）に進む。
 
 ## レビュー往復（flow-id 7〜8, 1回目）
 

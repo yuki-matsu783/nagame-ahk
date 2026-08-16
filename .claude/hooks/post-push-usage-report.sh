@@ -33,6 +33,19 @@ fmt_num() {
   printf '%d' "$1" | sed -E ':a; s/([0-9])([0-9]{3})(,|$)/\1,\2\3/; ta'
 }
 
+fmt_duration() {
+  # 秒 → "H時間M分" / "M分" 形式（UsageTracking.shのactiveSecondsをレポート表示用に整形する）
+  local total_seconds="$1"
+  local hours minutes
+  hours=$(( total_seconds / 3600 ))
+  minutes=$(( (total_seconds % 3600) / 60 ))
+  if [ "$hours" -gt 0 ]; then
+    printf '%d時間%d分' "$hours" "$minutes"
+  else
+    printf '%d分' "$minutes"
+  fi
+}
+
 main() {
   set -euo pipefail
 
@@ -121,6 +134,7 @@ main() {
     echo ""
     echo "- ブランチ: ${branch}"
     echo "- assistant応答回数: $(printf '%s' "$usage" | jq -r '.turns')"
+    echo "- 対応工数（目安・入力待ち時間を除く）: $(fmt_duration "$(printf '%s' "$usage" | jq -r '.activeSeconds // 0')")"
     echo ""
     echo "| モデル | Input | Output | Cache Write | Cache Read |"
     echo "|---|---:|---:|---:|---:|"
@@ -154,7 +168,7 @@ main() {
   local reset_state
   reset_state="$(printf '%s' "$state" | jq \
     --arg postedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-    '.sinceLastPush = {tokensByModel: {}, toolCalls: {}, turns: 0} | .lastPostedAt = $postedAt')"
+    '.sinceLastPush = {tokensByModel: {}, toolCalls: {}, turns: 0, activeSeconds: 0} | .lastPostedAt = $postedAt')"
   mkdir -p "$state_dir"
   printf '%s' "$reset_state" > "$state_file"
 }
