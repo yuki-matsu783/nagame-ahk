@@ -374,16 +374,18 @@ Claude Codeの対応工数（モデル別トークン数・ツール実行回数
     issue #37で新規行diff方式へ全面的に書き換え）:
     `sync_usage_state <repoRoot> <branch> <sessionId> <transcriptPath>` が集計本体。まず
     `_usage_read_cursor`でセッション横断カーソル（`usage/state/session-cursors/<sessionId>.json`の
-    `lastLineCount`）を読み、`_usage_read_new_lines`（`totalLines`（空行除く全行数）と、カーソル
-    位置以降の新規行のみをパース済みJSONで返す`newEntries`）で新規行を切り出す。新規行が無ければ
-    （`totalLines <= lastLineCount`）、session-logsへのコピー・状態更新をスキップし既存状態を
-    そのまま返す。新規行があれば、`_usage_sync_session_logs`で対象transcriptを
-    `usage/session-logs/`へコピーしたうえで、`_usage_aggregate_new_lines`が新規行のみを対象に
-    `message.usage`（モデル別トークン数）、`message.content[].type=="tool_use"`（ツール名別
-    呼び出し回数、および`Skill`/`Agent`ブロックからの`skillCalls`/`agentCalls`抽出）、該当エントリ
-    件数（assistant応答回数）、`type=="user"`エントリのtool_result本文からの`askUserQuestions`抽出を
-    行う（`.gitBranch == <branch>` で絞り込み。詳細は上記「新規行diff方式への移行」
-    「呼び出し・質問の詳細記録」参照）。この結果はそのまま「新規分（差分）」であるため、
+    `lastLineCount`）を読み、`_usage_aggregate_new_lines(transcriptPath, lastLineCount, branch)`
+    （**常にtranscriptをファイルパスとして受け取り、jq内部で`inputs`によりファイル内容を読む**。
+    詳細は下記の「重要な追加バグ修正」参照）が、カーソル位置以降の新規行のみを対象に
+    `totalLines`（空行除く全行数）、`message.usage`（モデル別トークン数）、
+    `message.content[].type=="tool_use"`（ツール名別呼び出し回数、および`Skill`/`Agent`ブロックからの
+    `skillCalls`/`agentCalls`抽出）、該当エントリ件数（assistant応答回数）、`type=="user"`エントリの
+    tool_result本文からの`askUserQuestions`抽出を1回のjq呼び出しの中で完結させて返す
+    （`.gitBranch == <branch>` で絞り込み。詳細は上記「新規行diff方式への移行」
+    「呼び出し・質問の詳細記録」参照）。`totalLines <= lastLineCount`（新規行が無い）なら、
+    session-logsへのコピー・状態更新をスキップし既存状態をそのまま返す。新規行があれば、
+    `_usage_sync_session_logs`で対象transcriptを`usage/session-logs/`へコピーしたうえで、
+    `totalLines`以外のフィールドをそのまま「新規分（差分）」として使う。
     `_usage_merge_state`は引き算せずブランチ単位の状態ファイル（`usage/state/<branch>.json`、
     gitignore対象）の`sinceLastPush`へ単純加算・追記する。`activeSeconds`のみ別途
     `_usage_aggregate_transcript`（全件再パース。下記参照）で算出し、従来通り
@@ -393,8 +395,8 @@ Claude Codeの対応工数（モデル別トークン数・ツール実行回数
     毎回「前回スナップショット無し」として扱い、サブエージェント分の差分が常に全量再計上される
     不具合になる**。続けて`_usage_aggregate_and_merge_subagents`が`subagents/agent-*.jsonl`を
     列挙し、1ファイルずつ`agentId`単位のカーソル（`_usage_read_cursor`/`_usage_write_cursor`。
-    メインと同じ`usage/state/session-cursors/`配下）で新規行を切り出し、新規行が無いagentは
-    スキップ、あれば`_usage_aggregate_new_lines`→`_usage_merge_agent_state`（`agentId`単位の
+    メインと同じ`usage/state/session-cursors/`配下）を使って同じ`_usage_aggregate_new_lines`で
+    新規行を集計し（新規行が無いagentはスキップ）、`_usage_merge_agent_state`（`agentId`単位の
     差分を`sinceLastPush.subagents[agentId]`へ保持しつつ、`activeSeconds`のみ
     `_usage_aggregate_transcript`の全件再パースで別途算出。`agentType`・`description`は
     `meta.json`から取得）で畳み込む。最後にメイン・サブエージェント両方のカーソルを
@@ -405,6 +407,29 @@ Claude Codeの対応工数（モデル別トークン数・ツール実行回数
     （全件再パース）自体はissue #37以降`activeSeconds`算出専用として無改造のまま維持している
     （呼び出し元は戻り値のうち`.activeSeconds`のみを使う）。`_usage_safe_branch_name`はブランチ名の
     サニタイズ（状態ファイル名・session-logsディレクトリ名に使用）を担う共通ヘルパー。
+    - **重要な追加バグ修正（issue #37、PR #47マージ前に発覚）**: `_usage_aggregate_new_lines`は
+      当初、新規行の切り出し（別関数`_usage_read_new_lines`）とその集計を2段階に分け、切り出した
+      パース済みJSON配列をシェル変数へ格納したうえで`--argjson`のコマンドライン引数としてjqへ
+      渡す設計だった。しかしtranscriptの各行にはtool_use/tool_resultの生の入出力（Read/Bashの
+      出力、Editの差分等）がそのまま含まれるため、新規行がわずか32件（約120KB）程度でもこの
+      引数が肥大化し、Windowsのプロセス生成時のコマンドライン長上限（実測でおよそ32KB程度）を
+      超えて`jq`の起動自体が`Argument list too long`（終了コード126）で失敗することが実データで
+      判明した（対応工数レポートが投稿されなくなる不具合の直接原因）。両関数を1つに統合し、
+      `_usage_aggregate_transcript`と同じ安全なパターン（ファイルパスを渡し`inputs`で読ませる）に
+      統一して解消した。一般的な注意事項として
+      [`.claude/rules/shell-script-style.md`「JSON操作」節](../../.claude/rules/shell-script-style.md)
+      にも追記した。
+    - **付随して見つかったバグ2件**: (1) userメッセージの`message.content`は、人間が直接入力した
+      シンプルなテキストの場合は content-blockの配列ではなく単一の文字列のまま格納されることが
+      実データで確認された。`.[]`でイテレートする既存コードはこの場合`Cannot iterate over string`で
+      例外になるため、配列の場合のみ中身を返すjqヘルパー`content_blocks`を追加して防いだ。
+      (2) 状態ファイル（`usage/state/<branch>.json`）が空／不正なJSONに壊れた状態のまま
+      `_usage_merge_state`の`--argjson existing`へ渡ると、`jq`が不正なJSONとして必ず失敗し、
+      **一度壊れると以降ずっと投稿できなくなる**（実際に0バイトの状態ファイルとカーソルだけが
+      進んだ状態を確認した）。`sync_usage_state`が状態ファイルを読む箇所で内容の妥当性を
+      （空文字列チェック→`jq -e .`の順で）検証し、無効なら`{}`（状態なし）へフォールバックする
+      自己回復ロジックを追加した。詳細な経緯は
+      [DDR 0006の追記](../ddr/0006-対応工数レポートはtranscript自前パースで実装する.md)を参照。
   - `.claude/hooks/post-push-usage-report.sh`（`PostToolUse` hook、bash版）: `.claude/settings.json` の
     matcher `Bash|PowerShell` と `if: "Bash(git push*)"` / `if: "PowerShell(git push*)"` により
     `git push` を含むコマンド実行後のみ発火する（マッチしなければプロセス起動自体が行われず、
@@ -782,6 +807,23 @@ issueはGitHubのUIからしか作成できず、標準4見出し（目的・現
 - `dev-tools/docs/spec/issue-mr-workflow.md`（本セクション「記録範囲」「稼働時間の算出方法」
   「session-logsローカルコピー方式」を更新、新規サブセクション「新規行diff方式への移行」
   「呼び出し・質問の詳細記録」を追加、「コンポーネント」の関数一覧を更新、本エントリを追加）
+
+変更（追加分・issue #37 続き: PR #47マージ前に発覚したjq argv長制限バグの修正）:
+- `.claude/hooks/lib/UsageTracking.sh`（`_usage_read_new_lines`/`_usage_aggregate_new_lines`の
+  2関数構成を1関数（常にtranscriptをファイルパスとして受け取りjq内で`inputs`により読む設計）へ
+  統合し、大きな新規行データをコマンドライン引数として渡すことによる`Argument list too long`
+  失敗を解消。あわせて、userメッセージの`message.content`が配列でなく文字列の場合に
+  `Cannot iterate over string`で例外になる別のバグ（jqヘルパー`content_blocks`で修正）、
+  および状態ファイルが破損（空／不正なJSON）した場合に恒久的に集計不能になる問題
+  （`sync_usage_state`に自己回復ロジックを追加）も同時に修正）
+- `tests/test_usage_tracking.sh`（新シグネチャに合わせて既存テストを書き換え、巨大ペイロード・
+  文字列content・状態ファイル破損の3件の回帰テストを追加。71件）
+- `.claude/rules/shell-script-style.md`（「JSON操作」節に、大きなJSONを`--argjson`等の
+  コマンドライン引数としてjqへ渡さない一般的な注意事項を追記）
+- `dev-tools/docs/spec/issue-mr-workflow.md`（本セクション「コンポーネント」に本バグ修正の
+  詳細を追記、本エントリを追加）
+- `dev-tools/docs/ddr/0006-対応工数レポートはtranscript自前パースで実装する.md`（マージ済みDDRの
+  ため既存内容は変更せず、本バグ修正に関する追記セクションを追加）
 
 ## 設定項目
 
