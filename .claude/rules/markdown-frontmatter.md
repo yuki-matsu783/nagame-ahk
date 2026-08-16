@@ -35,7 +35,7 @@ OKF（Open Knowledge Format、https://okf.md/spec/ ）のフィールド定義�
 | `rule` | `.claude/rules/*.md`, `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` |
 | `agent` | `.claude/agents/*.md` |
 | `skill` | `.claude/skills/*/SKILL.md` |
-| `template` | `worklog/TEMPLATE.md` |
+| `log` | `worklog/*.md` |
 | `guide` | `README.md`, `DEVELOPERS.md`, `docs/README.md`, `dev-tools/docs/README.md`, `tests/README.md`, `index.md` |
 | `handoff` | `HANDOFF.md` |
 | `spec` | `docs/spec/*.md`, `dev-tools/docs/spec/*.md` |
