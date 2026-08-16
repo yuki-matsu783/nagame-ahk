@@ -22,11 +22,11 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
 | [x] | 5 | Planに合意する | 人間 |
 | [x] | 6 | commit, push してレビュー依頼を行う | エージェント |
-| [] | 7 | MRで再度planについてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
-| [] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
+| [x] | 7 | MRで再度planについてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
+| [x] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
 | [x] | 9 | planをもとにMR descriptionを更新する | `describe` |
 | [] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
-| [] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
+| [x] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
 | [] | 12 | commit, push してレビュー依頼を行う | エージェント |
 | [] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
 | [] | 14 | MRでレビュー・コメントする | 人間 |
@@ -48,18 +48,21 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 - Draft PR [#36](https://github.com/yuki-matsu783/nagame-ahk/pull/36) を作成
 - Planを作成・承認済み（`plans/glimmering-wiggling-balloon.md`、
   `worklog/2026-08-16_glimmering-wiggling-balloon.md`）
+- 実装完了（`build_issue_body`/`new_issue`/`github_new_issue`/`gitlab_new_issue`/
+  `create-issue.sh`/`issue-create`スキル/テスト追加）。単体テスト全pass、実機テスト
+  （issue #38作成→確認→クローズ）も成功。詳細は worklog 参照。
 
 ## 次にやること
 
-Planをもとに実装を進める（flow-id 11）。
-- `dev-tools/src/vcs/Provider.sh` に `build_issue_body` / `new_issue` を追加
-- `Github.sh` に `github_new_issue`、`Gitlab.sh` に `gitlab_new_issue` を追加
-- `dev-tools/src/create-issue.sh`（新規CLIスクリプト）を追加
-- `.claude/skills/issue-create/SKILL.md`（新規スキル）を追加
-- `issue-mr-flow/SKILL.md` のflow-id 1担当セルに導線を一言追記
-- `tests/test_vcs_provider.sh` に `build_issue_body` のテストを追加
+commit・pushしてMR descriptionを更新する（flow-id 12〜13）。
+その後、人間によるレビュー（flow-id 14）を待つ。
 
-詳細は `plans/glimmering-wiggling-balloon.md` を参照。
+## 未解決の内容
+
+- `.claude/skills/issue-mr-flow/SKILL.md` の `comments` サブコマンド節に、本タスクのplan対象外の
+  未コミット文言修正（「新たなコメントが0件で」という条件の削除）が残っている。誰がいつ行った
+  変更か本セッションでは特定できていない。次に着手する人はこの差分の扱い（採用してコミットする/
+  破棄する）をユーザーに確認すること。
 
 ## 判断を迷った内容
 

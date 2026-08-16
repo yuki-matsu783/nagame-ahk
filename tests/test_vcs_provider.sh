@@ -59,6 +59,13 @@ partial_body=$'## 目的\nfoo'
 missing2="$(test_issue_sections "$partial_body")"
 assert_equal "$missing2" $'現状\n期待する動作\n受け入れ条件' "test_issue_sections: 3見出しが欠落として検出される"
 
+# --- build_issue_body ---
+built_body="$(build_issue_body "目的テキスト" "現状テキスト" "期待する動作テキスト" "受け入れ条件テキスト")"
+missing3="$(test_issue_sections "$built_body")"
+assert_equal "$missing3" "" "build_issue_body: 組み立てた本文は4見出しの欠落なしと判定される"
+assert_true "$(printf '%s' "$built_body" | grep -q "目的テキスト" && echo true || echo false)" "build_issue_body: 目的の内容が本文に含まれる"
+assert_true "$(printf '%s' "$built_body" | grep -q "受け入れ条件テキスト" && echo true || echo false)" "build_issue_body: 受け入れ条件の内容が本文に含まれる"
+
 # --- get_issue_number_from_branch ---
 # .mrworkflow.json の既定テンプレート（feature-{issue}-{slug}）を前提とする
 if issue_num="$(get_issue_number_from_branch 'feature-42-something')"; then
