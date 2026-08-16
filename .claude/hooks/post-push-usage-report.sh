@@ -93,7 +93,7 @@ main() {
 
   local safe_branch state_dir state_file state=""
   safe_branch="$(_usage_safe_branch_name "$branch")"
-  state_dir="${repo_root}/.claude/usage-state"
+  state_dir="${repo_root}/usage/state"
   state_file="${state_dir}/${safe_branch}.json"
 
   # 投稿判定の前に、その時点までtranscriptへ書き出し済みの内容を状態へ反映する
@@ -188,6 +188,67 @@ main() {
       echo "**ツール実行回数**: ${tool_summary}"
       echo ""
     fi
+
+    # skill呼び出し・Agent呼び出し・ユーザーへの質問の詳細テーブル（issue #37）。
+    # いずれもメインセッションのtranscriptのみを対象とする（サブエージェント自身が呼び出した分・
+    # ネストしたサブエージェントは対象外）。各セルは`description`列と同じくパイプをエスケープし、
+    # 改行は半角スペースへつぶす（表が崩れないようにするため）。`tr -d '\r'`はWindowsネイティブjqの
+    # コマンド置換CR混入対策（既存箇所と同じ理由）。
+
+    if [ "$(printf '%s' "$usage" | jq '.skillCalls | length')" != "0" ]; then
+      echo "### skill呼び出し"
+      echo ""
+      echo "| skill | args |"
+      echo "|---|---|"
+      local skill_count i
+      skill_count="$(printf '%s' "$usage" | jq '.skillCalls | length')"
+      for i in $(seq 0 $((skill_count - 1))); do
+        local skill_name skill_args
+        skill_name="$(printf '%s' "$usage" | jq -r --argjson i "$i" '.skillCalls[$i].skill // ""' | tr -d '\r' | tr '\n' ' ' | sed 's/|/\\|/g')"
+        skill_args="$(printf '%s' "$usage" | jq -r --argjson i "$i" '.skillCalls[$i].args // ""' | tr -d '\r' | tr '\n' ' ' | sed 's/|/\\|/g')"
+        echo "| ${skill_name} | ${skill_args} |"
+      done
+      echo ""
+    fi
+
+    if [ "$(printf '%s' "$usage" | jq '.agentCalls | length')" != "0" ]; then
+      echo "### Agent呼び出し"
+      echo ""
+      echo "Agentツールで起動されたサブエージェントの呼び出し記録です（呼び出し時点の記録のため、"
+      echo "対応するサブエージェントがまだ完了していなくても表示されます。下記の「### サブエージェント」"
+      echo "＝トークン/稼働時間の実績テーブルとは別集計です。プロンプトは300文字を超える場合"
+      echo "末尾を省略しています）。"
+      echo ""
+      echo "| サブエージェント種別 | 説明 | プロンプト |"
+      echo "|---|---|---|"
+      local agent_call_count i
+      agent_call_count="$(printf '%s' "$usage" | jq '.agentCalls | length')"
+      for i in $(seq 0 $((agent_call_count - 1))); do
+        local a_subtype a_desc a_prompt
+        a_subtype="$(printf '%s' "$usage" | jq -r --argjson i "$i" '.agentCalls[$i].subagentType // ""' | tr -d '\r' | tr '\n' ' ' | sed 's/|/\\|/g')"
+        a_desc="$(printf '%s' "$usage" | jq -r --argjson i "$i" '.agentCalls[$i].description // ""' | tr -d '\r' | tr '\n' ' ' | sed 's/|/\\|/g')"
+        a_prompt="$(printf '%s' "$usage" | jq -r --argjson i "$i" '.agentCalls[$i].prompt // "" | if (length > 300) then (.[0:300] + "…") else . end' | tr -d '\r' | tr '\n' ' ' | sed 's/|/\\|/g')"
+        echo "| ${a_subtype} | ${a_desc} | ${a_prompt} |"
+      done
+      echo ""
+    fi
+
+    if [ "$(printf '%s' "$usage" | jq '.askUserQuestions | length')" != "0" ]; then
+      echo "### ユーザーへの質問"
+      echo ""
+      echo "| 質問 | 回答 |"
+      echo "|---|---|"
+      local question_count i
+      question_count="$(printf '%s' "$usage" | jq '.askUserQuestions | length')"
+      for i in $(seq 0 $((question_count - 1))); do
+        local q a
+        q="$(printf '%s' "$usage" | jq -r --argjson i "$i" '.askUserQuestions[$i].question // ""' | tr -d '\r' | tr '\n' ' ' | sed 's/|/\\|/g')"
+        a="$(printf '%s' "$usage" | jq -r --argjson i "$i" '.askUserQuestions[$i].answer // ""' | tr -d '\r' | tr '\n' ' ' | sed 's/|/\\|/g')"
+        echo "| ${q} | ${a} |"
+      done
+      echo ""
+    fi
+
     # サブエージェント（Task/Agentツール等で起動された別セッション）の使用量。メインセッションの
     # 数値には含まれないため独立セクションとして表示する（既存テーブルへの行追加ではなく、
     # 主体が異なる数値を明確に区別するため。PR #29レビュー指摘）。ネストしたサブエージェント
