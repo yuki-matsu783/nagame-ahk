@@ -14,17 +14,20 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## フロー進捗状況
 
-- issue: （未着手）
-- ブランチ: （未着手）
-- Draft PR: （未着手）
+- issue: [#43 調査計画→レビュー→調査実施→結果レビュー→作業計画→レビュー→作業実施→結果レビューの流れにする](https://github.com/yuki-matsu783/nagame-ahk/issues/43)
+- ブランチ: `feature-43-add-investigation-plan-phase-to-flow`
+- Draft PR: [#53](https://github.com/yuki-matsu783/nagame-ahk/pull/53)
+
+**注**: 本タスク自体は、着手時点で有効だった旧23ステップの全体フロー（本タスクで新設する
+35ステップ表はこのタスクの成果物であり、まだ有効化されていない）で進行する。
 
 | 進捗 | flow-id | ステップ | 担当 |
 |----|---|---|---|
-| [] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間（AIが代行する場合は `issue-create` スキル） |
-| [] | 2 | issueの内容を取得する | `start <issue番号>` |
-| [] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
-| [] | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
-| [] | 5 | Planに合意する | 人間 |
+| [x] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間（AIが代行する場合は `issue-create` スキル） |
+| [x] | 2 | issueの内容を取得する | `start <issue番号>` |
+| [x] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
+| [x] | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
+| [x] | 5 | Planに合意する | 人間 |
 | [] | 6 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | [] | 7 | MRで再度planについてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
 | [] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
@@ -46,11 +49,14 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## やったこと
 
-（無し）
+- issue #43を取得し、`feature-43-add-investigation-plan-phase-to-flow`ブランチ・Draft PR #53を作成した。
+- Planモードで、全体フローに「調査」サイクル（調査計画→レビュー→調査実施→結果レビュー）を
+  追加する設計をまとめ、`plans/splendid-dazzling-tower.md`として承認を得た。
 
 ## 次にやること
 
-（無し。次タスクのissue番号確定後、`start <issue番号>` から着手する）
+- Planに沿って`.claude/skills/issue-mr-flow/SKILL.md`等を実装し、commitスキル経由でcommit・push
+  してレビュー依頼を行う（flow-id 6）。
 
 ## 判断を迷った内容
 
@@ -62,4 +68,6 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## 守るべき条件・触ってはいけない範囲
 
-（無し）
+- `dev-tools/docs/ddr/000{9,11,12}-*.md`（DDR）内の過去のflow-id言及は追記のみ・不変の運用のため書き換えない。
+- `dev-tools/docs/spec/issue-mr-workflow.md`末尾の「影響範囲」内の既存ブロックは過去の変更履歴のため
+  書き換えず、新規ブロックを追記する。
