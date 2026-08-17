@@ -28,10 +28,10 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
 | [x] | 4 | Planモードで実行手順を作成する（`plans/` へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
 | [x] | 5 | Planに合意する | 人間 |
-| [] | 6 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
-| [] | 7 | MRで再度planについてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
-| [] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
-| [] | 9 | planをもとにMR descriptionを更新する | `describe` |
+| [x] | 6 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
+| [x] | 7 | MRで再度planについてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
+| [x] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
+| [x] | 9 | planをもとにMR descriptionを更新する | `describe` |
 | [] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
 | [] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
 | [] | 12 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
@@ -52,11 +52,14 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 - issue #43を取得し、`feature-43-add-investigation-plan-phase-to-flow`ブランチ・Draft PR #53を作成した。
 - Planモードで、全体フローに「調査」サイクル（調査計画→レビュー→調査実施→結果レビュー）を
   追加する設計をまとめ、`plans/splendid-dazzling-tower.md`として承認を得た。
+- commit・push・レビュー依頼（flow-id 6）を行い、レビューで「セッションをcompactは番号付き
+  ステップにしない」という指摘を受けてplanを35→33ステップへ修正・再push（flow-id 7〜8ループ）。
+  未解決コメント無しを確認し、planをもとにMR descriptionを更新した（flow-id 9）。
 
 ## 次にやること
 
-- Planに沿って`.claude/skills/issue-mr-flow/SKILL.md`等を実装し、commitスキル経由でcommit・push
-  してレビュー依頼を行う（flow-id 6）。
+- コンテキスト削減のためセッションをcompactする（flow-id 10、人間）。
+- その後、Planに沿って`.claude/skills/issue-mr-flow/SKILL.md`等の実装に着手する（flow-id 11）。
 
 ## 判断を迷った内容
 
