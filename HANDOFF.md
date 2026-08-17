@@ -26,10 +26,10 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 4 | Planモードで**調査計画**を作成する（`plans/<plan名>.md`の「調査」章へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
 | [x] | 5 | 調査計画に合意する | 人間 |
 | [x] | 6 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
-| [] | 7 | MRで調査計画についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
-| [] | 8 | レビュー内容を取得し、調査計画を修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
-| [] | 9 | 調査計画をもとにMR descriptionを更新する | `describe` |
-| [] | 10 | **調査を実施**し、結果を`plans/<plan名>.md`の「調査」章・worklogに記録する | エージェント |
+| [x] | 7 | MRで調査計画についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
+| [x] | 8 | レビュー内容を取得し、調査計画を修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
+| [x] | 9 | 調査計画をもとにMR descriptionを更新する | `describe` |
+| [x] | 10 | **調査を実施**し、結果を`plans/<plan名>.md`の「調査」章・worklogに記録する | エージェント |
 | [] | 11 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | [] | 12 | 調査結果をもとにMR descriptionを更新する | `describe` |
 | [] | 13 | MRで調査結果についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
@@ -65,14 +65,19 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 - ユーザーとのAskUserQuestionで主要な設計判断を確定（生成方式=自己完結HTMLをコミット、
   保存場所=`reports/<plan名>.html`・worklogと同じライフサイクル、スタイリング=TailwindCSS CDN第一候補）。
 - Planモードで調査計画を作成し、`plans/drifting-sniffing-clover.md`として承認済み。
-  `worklog/2026-08-18_drifting-sniffing-clover_push1.md`に経緯を記録。
+- 調査計画レビューOK確認（未解決コメント無し）→MR description更新（flow-id 9）。
+- 調査を実施（flow-id 10）。調査項目1〜8の結果を`plans/drifting-sniffing-clover.md`の
+  「調査結果」章に記録。特に重要な発見: `reportsDir`追加だけでなく`Provider.sh`の
+  `get_branch_work_files`改修が必要（詳細はworklog push2参照）。
 
 ## 次にやること
 
-- flow-id 6: `commit`スキルでcommitし、push してレビュー依頼を行う。
-- flow-id 7〜9: MRレビュー→調査計画修正（必要なら）→`describe`でMR description更新。
-- flow-id 10: 調査計画の「調査項目」1〜8を実施し、`plans/drifting-sniffing-clover.md`の
-  「調査結果」章に記録する。
+- flow-id 11: `commit`スキルでcommitし、push してレビュー依頼を行う。
+- flow-id 12〜14: `describe`でMR description更新→MRレビュー→（必要なら）調査結果修正。
+- flow-id 15: 調査結果をもとにPlanモードで作業計画を作成する
+  （少なくとも SKILL.md・docs-workflow.md・directory-structure.md・.mrworkflow.json・
+  Provider.sh(`get_branch_work_files`)・issue-mr-workflow.md・issue-mr-resume.mdの更新を
+  スコープに含める見込み）。
 
 ## 判断を迷った内容
 
