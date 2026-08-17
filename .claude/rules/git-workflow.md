@@ -27,7 +27,7 @@ keywords: [featureブランチ, ブランチ命名, worklog, squash-merge, draft
 
 - **すべてのコミットは `commit` スキル（`.claude/skills/commit/SKILL.md`）経由で行う**
   （issue #39）。ユーザーが明示的に `/commit` を呼ぶ場合だけでなく、`issue-mr-flow` の全体フロー
-  flow-id 6/12/18/22でAIエージェントが自律的にコミットする場面も対象。
+  flow-id 6/11/17/22/28/32でAIエージェントが自律的にコミットする場面も対象。
 - ドキュメント上のルールだけでなく、技術的にも強制する。`git commit` の直接実行は
   `.claude/hooks/block-direct-git-commit.sh`（PreToolUse hook。`.claude/settings.json`の
   `hooks.PreToolUse`で登録）が、Bash/PowerShellのコマンド文字列に `git commit` を検知した時点で

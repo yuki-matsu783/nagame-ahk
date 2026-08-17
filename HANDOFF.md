@@ -19,7 +19,7 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 - Draft PR: [#53](https://github.com/yuki-matsu783/nagame-ahk/pull/53)
 
 **注**: 本タスク自体は、着手時点で有効だった旧23ステップの全体フロー（本タスクで新設する
-35ステップ表はこのタスクの成果物であり、まだ有効化されていない）で進行する。
+33ステップ表はこのタスクの成果物であり、まだ有効化されていない）で進行する。
 
 | 進捗 | flow-id | ステップ | 担当 |
 |----|---|---|---|
@@ -32,8 +32,8 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 7 | MRで再度planについてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
 | [x] | 8 | レビュー内容を取得し、planを修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
 | [x] | 9 | planをもとにMR descriptionを更新する | `describe` |
-| [] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
-| [] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
+| [x] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
+| [x] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
 | [] | 12 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | [] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
 | [] | 14 | MRでレビュー・コメントする。レビュー済み連絡をするまで以降の作業は行わない。 | 人間 |
@@ -55,15 +55,28 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 - commit・push・レビュー依頼（flow-id 6）を行い、レビューで「セッションをcompactは番号付き
   ステップにしない」という指摘を受けてplanを35→33ステップへ修正・再push（flow-id 7〜8ループ）。
   未解決コメント無しを確認し、planをもとにMR descriptionを更新した（flow-id 9）。
+- セッションをcompactした（flow-id 10）。
+- planの実施内容1〜5に従い、`.claude/skills/issue-mr-flow/SKILL.md`（全体フローを33ステップへ
+  再構成）、`.claude/rules/docs-workflow.md`、`.claude/rules/git-workflow.md`、
+  `.claude/skills/commit/SKILL.md`、`dev-tools/docs/spec/issue-mr-workflow.md`（影響範囲へ
+  新規ブロック追記）を編集した（flow-id 11）。HANDOFF.mdのフロー進捗状況テーブルの33行化は、
+  本タスク自身が旧23ステップで進行中のため次のリセット（flow-id 21）まで意図的に見送った
+  （詳細はworklogの「判断」節を参照）。`index.jsonl`の再生成もスコープ外と判断し見送った
+  （同worklog参照）。
 
 ## 次にやること
 
-- コンテキスト削減のためセッションをcompactする（flow-id 10、人間）。
-- その後、Planに沿って`.claude/skills/issue-mr-flow/SKILL.md`等の実装に着手する（flow-id 11）。
+- `commit`スキル経由でcommit・push・レビュー依頼を行う（flow-id 12）。
+- 作業内容をもとにMR descriptionを更新する（flow-id 13）。
+- MRでレビューを受け、完了合図を得たら`comments all`で未解決コメント無しを確認してから
+  次へ進む（flow-id 14〜15ループ）。
 
 ## 判断を迷った内容
 
-（無し）
+- HANDOFF.mdのフロー進捗状況テーブルを33行化するタイミング: planの実施内容2は「今すぐ33行に
+  差し替える」としていたが、本タスク自身がこのHANDOFF.mdで旧23ステップの進捗を追跡中のため、
+  今差し替えると進捗表示と矛盾する。次タスクへ向けたリセット（flow-id 21）まで見送ることにした
+  （worklog参照）。
 
 ## 未解決の内容
 
