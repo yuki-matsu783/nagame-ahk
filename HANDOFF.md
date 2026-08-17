@@ -37,10 +37,10 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 15 | **調査結果をもとに**Planモードで**作業計画**を作成する（`plans/<plan名>.md`の「作業計画」章へ追記・コミット） | エージェント |
 | [x] | 16 | 作業計画に合意する | 人間 |
 | [x] | 17 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
-| [] | 18 | MRで作業計画についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
-| [] | 19 | レビュー内容を取得し、作業計画を修正する。対応が完了したコメントには対応内容を返信する（18〜19を合意まで繰り返す） | `comments` / `reply` |
-| [] | 20 | 作業計画をもとにMR descriptionを更新する | `describe` |
-| [] | 21 | 作業計画をもとに作業を進める、作業内容はworklogに更新する | エージェント |
+| [x] | 18 | MRで作業計画についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
+| [x] | 19 | レビュー内容を取得し、作業計画を修正する。対応が完了したコメントには対応内容を返信する（18〜19を合意まで繰り返す） | `comments` / `reply` |
+| [x] | 20 | 作業計画をもとにMR descriptionを更新する | `describe` |
+| [x] | 21 | 作業計画をもとに作業を進める、作業内容はworklogに更新する | エージェント |
 | [] | 22 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | [] | 23 | 作業内容をもとにMR descriptionを更新する | `describe` |
 | [] | 24 | MRでレビュー・コメントする。レビュー済み連絡をするまで以降の作業は行わない。 | 人間 |
@@ -78,16 +78,19 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 - 作業計画提示時、「セマンティックズームの単純化（クリックで詳細パネル）」の妥当性をユーザーに
   再確認したところ、「本格的な連続セマンティックズームを検討し直したい」との回答があり方針転換。
   `plans/cached-crunching-mochi.md`の「作業計画」章に、連続ズーム（icon/compact/detail 3段階の
-  LOD切り替え）の具体的な実装方式を記載し、承認済み。
+  LOD切り替え）の具体的な実装方式を記載し、承認済み。作業計画レビュー完了（未解決コメント無し）。
+- 作業計画を実施（flow-id 21）: `reports/cached-crunching-mochi.html`をv3へ更新し連続LODズームを
+  実装・動作確認。`.claude/skills/canvas-report/SKILL.md` + `templates/canvas-report.html`を新設。
+  `issue-mr-flow/SKILL.md`のflow-id 10へ参照文言を追記。動作確認として、テンプレートを実データ
+  （`.claude/skills/`間の参照関係）に差し替えた`canvas-report-verify.html`をscratchpad上で作成し
+  ブラウザで動作確認済み（ユーザーへ提示済み）。
 
 ## 次にやること
 
-- flow-id 17: `commit`スキルでcommitし、push してレビュー依頼を行う。
-- flow-id 18〜20: MRレビュー→作業計画修正（必要なら）→`describe`でMR description更新。
-- flow-id 21: 作業計画を実施する
-  （`reports/cached-crunching-mochi.html`をv3へ更新して連続LODズームを実証 →
-  `.claude/skills/canvas-report/SKILL.md` + `templates/canvas-report.html`を新設 →
-  `issue-mr-flow/SKILL.md`のflow-id 10更新 → 新サンプルでの動作確認）。
+- ユーザーからのフィードバック待ち（`canvas-report-verify.html`の動作確認結果）。
+- 問題なければflow-id 22: `commit`スキルでcommitし、push してレビュー依頼を行う。
+- flow-id 23〜25: `describe`でMR description更新→MRレビュー→修正（必要なら）。
+- flow-id 26〜27: 設計反映（`docs/spec/`・`docs/ddr/`）、AIアセット改善。
 
 ## 判断を迷った内容
 
