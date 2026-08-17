@@ -80,3 +80,20 @@ keywords: [dev-tools, scripts, AI専用, 人間専用, プラグイン配布]
   （skills/hooks/rules/tests/index.md/.mrworkflow.jsonデフォルト値）、
   `directory-structure.md`・`markdown-frontmatter.md`の更新、`index.jsonl`再生成。
 - 人間の承認を得た。次はcommit・push・レビュー依頼（flow-id 17）。
+
+## 作業計画レビュー対応（flow-id 19）
+
+- 人間からチャットで「スコープ外としたものについても今回の対応で作業して」との指示を受けた。
+  「調査結果」7番・「作業計画」スコープ外節で除外していた3件のうち、以下2件をスコープに追加した。
+  - `.claude/agents/issue-mr-resume.md`の全面書き直し（旧PowerShell版`Provider.ps1`・PascalCase
+    関数を、現行bash版`Provider.sh`のsnake_case関数へ1対1で置き換える。frontmatterの`tools:`から
+    `PowerShell`も削除）
+  - `DEVELOPERS.md`の`build.ps1`記載修正（`bash dev-tools/src/build.sh`へ）
+  - `.claude/rules/powershell-encoding.md`の整理（精読の結果、単なるパス表記の古さではなく、
+    「Provider.ps1をdot-sourceしていれば自動的に安全」節が指す仕組み自体が既に存在しないと判明。
+    同節を削除し、他の古い実例（`session-start.ps1`, `build.ps1`）への言及も整理する）
+- `build.sh`・`extract-frontmatter.sh`の実行主体（人間の手動実行という運用）を変更する話は
+  出ていないため、これは引き続きスコープ外のまま維持した。
+- `plans/delegated-gathering-frog.md`の「作業計画」章に7〜9番として追記し、「スコープ外」節を
+  縮小した。「検証方法」にも2点（issue-mr-resume.mdの動作確認、powershell-encoding.mdのリンク切れ
+  確認）を追加した。

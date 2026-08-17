@@ -281,17 +281,51 @@ exe配布ビルド専用）のみとなる見込み。
 `.claude/scripts/docs/`, `.claude/scripts/docs/spec/`, `.claude/scripts/docs/ddr/`）の
 `index.jsonl`を再生成する。
 
+### 7. `.claude/agents/issue-mr-resume.md` の全面書き直し（人間からの指示によりスコープに追加）
+
+当初は「本issueのスコープ外」としていたが、人間から「スコープ外としたものについても今回の対応で
+作業して」との指示を受け、対応する。旧PowerShell版`Provider.ps1`・PascalCase関数を前提とした記述を、
+現行bash版`Provider.sh`（移行後は`.claude/scripts/src/vcs/Provider.sh`）のsnake_case関数へ
+1対1で置き換える。
+
+- 手順1（環境準備）: `. dev-tools\src\vcs\Provider.ps1` → `source .claude/scripts/src/vcs/Provider.sh`。
+  PATH再構築のPowerShell例（`$env:Path = ...`）は、git bash相当の対処（シェル再起動 or `hash -r`）に置き換える。
+- 手順3: `Get-IssueNumberFromBranch` → `get_issue_number_from_branch`、
+  `Get-Issue -Number <n>` → `get_issue <n>`
+- 手順4: `Get-MrForBranch -Branch <branch>` → `get_mr_for_branch "<branch>"`
+  （`$null`判定 → 出力が空文字列かどうかの判定に変更。`get_mr_for_branch`の戻り値仕様は
+  `dev-tools/src/vcs/Github.sh`の`github_get_mr_for_branch`参照）
+- 手順5: `Get-MrUnresolvedComments -MrNumber <n> -IncludeResolved` →
+  `get_mr_unresolved_comments <n> true`
+- 手順6: `Get-BranchWorkFiles` → `get_branch_work_files`
+- frontmatterの`tools:`から`PowerShell`を削除する（`Read, Grep, Glob, Bash`のみに変更。
+  bash専用の調査手順になるため）。
+- 手順2・7・8（現在ブランチ確認・HANDOFF.md読み込み・現在地サマリ報告フォーマット）はロジック・
+  出力フォーマットとも変更しない。
+
+### 8. `DEVELOPERS.md` の`build.ps1`記載修正（人間からの指示によりスコープに追加）
+
+「exeのビルド」節の実行コマンド例 `powershell -File dev-tools\src\build.ps1` を
+`bash dev-tools/src/build.sh` に修正する（`build.sh`はdev-tools分離の移行対象外のため、
+パス自体は変更しない。実行コマンドの表記のみが`build.sh`への未追従だった）。
+
+### 9. `.claude/rules/powershell-encoding.md` の旧`Provider.ps1`記述の整理（人間からの指示によりスコープに追加）
+
+内容を精読した結果、単に「`Provider.ps1`という表記が古い」だけでなく、`## `dev-tools/src/vcs/Provider.ps1`
+をdot-sourceしていれば自動的に安全」という節（該当ファイルは既にissue #6でbash化され現存しない）
+全体が、既に存在しない仕組みの説明になっていると判明した。同様に「`Provider.ps1`をdot-sourceしない
+場合のみ注意が必要」節が例示する`.claude/hooks/session-start.ps1`・`dev-tools/src/build.ps1`も
+既にbash化され現存しない（`session-start.sh`・`build.sh`）。以下の方針で整理する。
+
+- 「`Provider.ps1`をdot-sourceしていれば自動的に安全」節は、対応する仕組み自体が現存しないため削除する。
+- 冒頭の適用範囲節が参照する設計ドキュメントのパス（`dev-tools/docs/spec/shell-scripts.md`・
+  `dev-tools/docs/spec/issue-mr-workflow.md`）を、移行後のパス（`.claude/scripts/docs/spec/...`）に更新する。
+- 残る「`.ps1`ファイル自体はBOM付きUTF-8で保存する」節の例示（`session-start.ps1`・`build.ps1`）は、
+  現存する実例が無いため、具体的なファイル名を挙げない一般的な注記に書き改める
+  （AIエージェント向け注記のBOM変換手順自体は現在もリポジトリに新規`.ps1`を作る場合に有効なため残す）。
+
 ### スコープ外・今回やらないこと
 
-- **`.claude/agents/issue-mr-resume.md`の修正**: 調査計画時点では「移行対象パスの書き換えのみ」を
-  想定していたが、作業計画作成にあたり内容を精読した結果、同ファイルは全体が旧PowerShell版
-  `Provider.ps1`・PascalCase関数（`Get-IssueNumberFromBranch`, `Get-Issue`, `Get-MrForBranch`,
-  `Get-MrUnresolvedComments`, `Get-BranchWorkFiles`等）を前提とした記述になっており、現行の
-  bash版`Provider.sh`（snake_case関数、関数体系自体が異なる）とは単純なパス書き換えでは
-  済まない全面的な作り直しが必要と判明した。dev-tools分離（本issue）とは独立した既存バグであり、
-  今回は着手しない。**別issueとして起票することを推奨する**旨をHANDOFF.mdに記録する。
-- `DEVELOPERS.md`の`build.ps1`記載修正（`build.sh`への未追従。dev-tools分離とは無関係の既存stale）
-- `.claude/rules/powershell-encoding.md`の旧`Provider.ps1`言及修正（同上）
 - `build.sh`・`extract-frontmatter.sh`の実行主体（人間の手動実行という運用）自体の変更
   （今回はファイルの置き場所のみ変更する）
 
@@ -306,3 +340,8 @@ exe配布ビルド専用）のみとなる見込み。
 - 本セッション自体が`issue-mr-flow`スキル経由で動作しているため、移行後に本セッションで
   `commit`スキル（新パスの`create-commit.sh`経由）・`describe`サブコマンド（新パスの
   `Provider.sh`経由）を実際に実行し、更新後のパスで動作することをもって実地検証とする。
+- 書き直した`.claude/agents/issue-mr-resume.md`は、`resume`サブコマンドを実際に呼び出して
+  現在地サマリが正しく報告されることを確認する（本タスク自体はセッション途中からの再開ではないため、
+  次回セッションでの`resume`呼び出し時、または本セッション内で手動でAgentツールから呼び出して検証する）。
+- `.claude/rules/powershell-encoding.md`は、削除・書き換え後も既存の他ファイルからのリンク切れが
+  発生しないことを確認する（同ファイルへリンクしている箇所を`grep`で確認）。
