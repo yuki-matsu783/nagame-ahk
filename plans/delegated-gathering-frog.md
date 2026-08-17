@@ -66,9 +66,10 @@ issue #24: 現在 `dev-tools/` 配下には、AIエージェント（Claude Code
 ### 調査対象外
 
 - 実際のファイル移動・パス書き換え作業自体（flow-id 15以降の作業計画・実施フェーズで行う）。
-- `build.sh`・`extract-frontmatter.sh`（人間専用と判定見込み）を `.claude/` 配下へ移すかどうかの
-  是非（issue #24の受け入れ条件はAIが利用するものの移行が主眼のため、人間専用スクリプトは
-  現状の`dev-tools/`に residual として残す前提で調査する。必要なら作業計画時に扱いを明記する）。
+- `build.sh`（人間専用と判定。exe配布ビルド専用でAI・移行対象ファイルのいずれとも無関係なため）を
+  `.claude/` 配下へ移すかどうかの是非（`dev-tools/`に残す前提で調査する）。
+  **`extract-frontmatter.sh`は当初「人間専用のため対象外」としていたが、人間からの指示
+  （下記「調査結果」8番）により移行対象に含めることとした。**
 
 ### 調査方法
 
@@ -90,15 +91,15 @@ Exploreサブエージェントによる `dev-tools/`・`.claude/` 配下のgrep
 | `create-issue.sh` | AI専用（人間も直接実行可） | `.claude/skills/issue-create/SKILL.md`から呼び出される。スクリプト自身に「人間が直接実行してもよい」と明記されているが主用途はAI |
 | `archive-reentrant-plan.sh` | AI専用 | `.claude/rules/plan-mode-safety.md`（`alwaysApply: true`）がPlanモードre-entry時の対処として実行を指示。人間向け導線なし |
 | `build.sh` | 人間専用 | `.claude/`配下のどこからも呼び出されない。`DEVELOPERS.md`が唯一の実行手順記載箇所（開発者の手動実行） |
-| `extract-frontmatter.sh` | 人間専用（現状） | `.claude/`配下のskill/hookから自動呼び出しされない。`dev-tools/docs/spec/extract-frontmatter.md`に「手動で再実行」と明記。出力（`index.jsonl`）はAI可読だが実行主体は人間 |
+| `extract-frontmatter.sh` | 人間専用（現状）→**移行対象に含める**（8番参照） | `.claude/`配下のskill/hookから自動呼び出しされない。`dev-tools/docs/spec/extract-frontmatter.md`に「手動で再実行」と明記。出力（`index.jsonl`）はAI可読だが実行主体は人間 |
 
 **`dev-tools/docs/spec/`**
 
 | ファイル | 分類 | 根拠 |
 |---|---|---|
 | `issue-mr-workflow.md` | AI専用スクリプトの設計書 | `issue-mr-flow/SKILL.md`が「本ファイルは`issue-mr-workflow.md`の実装」と明言。`Provider.sh`等AI専用スクリプト群の正史仕様 |
-| `shell-scripts.md` | 判断が分かれる（AI専用寄りだが`build.sh`の規約も含む） | bashスクリプト共通規約。対象スクリプトの大半（`vcs/*`, `create-commit.sh`, `create-issue.sh`, `archive-reentrant-plan.sh`, `.claude/hooks/*.sh`）はAI専用だが、`build.sh`（人間専用）も同じ規約に従う。`.claude/rules/shell-script-style.md`（AI専用ルール）が本docを「設計方針・経緯」として参照している関係がある |
-| `extract-frontmatter.md` | 判断が分かれる | スクリプト自体は人間専用だが、生成物はAI可読frontmatterインデックス基盤という位置づけ |
+| `shell-scripts.md` | 判断が分かれる→**移行対象に含める**（8番参照。`build.sh`向け参照の維持方法は作業計画で検討） | bashスクリプト共通規約。対象スクリプトの大半（`vcs/*`, `create-commit.sh`, `create-issue.sh`, `archive-reentrant-plan.sh`, `.claude/hooks/*.sh`）はAI専用だが、`build.sh`（人間専用）も同じ規約に従う。`.claude/rules/shell-script-style.md`（AI専用ルール）が本docを「設計方針・経緯」として参照している関係がある |
+| `extract-frontmatter.md` | 判断が分かれる→**移行対象に含める**（8番参照） | スクリプト自体は人間専用だが、生成物はAI可読frontmatterインデックス基盤という位置づけ |
 | `distribution.md` | 人間専用の設計書 | `build.sh`（exe配布ビルド）の仕様。AIの実装フローには登場しない |
 
 **`dev-tools/docs/ddr/`**
@@ -107,7 +108,7 @@ Exploreサブエージェントによる `dev-tools/`・`.claude/` 配下のgrep
 |---|---|
 | `0001`（ahk2exeビルド） | 人間専用（`build.sh`関連） |
 | `0002`〜`0007`, `0009`〜`0012` | AI専用（issue-mr-flow統合・レビュー返信・DraftPR自動リトライ・Planモードre-entry対処・ブランチslug生成・commitスキル強制など、いずれもAIワークフロー関連） |
-| `0008`（frontmatter抽出設計） | 判断が分かれる（実行主体は人間だがAI可読データ生成が目的） |
+| `0008`（frontmatter抽出設計） | 判断が分かれる→**移行対象に含める**（8番参照。実行主体は人間だがAI可読データ生成が目的） |
 
 #### 2. `dev-tools/src/` へのパス参照箇所（リポジトリ全体grep結果）
 
@@ -174,18 +175,19 @@ issue本文の「AIが利用するものは`.claude`のscripts配下に入れる
 ```
 .claude/
 ├── scripts/
-│   ├── src/          # dev-tools/src/ のうちAI専用と判定したファイル
+│   ├── src/          # dev-tools/src/ のうちAI専用＋extract-frontmatter.sh（8番参照）
 │   │   └── vcs/
 │   └── docs/
-│       ├── spec/      # dev-tools/docs/spec/ のうちAI専用設計書
-│       └── ddr/        # dev-tools/docs/ddr/ のうちAI関連DDR
+│       ├── spec/      # dev-tools/docs/spec/ のうちAI専用＋shell-scripts.md・extract-frontmatter.md
+│       └── ddr/        # dev-tools/docs/ddr/ のうちAI関連＋0008
 ├── rules/
 ├── skills/
 └── hooks/
 ```
 
 既存の`.claude/`配下の構成（`rules/`, `skills/`, `hooks/`）と並列に`scripts/`を追加する形になり、
-命名・階層は既存構成と整合する。
+命名・階層は既存構成と整合する。8番の追記により、`dev-tools/`に残るのは`build.sh`・
+`distribution.md`・DDR `0001`のみとなる見込み。
 
 #### 7. スコープ外だが記録した既知のstale参照
 
@@ -194,3 +196,23 @@ issue本文の「AIが利用するものは`.claude`のscripts配下に入れる
 受け入れ条件（AI専用スクリプトの分離）には直接関係しないため、作業計画のスコープには含めない
 方針とする（`issue-mr-resume.md`の移行対象パス表記だけは、今回の移行対象であるため作業計画で
 併せて修正する）。
+
+#### 8. 調査結果の追記（人間からの指示によるスコープ変更）
+
+調査結果レビュー時、人間から「`extract-frontmatter.sh`と判断が分かれる部分も移行して」との
+指示を受けた。これを受け、以下のとおり移行対象を変更する。
+
+- `extract-frontmatter.sh`: 当初「人間専用（現状）」としていたが、移行対象に含める
+  （`.claude/scripts/src/`へ移動）。実行主体は依然として人間の手動実行だが、移行先を分ける
+  意味が薄い（`.claude/`配下に置いてもAIが自動実行するわけではなく、人間が手動実行する運用は
+  変わらない）ため、移行そのものは可能と判断する。
+- 「判断が分かれる」としていた設計書も移行対象に含める:
+  - `dev-tools/docs/spec/extract-frontmatter.md` → `.claude/scripts/docs/spec/`へ
+  - `dev-tools/docs/ddr/0008-frontmatter抽出スクリプトの設計判断.md` → `.claude/scripts/docs/ddr/`へ
+  - `dev-tools/docs/spec/shell-scripts.md` → `.claude/scripts/docs/spec/`へ。ただし本docは
+    `build.sh`（人間専用・`dev-tools/src/`に残留）のbash規約も対象に含んでいるため、移行後も
+    `build.sh`から参照可能な状態を保つ必要がある（`dev-tools/`側から`.claude/scripts/docs/`への
+    参照リンクで足りるか、記述を分割すべきかは作業計画で検討する）。
+
+この結果、`dev-tools/`に残るのは `build.sh`・`distribution.md`・DDR `0001`（いずれも
+exe配布ビルド専用）のみとなる見込み。

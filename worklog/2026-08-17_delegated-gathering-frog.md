@@ -51,3 +51,15 @@ keywords: [dev-tools, scripts, AI専用, 人間専用, プラグイン配布]
   - `.claude/rules/directory-structure.md`の`dev-tools/`記載は実態と乖離しており更新が必要
 - 次は結果レビュー待ち（flow-id 13〜14）。完了後、調査結果をもとに作業計画（flow-id 15）を
   Planモードで作成する。
+
+## 調査結果レビュー対応（flow-id 14）
+
+- 人間からチャット上で「`extract-frontmatter.sh`と判断が分かれる部分も移行して」との指摘を受けた。
+  PRコメントではなくチャットでの直接指摘だったため、`plans/delegated-gathering-frog.md`の
+  「調査結果」に8番として追記する形で反映し、影響する既存の表（1番の分類表・6番の移行先構成図・
+  調査対象外）にも参照注記を追加した。
+- 反映内容: `extract-frontmatter.sh`・`extract-frontmatter.md`・`shell-scripts.md`・DDR`0008`を
+  移行対象に含める。結果、`dev-tools/`に残るのは`build.sh`・`distribution.md`・DDR`0001`のみ
+  （いずれもexe配布ビルド専用）という見込みに変わった。
+  `shell-scripts.md`は`build.sh`の規約も含むため、移行後の参照維持方法は作業計画で検討する
+  課題として明記した。
