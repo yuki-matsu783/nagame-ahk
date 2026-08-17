@@ -25,10 +25,10 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
 | [x] | 4 | Planモードで**調査計画**を作成する（`plans/<plan名>.md`の「調査」章へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
 | [x] | 5 | 調査計画に合意する | 人間 |
-| [] | 6 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
+| [x] | 6 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | [] | 7 | MRで調査計画についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
 | [] | 8 | レビュー内容を取得し、調査計画を修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
-| [] | 9 | 調査計画をもとにMR descriptionを更新する | `describe` |
+| [x] | 9 | 調査計画をもとにMR descriptionを更新する | `describe` |
 | [] | 10 | **調査を実施**し、結果を`plans/<plan名>.md`の「調査」章・worklogに記録する。あわせて調査結果を視覚的に分かりやすくまとめた自己完結HTML（TailwindCSS CDN方式）を`reports/<plan名>.html`として作成する（調査結果が複数要素間の関連・依存関係を主題とする場合は、`.claude/skills/canvas-report/SKILL.md`のcanvas形式テンプレートの利用を検討する） | エージェント |
 | [] | 11 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | [] | 12 | 調査結果をもとにMR descriptionを更新する | `describe` |
