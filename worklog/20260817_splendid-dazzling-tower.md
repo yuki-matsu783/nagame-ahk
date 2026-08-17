@@ -34,3 +34,19 @@ plan: `plans/splendid-dazzling-tower.md`
 - Planに沿って `.claude/skills/issue-mr-flow/SKILL.md` 等の実装を進める。
 
 ---
+
+## 2026-08-17 追記: レビュー1回目対応
+
+- PR #53のレビューで「セッションをcompactするステップは任意のタイミングで実施すればよく、
+  フロー中の番号付きステップとして固定する必要はない」という指摘（threadId:
+  `PRRT_kwDOT4Y-5s6ZzbyR`、対象行: `plans/splendid-dazzling-tower.md:62`）を受けた。
+- 当初案（35ステップ）から、調査サイクル・作業サイクル双方の「セッションをcompact」ステップを
+  削除し、33ステップへ再構成した。あわせてcommitポイント（6/11/17/22/28/32）・
+  レビュー完了合図確認の対象flow-id（8/14/19/25/30）・
+  `flow-id 21実施前マージ`節の参照先（→`flow-id 31`）等、影響する数字を全て再計算し直した。
+- `dev-tools/src/archive-reentrant-plan.sh`内の「flow-id 6/12」という例示コメントは、新表では
+  12がcommitポイントでなくなる（新11がcommitポイント）ためわずかにズレるが、
+  「Planモード再突入時のcommitポイントの例示」という軽微なコメントであり、6は引き続き正しいため
+  本タスクのスコープ外（次にこのスクリプトへ触れる際に合わせて直す）と判断した。
+
+---
