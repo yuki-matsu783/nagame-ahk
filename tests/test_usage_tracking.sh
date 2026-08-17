@@ -1,13 +1,23 @@
 #!/usr/bin/env bash
 #
 # .claude/hooks/lib/UsageTracking.sh の単体テスト。
-# 設計: dev-tools/docs/spec/issue-mr-workflow.md「対応工数レポート」節
+# 設計: plans/inherited-gathering-biscuit.md（issue #37）,
+#       dev-tools/docs/spec/issue-mr-workflow.md「対応工数レポート」節
 #
-# 対象: gh/glab呼び出しを伴わない純粋ロジック（_usage_aggregate_transcript, _usage_merge_state,
-# _usage_merge_agent_state, _usage_sync_session_logs, _usage_aggregate_and_merge_subagents）。
+# 対象: gh/glab呼び出しを伴わない純粋ロジック（_usage_aggregate_transcript, _usage_aggregate_new_lines,
+# _usage_merge_state, _usage_merge_agent_state, _usage_sync_session_logs,
+# _usage_aggregate_and_merge_subagents, sync_usage_state, _usage_reset_since_last_push）。
 # 合成JSONLフィクスチャ（jq -ncで生成、$TMPDIR配下）に対する集計結果を検証する。
 # _usage_sync_session_logsのコピー処理は、疑似`~/.claude/projects`ツリーを$TMPDIR配下に自作して
 # 検証する（実ホームディレクトリには一切触れない）。
+#
+# 注意（issue #37の追加バグ修正、_usage_read_new_linesの廃止）: 当初は「新規行の切り出し
+# （_usage_read_new_lines）とその集計（_usage_aggregate_new_lines）」の2関数構成だったが、
+# 前者が切り出したJSON配列を後者へ`--argjson`のコマンドライン引数として渡す設計が、実transcript
+# （tool_use/tool_resultの生の入出力を含む）ではWindowsのコマンドライン長上限を容易に超え
+# `Argument list too long`で失敗することが実データで判明した。対策として両関数を
+# `_usage_aggregate_new_lines(transcript_path, last_line_count, branch)`に統合し、常に
+# transcriptをファイルパスとしてjqへ渡す設計に変更した（詳細はUsageTracking.shのコメント参照）。
 #
 # 使い方:
 #     bash tests/test_usage_tracking.sh
@@ -53,10 +63,10 @@ mk_entry() {
 TMP_FILE="$(mktemp)"
 trap 'rm -f "$TMP_FILE"' EXIT
 
-# --- _usage_aggregate_transcript: activeSeconds ---
+# --- _usage_aggregate_transcript: activeSeconds（ロジック変更なし。issue #37以降はactiveSeconds
+#     専用として維持される） ---
 
-# entryが1件のみ: tail buffer（既定30秒）のみが計上される（参考実装claude-work-timerの
-# "returns single segment for one event" 相当）
+# entryが1件のみ: tail buffer（既定30秒）のみが計上される
 mk_entry "2026-01-01T00:00:00Z" "b" > "$TMP_FILE"
 result="$(_usage_aggregate_transcript "$TMP_FILE" "b")"
 assert_equal "$(printf '%s' "$result" | jq -r '.activeSeconds')" "30" \
@@ -81,8 +91,7 @@ result="$(_usage_aggregate_transcript "$TMP_FILE" "b")"
 assert_equal "$(printf '%s' "$result" | jq -r '.activeSeconds')" "60" \
   "_usage_aggregate_transcript: 閾値以上のgapは除外されセグメント終端のtail bufferが2回分計上される（30+30）"
 
-# ちょうど閾値（300秒）のgapは「待ち」側として扱う（参考実装claude-work-timerの
-# "handles exact threshold as idle" 相当）
+# ちょうど閾値（300秒）のgapは「待ち」側として扱う
 {
   mk_entry "2026-01-01T00:00:00Z" "b"
   mk_entry "2026-01-01T00:05:00Z" "b"
@@ -91,20 +100,7 @@ result="$(_usage_aggregate_transcript "$TMP_FILE" "b")"
 assert_equal "$(printf '%s' "$result" | jq -r '.activeSeconds')" "60" \
   "_usage_aggregate_transcript: gapがちょうど閾値の場合は待ち側として扱われる"
 
-# 複数の閾値超gap（3セグメント）: セグメントの数だけtail bufferが積み上がる
-{
-  mk_entry "2026-01-01T00:00:00Z" "b"
-  mk_entry "2026-01-01T00:01:00Z" "b"
-  mk_entry "2026-01-01T00:11:00Z" "b"
-  mk_entry "2026-01-01T00:12:00Z" "b"
-  mk_entry "2026-01-01T00:27:00Z" "b"
-  mk_entry "2026-01-01T00:28:00Z" "b"
-} > "$TMP_FILE"
-result="$(_usage_aggregate_transcript "$TMP_FILE" "b")"
-assert_equal "$(printf '%s' "$result" | jq -r '.activeSeconds')" "270" \
-  "_usage_aggregate_transcript: 複数の閾値超gapでセグメント数分tail bufferが積み上がる（60×3+30×3）"
-
-# gitBranch不一致entryは除外される（tokens集計と同じ既存フィルタがactiveSecondsにも効くことを確認）
+# gitBranch不一致entryは除外される
 {
   mk_entry "2026-01-01T00:00:00Z" "other-branch"
   mk_entry "2026-01-01T00:02:00Z" "b"
@@ -112,89 +108,214 @@ assert_equal "$(printf '%s' "$result" | jq -r '.activeSeconds')" "270" \
 result="$(_usage_aggregate_transcript "$TMP_FILE" "b")"
 assert_equal "$(printf '%s' "$result" | jq -r '.assistantCount')" "1" \
   "_usage_aggregate_transcript: gitBranch不一致entryはassistantCountから除外される"
-assert_equal "$(printf '%s' "$result" | jq -r '.activeSeconds')" "30" \
-  "_usage_aggregate_transcript: gitBranch不一致entryは直前entryとして扱われずtail bufferのみになる"
 
-# --- _usage_merge_state: activeSeconds delta ---
+# --- _usage_aggregate_new_lines: totalLines/オフセット/不正行の扱い（issue #37の追加バグ修正で
+#     _usage_read_new_lines を統合したため、totalLinesと集計結果を同じ呼び出しで検証する） ---
 
-# 初回push（セッション未記録）: prevActiveSeconds=0として扱われ、currentがそのままdeltaになる
-current_1="$(jq -nc '{tokens: {}, tools: {}, assistantCount: 1, activeSeconds: 30}')"
-merged_1="$(_usage_merge_state "{}" "$current_1" "sessionA" "feature-x")"
+{
+  mk_entry "2026-01-01T00:00:00Z" "b"
+  mk_entry "2026-01-01T00:01:00Z" "b"
+  mk_entry "2026-01-01T00:02:00Z" "b"
+} > "$TMP_FILE"
+result="$(_usage_aggregate_new_lines "$TMP_FILE" 1 "b")"
+assert_equal "$(printf '%s' "$result" | jq -r '.totalLines')" "3" \
+  "_usage_aggregate_new_lines: totalLinesは空行を除いた全行数"
+assert_equal "$(printf '%s' "$result" | jq -r '.assistantCount')" "2" \
+  "_usage_aggregate_new_lines: オフセット以降の行のみが集計対象になる"
+
+result="$(_usage_aggregate_new_lines "$TMP_FILE" 0 "b")"
+assert_equal "$(printf '%s' "$result" | jq -r '.assistantCount')" "3" \
+  "_usage_aggregate_new_lines: オフセット0なら全行が集計対象になる"
+
+result="$(_usage_aggregate_new_lines "$TMP_FILE" 10 "b")"
+assert_equal "$(printf '%s' "$result" | jq -r '.assistantCount')" "0" \
+  "_usage_aggregate_new_lines: オフセットが総行数を超える場合は集計対象が空になる"
+
+# 不正なJSON行は行数（totalLines）には数えるが、集計からは除外される
+{
+  mk_entry "2026-01-01T00:00:00Z" "b"
+  echo "not valid json"
+  mk_entry "2026-01-01T00:02:00Z" "b"
+} > "$TMP_FILE"
+result="$(_usage_aggregate_new_lines "$TMP_FILE" 0 "b")"
+assert_equal "$(printf '%s' "$result" | jq -r '.totalLines')" "3" \
+  "_usage_aggregate_new_lines: 不正なJSON行も空行でなければtotalLinesに数える"
+assert_equal "$(printf '%s' "$result" | jq -r '.assistantCount')" "2" \
+  "_usage_aggregate_new_lines: 不正なJSON行は集計からは除外される"
+
+# --- _usage_aggregate_new_lines（続き）: 巨大なペイロードでも Argument list too long にならない
+#     ことの回帰テスト（issue #37の追加バグ修正の主目的）。実transcriptのtool出力を模した
+#     長い文字列フィールドを持つ行を複数含めても、コマンドライン引数の長さに一切影響しない
+#     （transcriptを常にファイルパスとしてjqへ渡す設計のため）ことを確認する。 ---
+
+# 注意: 長い文字列を`jq --arg`のコマンドライン引数として渡すと、このヘルパー自身が本テストで
+# 検証したいのと同じ「Argument list too long」バグを踏んでしまう。そのためjqへ引数として渡さず、
+# printfでJSON行を直接組み立てる（中身は"x"の繰り返しのみでJSON上のエスケープが不要なため安全）。
+mk_large_entry() {
+  local ts="$1" branch="$2" size="$3"
+  local big
+  big="$(printf 'x%.0s' $(seq 1 "$size"))"
+  printf '{"type":"assistant","gitBranch":"%s","timestamp":"%s","message":{"model":"m","usage":{"input_tokens":1,"output_tokens":1},"content":[{"type":"tool_use","id":"toolu_big","name":"Bash","input":{"command":"%s"}}]}}\n' \
+    "$branch" "$ts" "$big"
+}
+
+{
+  mk_large_entry "2026-01-01T00:00:00Z" "b" 50000
+  mk_large_entry "2026-01-01T00:01:00Z" "b" 50000
+  mk_large_entry "2026-01-01T00:02:00Z" "b" 50000
+} > "$TMP_FILE"
+result="$(_usage_aggregate_new_lines "$TMP_FILE" 0 "b")"
+assert_equal "$?" "0" \
+  "_usage_aggregate_new_lines: 巨大な行(50KB×3件)でもArgument list too longにならず正常終了する"
+assert_equal "$(printf '%s' "$result" | jq -r '.assistantCount')" "3" \
+  "_usage_aggregate_new_lines: 巨大な行でも集計結果自体は正しい"
+
+# --- _usage_aggregate_new_lines（続き）: userメッセージのmessage.contentが配列でなく単一の文字列の
+#     場合でも例外にならないことの回帰テスト（issue #37の追加バグ修正。人間が直接入力したシンプルな
+#     userメッセージは message.content が文字列のまま格納されることが実データで確認された） ---
+
+plain_string_user_entry="$(jq -nc '{type: "user", gitBranch: "b", timestamp: "2026-01-01T00:03:00Z",
+  uuid: "u3", message: {role: "user", content: "こんにちは"}}')"
+printf '%s\n' "$plain_string_user_entry" > "$TMP_FILE"
+result="$(_usage_aggregate_new_lines "$TMP_FILE" 0 "b")"
+assert_equal "$?" "0" \
+  "_usage_aggregate_new_lines: message.contentが文字列のuserエントリでも例外にならず正常終了する"
+assert_equal "$(printf '%s' "$result" | jq -r '.askUserQuestions | length')" "0" \
+  "_usage_aggregate_new_lines: 文字列のmessage.contentからはaskUserQuestionsが抽出されない（tool_resultが無いため）"
+
+# --- _usage_aggregate_new_lines（続き）: tools/tokens/turns/skillCalls/agentCalls/askUserQuestionsの
+#     抽出 ---
+
+skill_entry="$(jq -nc '{type: "assistant", gitBranch: "b", timestamp: "2026-01-01T00:00:00Z",
+  message: {model: "m", usage: {input_tokens: 1, output_tokens: 1}, content: [
+    {type: "tool_use", id: "toolu_1", name: "Skill", input: {skill: "issue-mr-flow", args: "start 45"}}
+  ]}}')"
+agent_entry="$(jq -nc '{type: "assistant", gitBranch: "b", timestamp: "2026-01-01T00:01:00Z",
+  message: {model: "m", usage: {input_tokens: 2, output_tokens: 2}, content: [
+    {type: "tool_use", id: "toolu_2", name: "Agent", input: {
+      subagent_type: "Explore", description: "調査する", prompt: "何か調べて"}},
+    {type: "tool_use", id: "toolu_3", name: "Bash", input: {}}
+  ]}}')"
+other_branch_entry="$(jq -nc '{type: "assistant", gitBranch: "other", timestamp: "2026-01-01T00:02:00Z",
+  message: {model: "m", usage: {input_tokens: 99, output_tokens: 99}, content: [
+    {type: "tool_use", id: "toolu_9", name: "Bash", input: {}}
+  ]}}')"
+question_entry="$(jq -nc '{type: "user", gitBranch: "b", timestamp: "2026-01-01T00:03:00Z", uuid: "u1",
+  message: {content: [
+    {type: "tool_result", tool_use_id: "toolu_4",
+      content: "Your questions have been answered: \"色は？\"=\"赤\", \"数は？\"=\"3\". You can now continue with these answers in mind."}
+  ]}}')"
+non_answer_entry="$(jq -nc '{type: "user", gitBranch: "b", timestamp: "2026-01-01T00:04:00Z", uuid: "u2",
+  message: {content: [
+    {type: "tool_result", tool_use_id: "toolu_5", content: "1"}
+  ]}}')"
+
+{
+  printf '%s\n' "$skill_entry"
+  printf '%s\n' "$agent_entry"
+  printf '%s\n' "$other_branch_entry"
+  printf '%s\n' "$question_entry"
+  printf '%s\n' "$non_answer_entry"
+} > "$TMP_FILE"
+delta="$(_usage_aggregate_new_lines "$TMP_FILE" 0 "b")"
+
+assert_equal "$(printf '%s' "$delta" | jq -r '.assistantCount')" "2" \
+  "_usage_aggregate_new_lines: gitBranch一致のassistantエントリのみカウントされる"
+assert_equal "$(printf '%s' "$delta" | jq -r '.tokens.m.input')" "3" \
+  "_usage_aggregate_new_lines: 他ブランチ分のトークンは合算されない（1+2=3、99は除外）"
+assert_equal "$(printf '%s' "$delta" | jq -r '.tools.Bash')" "1" \
+  "_usage_aggregate_new_lines: 他ブランチ分のtool_useは除外される（同ブランチのBashのみ1件）"
+assert_equal "$(printf '%s' "$delta" | jq -r '.skillCalls | length')" "1" \
+  "_usage_aggregate_new_lines: Skill tool_useブロックが1件抽出される"
+assert_equal "$(printf '%s' "$delta" | jq -r '.skillCalls[0].skill')" "issue-mr-flow" \
+  "_usage_aggregate_new_lines: skillCallsにskill名が入る"
+assert_equal "$(printf '%s' "$delta" | jq -r '.skillCalls[0].args')" "start 45" \
+  "_usage_aggregate_new_lines: skillCallsにargsが入る"
+assert_equal "$(printf '%s' "$delta" | jq -r '.agentCalls | length')" "1" \
+  "_usage_aggregate_new_lines: Agent tool_useブロックが1件抽出される"
+assert_equal "$(printf '%s' "$delta" | jq -r '.agentCalls[0].subagentType')" "Explore" \
+  "_usage_aggregate_new_lines: agentCallsにsubagentTypeが入る"
+assert_equal "$(printf '%s' "$delta" | jq -r '.agentCalls[0].prompt')" "何か調べて" \
+  "_usage_aggregate_new_lines: agentCallsにpromptが入る"
+assert_equal "$(printf '%s' "$delta" | jq -r '.askUserQuestions | length')" "2" \
+  "_usage_aggregate_new_lines: 1回のAskUserQuestionから複数の質問=回答ペアが抽出される"
+assert_equal "$(printf '%s' "$delta" | jq -r '.askUserQuestions[0].question')" "色は？" \
+  "_usage_aggregate_new_lines: askUserQuestionsに質問文が入る"
+assert_equal "$(printf '%s' "$delta" | jq -r '.askUserQuestions[0].answer')" "赤" \
+  "_usage_aggregate_new_lines: askUserQuestionsに回答が入る"
+
+# --- _usage_merge_state: 新規分（delta）をそのまま加算する方式（issue #37で引き算方式から変更） ---
+
+zero_delta='{"tokens":{},"tools":{},"assistantCount":0,"skillCalls":[],"agentCalls":[],"askUserQuestions":[]}'
+
+delta_1="$(jq -nc '{tokens: {m: {input: 10, output: 5, cacheCreate: 0, cacheRead: 0}},
+  tools: {Bash: 2}, assistantCount: 1, skillCalls: [], agentCalls: [], askUserQuestions: []}')"
+merged_1="$(_usage_merge_state "{}" "$delta_1" 30 "sessionA" "feature-x")"
+assert_equal "$(printf '%s' "$merged_1" | jq -r '.sinceLastPush.tokensByModel.m.input')" "10" \
+  "_usage_merge_state: 初回pushはdeltaの値がそのままsinceLastPushになる"
+assert_equal "$(printf '%s' "$merged_1" | jq -r '.sinceLastPush.toolCalls.Bash')" "2" \
+  "_usage_merge_state: 初回pushのtoolCallsもdeltaがそのまま入る"
+assert_equal "$(printf '%s' "$merged_1" | jq -r '.sinceLastPush.turns')" "1" \
+  "_usage_merge_state: turnsはdelta.assistantCountがそのまま入る"
 assert_equal "$(printf '%s' "$merged_1" | jq -r '.sinceLastPush.activeSeconds')" "30" \
-  "_usage_merge_state: 初回push（セッション未記録）はcurrentの値がそのままdeltaになる"
+  "_usage_merge_state: 初回pushのactiveSecondsは累計値(30)-前回(0)がそのまま入る"
 assert_equal "$(printf '%s' "$merged_1" | jq -r '.sessions.sessionA.lastActiveSeconds')" "30" \
-  "_usage_merge_state: 初回pushでセッションのlastActiveSecondsが保存される"
+  "_usage_merge_state: sessionのlastActiveSecondsに累計値が保存される"
 
-# 2回目以降のpush: 前回スナップショットとの差分が加算される。既存のsinceLastPush（前回投稿分から
-# 繰り越し）にも積み上がることを確認する
-current_2="$(jq -nc '{tokens: {}, tools: {}, assistantCount: 2, activeSeconds: 150}')"
-merged_2="$(_usage_merge_state "$merged_1" "$current_2" "sessionA" "feature-x")"
+# 2回目push: 前回のsinceLastPush（まだリセットされていない想定）に新規分が加算される。
+# tokens/tools/turnsは単純加算（引き算ではない）。activeSecondsは累計値との差分。
+delta_2="$(jq -nc '{tokens: {m: {input: 4, output: 1, cacheCreate: 0, cacheRead: 0}},
+  tools: {Bash: 1, Read: 3}, assistantCount: 2, skillCalls: [], agentCalls: [], askUserQuestions: []}')"
+merged_2="$(_usage_merge_state "$merged_1" "$delta_2" 150 "sessionA" "feature-x")"
+assert_equal "$(printf '%s' "$merged_2" | jq -r '.sinceLastPush.tokensByModel.m.input')" "14" \
+  "_usage_merge_state: 2回目pushはtokensが単純加算される（10+4=14）"
+assert_equal "$(printf '%s' "$merged_2" | jq -r '.sinceLastPush.toolCalls.Bash')" "3" \
+  "_usage_merge_state: 2回目pushはtoolCallsが単純加算される（2+1=3）"
+assert_equal "$(printf '%s' "$merged_2" | jq -r '.sinceLastPush.toolCalls.Read')" "3" \
+  "_usage_merge_state: 新規ツールのtoolCallsも加算される"
+assert_equal "$(printf '%s' "$merged_2" | jq -r '.sinceLastPush.turns')" "3" \
+  "_usage_merge_state: turnsも単純加算される（1+2=3）"
 assert_equal "$(printf '%s' "$merged_2" | jq -r '.sinceLastPush.activeSeconds')" "150" \
-  "_usage_merge_state: 2回目以降のpushはdelta（150-30=120）が前回のsinceLastPush（30）へ加算される"
-assert_equal "$(printf '%s' "$merged_2" | jq -r '.sessions.sessionA.lastActiveSeconds')" "150" \
-  "_usage_merge_state: 2回目以降のpushでlastActiveSecondsが最新値へ更新される"
+  "_usage_merge_state: activeSecondsは累計値(150)-前回累計(30)=120が前回分(30)へ加算される（30+120=150）"
 
-# tail bufferの暫定加算が実gapへ置き換わっても差分は負にならない（単調非減少性）ことを確認する。
-# 1件のみのセッション（activeSeconds=30、tail buffer分のみ）の後、
-# 同じ末尾entryのすぐ後（5秒後）に2件目が来た場合を想定する。
-current_single="$(jq -nc '{tokens: {}, tools: {}, assistantCount: 1, activeSeconds: 30}')"
-merged_single="$(_usage_merge_state "{}" "$current_single" "sessionB" "feature-x")"
-# 2件目追加後の再集計結果を模した値（5秒gap + 新しい末尾tail buffer = 5+30=35）
-current_grown="$(jq -nc '{tokens: {}, tools: {}, assistantCount: 2, activeSeconds: 35}')"
-merged_grown="$(_usage_merge_state "$merged_single" "$current_grown" "sessionB" "feature-x")"
-# 「1回目のsinceLastPushより2回目の方が小さくない」ことを検証する（単調非減少性の確認）
-prev_since="$(printf '%s' "$merged_single" | jq -r '.sinceLastPush.activeSeconds')"
-new_since="$(printf '%s' "$merged_grown" | jq -r '.sinceLastPush.activeSeconds')"
-assert_true "$([ "$new_since" -ge "$prev_since" ] && echo true || echo false)" \
-  "_usage_merge_state: tail bufferの暫定加算が実gapへ置き換わってもsinceLastPushは単調非減少である"
+# skillCalls/agentCalls/askUserQuestionsは配列として追記（累積）される
+delta_with_skill="$(jq -nc '{tokens: {}, tools: {}, assistantCount: 0,
+  skillCalls: [{id: "t1", skill: "commit", args: null}], agentCalls: [], askUserQuestions: []}')"
+merged_3="$(_usage_merge_state "$merged_2" "$delta_with_skill" 150 "sessionA" "feature-x")"
+assert_equal "$(printf '%s' "$merged_3" | jq -r '.sinceLastPush.skillCalls | length')" "1" \
+  "_usage_merge_state: skillCallsが新規に追記される"
+merged_4="$(_usage_merge_state "$merged_3" "$delta_with_skill" 150 "sessionA" "feature-x")"
+assert_equal "$(printf '%s' "$merged_4" | jq -r '.sinceLastPush.skillCalls | length')" "2" \
+  "_usage_merge_state: skillCallsは追記のたびに累積する（配列連結）"
 
-# --- _usage_aggregate_transcript: agentId等サブエージェント由来の余分なフィールドがあっても
-#     既存の集計ロジックに影響しないことの回帰テスト ---
+# --- _usage_merge_agent_state: agentId単位のスナップショット・sinceLastPush（新シグネチャ:
+#     delta + activeSeconds累計値を渡す） ---
 
-extra_entry="$(jq -nc '{type: "assistant", gitBranch: "b", timestamp: "2026-01-01T00:00:00Z",
-  agentId: "x", isSidechain: true, sessionId: "parent",
-  message: {model: "m", usage: {input_tokens: 1, output_tokens: 1},
-    content: [{type: "tool_use", name: "Bash"}]}}')"
-printf '%s\n' "$extra_entry" > "$TMP_FILE"
-result="$(_usage_aggregate_transcript "$TMP_FILE" "b")"
-assert_equal "$(printf '%s' "$result" | jq -r '.assistantCount')" "1" \
-  "_usage_aggregate_transcript: agentId等の余分なフィールドがあってもassistantCountは正しく集計される"
-assert_equal "$(printf '%s' "$result" | jq -r '.tools.Bash')" "1" \
-  "_usage_aggregate_transcript: agentId等の余分なフィールドがあってもtool_use集計は正しく動く"
-
-# --- _usage_merge_agent_state: agentId単位のスナップショット・sinceLastPush（issue #34で
-#     agentType単位の合算表示を廃止し、agentIdごとに個別のentryを保持する方式へ変更） ---
-
-current_a1="$(jq -nc '{tokens: {}, tools: {}, assistantCount: 1, activeSeconds: 30}')"
-merged_agent_a="$(_usage_merge_agent_state "{}" "agent1" "Explore" "Explore usage code" "$current_a1" "feature-x")"
+agent_delta_a1="$(jq -nc '{tokens: {}, tools: {}, assistantCount: 1, skillCalls: [], agentCalls: [], askUserQuestions: []}')"
+merged_agent_a="$(_usage_merge_agent_state "{}" "agent1" "Explore" "Explore usage code" "$agent_delta_a1" 30 "feature-x")"
 assert_equal "$(printf '%s' "$merged_agent_a" | jq -r '.agents.agent1.agentType')" "Explore" \
   "_usage_merge_agent_state: agentIdごとの累計スナップショットにagentTypeが保存される"
 assert_equal "$(printf '%s' "$merged_agent_a" | jq -r '.agents.agent1.description')" "Explore usage code" \
   "_usage_merge_agent_state: agentIdごとの累計スナップショットにdescriptionが保存される"
 assert_equal "$(printf '%s' "$merged_agent_a" | jq -r '.sinceLastPush.subagents.agent1.activeSeconds')" "30" \
   "_usage_merge_agent_state: 初回のagentId分がsinceLastPush.subagents[agentId]へ計上される"
-assert_equal "$(printf '%s' "$merged_agent_a" | jq -r '.sinceLastPush.subagents.agent1.description')" "Explore usage code" \
-  "_usage_merge_agent_state: sinceLastPush側のentryにもdescriptionが保存される（表示ラベル用）"
 
-# 異なるagentId・同一agentType: agentType単位の合算はもう行わず、agentIdごとに個別のentryとして
-# 保持される（issue #34「複数agentを使うときはagentごとに行になるように」への対応）
-current_a2="$(jq -nc '{tokens: {}, tools: {}, assistantCount: 1, activeSeconds: 45}')"
-merged_agent_b="$(_usage_merge_agent_state "$merged_agent_a" "agent2" "Explore" "another explore task" "$current_a2" "feature-x")"
+# 異なるagentId・同一agentType: agentごとに個別のentryとして保持される
+agent_delta_a2="$(jq -nc '{tokens: {}, tools: {}, assistantCount: 1, skillCalls: [], agentCalls: [], askUserQuestions: []}')"
+merged_agent_b="$(_usage_merge_agent_state "$merged_agent_a" "agent2" "Explore" "another explore task" "$agent_delta_a2" 45 "feature-x")"
 assert_equal "$(printf '%s' "$merged_agent_b" | jq -r '.sinceLastPush.subagents.agent1.activeSeconds')" "30" \
   "_usage_merge_agent_state: 異なるagentId追加後もagent1自身の値は変わらない（合算されない）"
 assert_equal "$(printf '%s' "$merged_agent_b" | jq -r '.sinceLastPush.subagents.agent2.activeSeconds')" "45" \
-  "_usage_merge_agent_state: 異なるagentIdはそれぞれ個別のentryとして保持される（30と45が別々のまま）"
-assert_true "$(printf '%s' "$merged_agent_b" | jq -r 'if (.agents | has("agent1")) and (.agents | has("agent2")) then "true" else "false" end')" \
-  "_usage_merge_agent_state: agentIdごとのスナップショットは個別に保持される"
+  "_usage_merge_agent_state: 異なるagentIdはそれぞれ個別のentryとして保持される"
 
-# 同一agentIdへの2回目の呼び出し: agentId単位のスナップショット差分のみが加算され、二重計上されない
-current_a1_grown="$(jq -nc '{tokens: {}, tools: {}, assistantCount: 2, activeSeconds: 50}')"
-merged_agent_c="$(_usage_merge_agent_state "$merged_agent_b" "agent1" "Explore" "Explore usage code" "$current_a1_grown" "feature-x")"
+# 同一agentIdへの2回目の呼び出し: activeSecondsは累計値差分、tokens/toolsはdeltaがそのまま加算される
+agent_delta_a1_second="$(jq -nc '{tokens: {}, tools: {}, assistantCount: 1, skillCalls: [], agentCalls: [], askUserQuestions: []}')"
+merged_agent_c="$(_usage_merge_agent_state "$merged_agent_b" "agent1" "Explore" "Explore usage code" "$agent_delta_a1_second" 50 "feature-x")"
 assert_equal "$(printf '%s' "$merged_agent_c" | jq -r '.sinceLastPush.subagents.agent1.activeSeconds')" "50" \
-  "_usage_merge_agent_state: 同一agentIdの2回目はスナップショット差分（50-30=20）が前回の30へ加算される（30+20=50）"
+  "_usage_merge_agent_state: 同一agentIdの2回目はactiveSeconds累計差分（50-30=20）が前回の30へ加算される（30+20=50）"
 
-# --- _usage_sync_session_logs / _usage_aggregate_and_merge_subagents: 疑似~/.claude/projectsツリーからの
-#     コピー・集計（実ホームディレクトリには一切触れない） ---
+# --- _usage_sync_session_logs / _usage_aggregate_and_merge_subagents: usage/session-logs・
+#     usage/state/session-cursors への配置とカーソルベースの新規行diff集計 ---
 
 FAKE_ROOT="$(mktemp -d)"
 trap 'rm -f "$TMP_FILE"; rm -rf "$FAKE_ROOT"' EXIT
@@ -209,6 +330,8 @@ jq -nc '{agentType: "Explore", description: "Explore usage-report hook infra"}' 
 
 log_dir="$(_usage_sync_session_logs "${FAKE_ROOT}/repo" "feature-x" "sess1" "${FAKE_ROOT}/home_projects/sess1.jsonl")"
 
+assert_equal "$log_dir" "${FAKE_ROOT}/repo/usage/session-logs/feature-x/sess1" \
+  "_usage_sync_session_logs: コピー先はusage/session-logs/配下になる（.claude/配下ではない）"
 assert_true "$([ -f "${log_dir}/main.jsonl" ] && echo true || echo false)" \
   "_usage_sync_session_logs: メインtranscriptがローカルへコピーされる"
 assert_true "$([ -f "${log_dir}/subagents/agent-a1.jsonl" ] && echo true || echo false)" \
@@ -216,37 +339,53 @@ assert_true "$([ -f "${log_dir}/subagents/agent-a1.jsonl" ] && echo true || echo
 assert_true "$([ -f "${log_dir}/subagents/agent-a1.meta.json" ] && echo true || echo false)" \
   "_usage_sync_session_logs: サブエージェントmeta.jsonがローカルへコピーされる"
 
-merged_from_copy="$(_usage_aggregate_and_merge_subagents "{}" "$log_dir" "feature-x")"
+merged_from_copy="$(_usage_aggregate_and_merge_subagents "{}" "$log_dir" "feature-x" "${FAKE_ROOT}/repo")"
 assert_equal "$(printf '%s' "$merged_from_copy" | jq -r '.agents.a1.agentType')" "Explore" \
   "_usage_aggregate_and_merge_subagents: コピー済みディレクトリからagentTypeがmeta.json経由で読み取られる"
 assert_equal "$(printf '%s' "$merged_from_copy" | jq -r '.agents.a1.description')" "Explore usage-report hook infra" \
   "_usage_aggregate_and_merge_subagents: コピー済みディレクトリからdescriptionがmeta.json経由で読み取られる"
 assert_equal "$(printf '%s' "$merged_from_copy" | jq -r '.sinceLastPush.subagents.a1.activeSeconds')" "30" \
   "_usage_aggregate_and_merge_subagents: コピー済みディレクトリから集計・マージまで一気通貫で動く"
+assert_true "$([ -f "${FAKE_ROOT}/repo/usage/state/session-cursors/a1.json" ] && echo true || echo false)" \
+  "_usage_aggregate_and_merge_subagents: agentId単位のカーソルファイルがusage/state/session-cursors/配下に作られる"
+
+# 同じサブエージェントtranscriptのまま再度呼んでも、新規行が無いためsinceLastPushは変化しない
+merged_from_copy_again="$(_usage_aggregate_and_merge_subagents "$merged_from_copy" "$log_dir" "feature-x" "${FAKE_ROOT}/repo")"
+assert_equal "$(printf '%s' "$merged_from_copy_again" | jq -r '.sinceLastPush.subagents.a1.activeSeconds')" "30" \
+  "_usage_aggregate_and_merge_subagents: transcript不変なら2回目呼び出しでも差分は増えない（カーソルで新規行無しと判定）"
 
 empty_log_dir="$(mktemp -d)"
 existing_noop="$(jq -nc '{foo: "bar"}')"
-result_noop="$(_usage_aggregate_and_merge_subagents "$existing_noop" "$empty_log_dir" "feature-x")"
+result_noop="$(_usage_aggregate_and_merge_subagents "$existing_noop" "$empty_log_dir" "feature-x" "${FAKE_ROOT}/repo")"
 assert_equal "$result_noop" "$existing_noop" \
   "_usage_aggregate_and_merge_subagents: subagentsディレクトリが無ければexistingをそのまま返す"
 
 # --- _usage_reset_since_last_push ---
 
-state_before_reset="$(jq -nc '{branch: "feature-x", sessions: {s: {lastTokens: {}}},
+state_before_reset="$(jq -nc '{branch: "feature-x", sessions: {s: {lastActiveSeconds: 30}},
   agents: {a1: {agentType: "Explore", description: "d"}},
   sinceLastPush: {tokensByModel: {m: {input: 1, output: 1, cacheCreate: 0, cacheRead: 0}},
-    toolCalls: {Bash: 1}, turns: 1, activeSeconds: 30, subagents: {a1: {activeSeconds: 30}}}}')"
+    toolCalls: {Bash: 1}, turns: 1, activeSeconds: 30, subagents: {a1: {activeSeconds: 30}},
+    skillCalls: [{id: "t1", skill: "commit", args: null}],
+    agentCalls: [{id: "t2", subagentType: "Explore", description: "d", prompt: "p"}],
+    askUserQuestions: [{id: "u1#0", question: "q", answer: "a"}]}}')"
 reset_result="$(_usage_reset_since_last_push "$state_before_reset")"
 assert_equal "$(printf '%s' "$reset_result" | jq -r '.sinceLastPush.activeSeconds')" "0" \
   "_usage_reset_since_last_push: sinceLastPush.activeSecondsが0になる"
 assert_equal "$(printf '%s' "$reset_result" | jq -c '.sinceLastPush.subagents')" "{}" \
   "_usage_reset_since_last_push: sinceLastPush.subagentsが空になる"
+assert_equal "$(printf '%s' "$reset_result" | jq -c '.sinceLastPush.skillCalls')" "[]" \
+  "_usage_reset_since_last_push: sinceLastPush.skillCallsが空配列になる"
+assert_equal "$(printf '%s' "$reset_result" | jq -c '.sinceLastPush.agentCalls')" "[]" \
+  "_usage_reset_since_last_push: sinceLastPush.agentCallsが空配列になる"
+assert_equal "$(printf '%s' "$reset_result" | jq -c '.sinceLastPush.askUserQuestions')" "[]" \
+  "_usage_reset_since_last_push: sinceLastPush.askUserQuestionsが空配列になる"
 assert_equal "$(printf '%s' "$reset_result" | jq -r '.agents.a1.agentType')" "Explore" \
   "_usage_reset_since_last_push: agents（累計スナップショット）はリセットされず保持される"
 assert_true "$(printf '%s' "$reset_result" | jq -r 'has("lastPostedAt")')" \
   "_usage_reset_since_last_push: lastPostedAtが設定される"
 
-# --- _usage_filter_nonzero_subagents（issue #34「差分0のagentはレポートに出力しない」） ---
+# --- _usage_filter_nonzero_subagents（差分0のagentはレポートに出力しない） ---
 
 subagents_mixed="$(jq -nc '{
   a1: {agentType: "Explore", description: "d1",
@@ -264,49 +403,82 @@ assert_true "$(printf '%s' "$filtered" | jq -r '(has("a2") | not)')" \
 assert_true "$(printf '%s' "$filtered" | jq -r 'has("a3")')" \
   "_usage_filter_nonzero_subagents: activeSecondsのみ差分があるagentは残る"
 
-# --- 回帰テスト: sync_usage_state を通しでのpush差分バグ（issue #34） ---
-# `_usage_merge_state`が`.agents`スナップショットを引き継がない場合、2回目push以降も
-# サブエージェント分が常に同じ値のまま再送されてしまっていた不具合の再発防止テスト。
-# post-push-usage-report.shと同じ「push→投稿成功でリセット→次のpush」の流れを
-# `sync_usage_state` + `_usage_reset_since_last_push` を直接使って再現する。
+# --- 回帰テスト: sync_usage_state（issue #37: カーソルはブランチではなくセッション単位で
+#     グローバルに保持されるため、ブランチが切り替わっても前回までに処理済みの行を再度
+#     数え直さないこと） ---
+#
+# 注意（テスト設計上の限界）: Claude Code側がresume時にtranscriptへ過去の行をどのような形で
+# 再書き込みするかは非公開の内部仕様であり（ファイル冒頭コメント参照）、実データで観測した
+# 「同一uuidが複数回・異なるgitBranchラベル付きで出現する」という重複行自体は、
+# 新しい物理行として追記される限りカーソル方式でも新規行として数えられる（重複行の内容を
+# 判別して除外することは意図的に行わない設計。plan「Context」節参照）。
+# 本テストが確実に検証できるのは、カーソルが「ブランチ単位」ではなく「セッション単位で
+# グローバル」に保持されることそのもの。もしカーソルがブランチごとに別管理されていた場合、
+# 同じtranscriptのまま別ブランチへ切り替えてpushすると、そのブランチにとっては
+# 「初めて見るセッション」としてカーソル0から再集計され、branch-aで既に処理済みの行が
+# branch-bの初回差分として二重に計上されてしまう。
 
 PUSH_ROOT="$(mktemp -d)"
 trap 'rm -f "$TMP_FILE"; rm -rf "$FAKE_ROOT" "$PUSH_ROOT"' EXIT
 PUSH_REPO="${PUSH_ROOT}/repo"
 
-mkdir -p "${PUSH_ROOT}/home_projects/pushsess/subagents"
-mk_entry "2026-01-01T00:00:00Z" "feature-push" > "${PUSH_ROOT}/home_projects/pushsess.jsonl"
-jq -nc '{type: "assistant", gitBranch: "feature-push", timestamp: "2026-01-01T00:00:00Z",
-  agentId: "pa1", message: {model: "m", usage: {input_tokens: 1, output_tokens: 1}, content: []}}' \
-  > "${PUSH_ROOT}/home_projects/pushsess/subagents/agent-pa1.jsonl"
-jq -nc '{agentType: "Explore", description: "task A"}' \
-  > "${PUSH_ROOT}/home_projects/pushsess/subagents/agent-pa1.meta.json"
+mkdir -p "${PUSH_ROOT}/home_projects"
+TRANSCRIPT="${PUSH_ROOT}/home_projects/pushsess.jsonl"
 
-# push #1: 初回。サブエージェント分の差分が計上される
-state1="$(sync_usage_state "$PUSH_REPO" "feature-push" "pushsess" "${PUSH_ROOT}/home_projects/pushsess.jsonl")"
-assert_equal "$(printf '%s' "$state1" | jq -r '.sinceLastPush.subagents.pa1.activeSeconds')" "30" \
-  "sync_usage_state回帰テスト: push#1でサブエージェント分の初回差分が計上される"
+# ブランチAでの作業（3行）
+{
+  mk_entry "2026-01-01T00:00:00Z" "branch-a"
+  mk_entry "2026-01-01T00:01:00Z" "branch-a"
+  mk_entry "2026-01-01T00:02:00Z" "branch-a"
+} > "$TRANSCRIPT"
 
-# 投稿成功を模したリセット（post-push-usage-report.shと同じ処理）
-state1_reset="$(_usage_reset_since_last_push "$state1")"
-printf '%s' "$state1_reset" > "${PUSH_REPO}/.claude/usage-state/feature-push.json"
+# ブランチAで push（3行とも計上され、セッション"pushsess"のグローバルカーソルが3まで進む）
+state_a="$(sync_usage_state "$PUSH_REPO" "branch-a" "pushsess" "$TRANSCRIPT")"
+assert_equal "$(printf '%s' "$state_a" | jq -r '.sinceLastPush.turns')" "3" \
+  "sync_usage_state回帰テスト（issue #37）: branch-aでの初回pushは3行分すべてが計上される"
 
-# push #2: サブエージェントtranscriptは変更なし（新しい作業が発生していない）→差分は0になるべき
-state2="$(sync_usage_state "$PUSH_REPO" "feature-push" "pushsess" "${PUSH_ROOT}/home_projects/pushsess.jsonl")"
-assert_equal "$(printf '%s' "$state2" | jq -r '.sinceLastPush.subagents.pa1.activeSeconds // 0')" "0" \
-  "sync_usage_state回帰テスト（issue #34再発防止）: transcript不変ならpush#2の差分は0（バグ時は30が再送されていた）"
+# transcriptの内容は変わらないまま、同じセッションが別ブランチ(branch-b)からpushされる
+# （branch-bにとっては初めてのpush＝状態ファイルもまだ存在しない）
+state_b="$(sync_usage_state "$PUSH_REPO" "branch-b" "pushsess" "$TRANSCRIPT")"
+assert_equal "$state_b" "" \
+  "sync_usage_state回帰テスト（issue #37）: カーソルがセッション単位でグローバルなため、branch-aで既に処理済みの行はbranch-bへ切り替えても再カウントされない（新規行が無いため状態ファイルも作られず出力は空になる）"
 
-# 投稿成功を模したリセット
-state2_reset="$(_usage_reset_since_last_push "$state2")"
-printf '%s' "$state2_reset" > "${PUSH_REPO}/.claude/usage-state/feature-push.json"
+# --- 回帰テスト: 差分が無ければ状態を更新しない（issue #37「差分がなければコピーしない」） ---
 
-# push #3: サブエージェントtranscriptへ新しいエントリを追記（新しい作業が発生）→追記分のみが差分になるべき
-jq -nc '{type: "assistant", gitBranch: "feature-push", timestamp: "2026-01-01T00:10:00Z",
-  agentId: "pa1", message: {model: "m", usage: {input_tokens: 5, output_tokens: 5}, content: []}}' \
-  >> "${PUSH_ROOT}/home_projects/pushsess/subagents/agent-pa1.jsonl"
-state3="$(sync_usage_state "$PUSH_REPO" "feature-push" "pushsess" "${PUSH_ROOT}/home_projects/pushsess.jsonl")"
-assert_equal "$(printf '%s' "$state3" | jq -r '.sinceLastPush.subagents.pa1.tokensByModel.m.input')" "5" \
-  "sync_usage_state回帰テスト: push#3は追記分のみ（累積6ではなく5）が計上される"
+NOOP_ROOT="$(mktemp -d)"
+trap 'rm -f "$TMP_FILE"; rm -rf "$FAKE_ROOT" "$PUSH_ROOT" "$NOOP_ROOT"' EXIT
+NOOP_REPO="${NOOP_ROOT}/repo"
+NOOP_TRANSCRIPT="${NOOP_ROOT}/home_projects/noopsess.jsonl"
+mkdir -p "${NOOP_ROOT}/home_projects"
+mk_entry "2026-01-01T00:00:00Z" "feature-noop" > "$NOOP_TRANSCRIPT"
+
+state_noop_1="$(sync_usage_state "$NOOP_REPO" "feature-noop" "noopsess" "$NOOP_TRANSCRIPT")"
+state_noop_2="$(sync_usage_state "$NOOP_REPO" "feature-noop" "noopsess" "$NOOP_TRANSCRIPT")"
+assert_equal "$state_noop_1" "$state_noop_2" \
+  "sync_usage_state: transcriptに変化が無ければ2回目呼び出しでも状態は変わらない"
+assert_true "$([ -d "${NOOP_REPO}/usage/session-logs/feature-noop/noopsess" ] && echo true || echo false)" \
+  "sync_usage_state: 差分がある1回目はsession-logsへコピーされる"
+
+# --- 回帰テスト: 破損（空）した状態ファイルからの自己回復（issue #37の追加バグ修正） ---
+#
+# 実データで、状態ファイルが0バイトに壊れた状態でカーソルだけが進んでいる状況を確認した
+# （当時のargv長バグにより発生したと推測される）。この状態を人為的に再現し、sync_usage_state が
+# クラッシュせず「状態なし」として扱って新しい状態を作れることを確認する。
+
+CORRUPT_ROOT="$(mktemp -d)"
+trap 'rm -f "$TMP_FILE"; rm -rf "$FAKE_ROOT" "$PUSH_ROOT" "$NOOP_ROOT" "$CORRUPT_ROOT"' EXIT
+CORRUPT_REPO="${CORRUPT_ROOT}/repo"
+CORRUPT_TRANSCRIPT="${CORRUPT_ROOT}/home_projects/corruptsess.jsonl"
+mkdir -p "${CORRUPT_ROOT}/home_projects" "${CORRUPT_REPO}/usage/state"
+mk_entry "2026-01-01T00:00:00Z" "feature-corrupt" > "$CORRUPT_TRANSCRIPT"
+# 状態ファイルを意図的に0バイトの破損状態にしておく
+: > "${CORRUPT_REPO}/usage/state/feature-corrupt.json"
+
+state_after_corrupt="$(sync_usage_state "$CORRUPT_REPO" "feature-corrupt" "corruptsess" "$CORRUPT_TRANSCRIPT")"
+assert_equal "$?" "0" \
+  "sync_usage_state: 状態ファイルが0バイトに壊れていてもクラッシュせず正常終了する"
+assert_equal "$(printf '%s' "$state_after_corrupt" | jq -r '.sinceLastPush.turns')" "1" \
+  "sync_usage_state: 破損した状態ファイルは「状態なし」として扱われ、新規分だけの状態が作られる"
 
 echo "----"
 echo "passed=${PASSED} failures=${FAILURES}"
