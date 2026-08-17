@@ -84,3 +84,90 @@ issue化にあたり、ユーザーから「ノード・エッジの表現でき
   エッジスタイル・グルーピング等）が意図通り動作するか目視確認する。
 - `.claude/skills/issue-mr-flow/SKILL.md`のflow-id 10の追記が、既存の文体・表構成と整合して
   いるか通読して確認する。
+
+## 調査結果
+
+### 1. 既存スキルの構成
+
+`commit` / `issue-create` / `ahk-implement` の3スキルはいずれも `SKILL.md` 単体＋
+`index.jsonl`（`.claude/scripts/src/extract-frontmatter.sh` が生成するfrontmatter索引。
+人間が手動実行する運用で、AIが個別に編集するものではない）のみで構成されており、
+`scripts/` `references/` `assets/` のようなサブディレクトリを持つ前例はリポジトリ内に無い。
+
+→ 今回は新スキルにテンプレートHTMLというバンドルリソースが必須（判断基準の文章だけでは
+「canvas形式のHTMLを生成する」を実現できない）ため、`skill-creator`の標準構成に倣い
+`.claude/skills/<name>/templates/` にテンプレートファイルを配置する方針とする。既存3スキルとの
+構成差は「バンドルリソースの要否」という妥当な理由によるものであり、問題ない。スキル名は
+`canvas-report`（`/canvas-report`として呼び出せる）を提案する。
+
+### 2〜3. プロトタイプの再点検とリッチな表現軸の設計
+
+このセッションで試作した4種（Tailwind通常版・自前ミニマムCSSハイブリッド版・リッチ演出版・
+canvas版）のうち、canvas版（ノード・エッジ形式）が「複数要素の関連を見せる」調査結果に最も
+適していることを確認済み（issue #48の対話で合意済み、本issueのContext参照）。
+
+今回、この判断を追加検証するため、**nagame-ahkの実コード（`src/features/`・`src/lib/`の
+実際の`#Include`・関数呼び出し関係をgrepで抽出した実データ）を使い、リッチ化した表現軸を
+組み込んだデモを`reports/cached-crunching-mochi.html`として試作した**（14ノード・21エッジ）。
+実装・目視確認の結果、以下の表現軸がTailwindCSS CDN＋素のJS/SVGの範囲内（追加ライブラリ不要）で
+問題なく実現できることを確認した。
+
+- **ノードの形状**: `clip-path: polygon(...)` で六角形（lib/系）と角丸四角（features/系）を
+  Tailwindの`rounded-xl`と併用して描き分けられる。丸・ダイヤ等も同じ手法で拡張可能。
+- **ノードのアイコン**: 絵文字（⚡/🧩）をラベル先頭に添えるだけで種別が一目で分かる。
+  インラインSVGアイコンに置き換える拡張も同じマークアップ構造で可能（今回は絵文字で十分と判断）。
+- **ノードのサイズ**: 被参照数（ハブ度）をJSで集計し、3段階のTailwindユーティリティ組み合わせ
+  （幅・パディング・フォントサイズ）に振り分けるだけで「重要なノードほど大きい」を表現できる。
+  実データでは`Logger.ahk`が9箇所から参照される最大のハブとして視覚的に際立った。
+- **エッジのスタイル**: `stroke-dasharray`（実線/破線）・`stroke-width`（太さ）・`stroke`
+  （色）をJS側の「関係カテゴリ→スタイル」マップで一括管理し、SVG pathの属性へ反映するだけで
+  6種類の関係（ログ出力・JSON変換・ウィンドウ操作・IPC通信・ウィンドウ監視イベント・
+  ファイル監視通知）を色・線種で描き分けられた。
+- **グルーピング（クラスタ枠）**: 同じグループに属するノードのx/y座標からJSで外接矩形を計算し、
+  角丸破線の背景枠＋ラベルを1つ描画するだけで実現できた。今回は`src/features/`と`src/lib/`の
+  2クラスタを表示し、「featuresはlibだけを経由し、features同士は直接依存しない」という
+  `directory-structure.md`の設計ルールが、エッジがクラスタをまたいで`features→lib`方向にしか
+  存在しないという形で視覚的にも裏付けられることを確認した（意図しない発見）。
+- 双方向矢印（`marker-start`も設定する）は今回の実データでは該当する関係が無かったため未使用だが、
+  `<marker>`要素をもう1つ定義し`marker-start`属性を足すだけで対応できる見込み（構造的な制約はない）。
+
+これらはいずれも「ノード/エッジのデータ配列（`NODES`/`EDGES`）とスタイルのマッピング表
+（`GROUP_STYLE`/`EDGE_STYLE`）を書き換えるだけで、HTML構造・パン/ズーム/ホバーハイライトの
+JSロジックには手を入れずに使い回せる」設計になっている。→ 作業計画でテンプレート化する際は、
+この`reports/cached-crunching-mochi.html`をベースに、`NODES`/`EDGES`/`GROUP_STYLE`/`EDGE_STYLE`
+部分をプレースホルダ化する方針とする。
+
+### 4. `issue-mr-flow/SKILL.md` flow-id 10への参照文言（案）
+
+現行文言:
+> **調査を実施**し、結果を`plans/<plan名>.md`の「調査」章・worklogに記録する。あわせて調査結果を
+> 視覚的に分かりやすくまとめた自己完結HTML（TailwindCSS CDN方式）を`reports/<plan名>.html`として
+> 作成する
+
+追記案（末尾に一文追加。既存の体言止め寄りの文体に合わせる）:
+> （調査結果が複数要素間の関連・依存関係を主題とする場合は、`.claude/skills/canvas-report/SKILL.md`
+> のcanvas形式テンプレートの利用を検討する）
+
+この追記自体の反映は作業計画（flow-id 15以降）で実施する。
+
+### 5. `reports/<plan名>.html`の運用
+
+`docs-workflow.md`の「ドキュメント運用」表に既にreports行があり
+（issue #48で追加済み: push単位のライフサイクル、`.gitignore`対象外、flow-id 10作成〜flow-id 31
+削除）、canvas形式もこの運用にそのまま従える。新スキルのテンプレート側で追加のライフサイクル
+定義は不要。
+
+### 6. `markdown-frontmatter.md`の対象外表
+
+「対象外・特殊対応ファイル」表に`.claude/skills/*/SKILL.md`の行が既にあり
+（`title`/`type`/`tags`/`keywords`のみ追加、`description`は追加しない）、新スキルの`SKILL.md`も
+無条件でこの規約に従う。ルール側の変更は不要。
+
+### 7. テンプレートの動作確認方法
+
+issue #48のworklogは既に削除済み（squash merge・flow-id 31によりmainには残らない設計のため、
+このブランチのworklog履歴からは前例を直接参照できなかった）。今回は本調査自体で
+`reports/cached-crunching-mochi.html`をブラウザで開き、ズーム・パン・ホバーハイライト・
+形状/アイコン/サイズ/エッジスタイル/グルーピングの動作を目視確認した（実施済み）。
+作業計画フェーズでテンプレート本体（`.claude/skills/canvas-report/templates/`配下）を
+作成した後も、同様にブラウザで開いて目視確認する方針とする。

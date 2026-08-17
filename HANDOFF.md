@@ -26,10 +26,10 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 4 | Planモードで**調査計画**を作成する（`plans/<plan名>.md`の「調査」章へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
 | [x] | 5 | 調査計画に合意する | 人間 |
 | [x] | 6 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
-| [] | 7 | MRで調査計画についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
-| [] | 8 | レビュー内容を取得し、調査計画を修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
-| [] | 9 | 調査計画をもとにMR descriptionを更新する | `describe` |
-| [] | 10 | **調査を実施**し、結果を`plans/<plan名>.md`の「調査」章・worklogに記録する。あわせて調査結果を視覚的に分かりやすくまとめた自己完結HTML（TailwindCSS CDN方式）を`reports/<plan名>.html`として作成する | エージェント |
+| [x] | 7 | MRで調査計画についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
+| [x] | 8 | レビュー内容を取得し、調査計画を修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
+| [x] | 9 | 調査計画をもとにMR descriptionを更新する | `describe` |
+| [x] | 10 | **調査を実施**し、結果を`plans/<plan名>.md`の「調査」章・worklogに記録する。あわせて調査結果を視覚的に分かりやすくまとめた自己完結HTML（TailwindCSS CDN方式）を`reports/<plan名>.html`として作成する | エージェント |
 | [] | 11 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | [] | 12 | 調査結果をもとにMR descriptionを更新する | `describe` |
 | [] | 13 | MRで調査結果についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
@@ -64,14 +64,20 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
   をscratchpad上で実施。
 - issue #48はスコープ外・完了間近だったため、新規issue #58として起票（`issue-create`スキル）。
   ユーザー要望「ノード・エッジの表現できる幅はリッチにしてほしい」を受け入れ条件に反映。
-- `start 58`でブランチ・Draft PR #59を作成し、Planモードで調査計画を作成（承認済み）。
+- `start 58`でブランチ・Draft PR #59を作成し、Planモードで調査計画を作成、レビュー完了
+  （未解決コメント無し）、`describe`でMR description更新済み。
+- 調査項目1〜7を実施し、`plans/cached-crunching-mochi.md`の「調査結果」章に記録。あわせて
+  nagame-ahkの実コード（`src/features/`・`src/lib/`の実`#Include`・関数呼び出し関係）を使い、
+  リッチな表現軸（形状・アイコン・サイズ・エッジ色/線種・クラスタ枠）を組み込んだ
+  `reports/cached-crunching-mochi.html`を試作、ブラウザで動作確認済み。新スキル名は
+  `canvas-report`を暫定提案。
 
 ## 次にやること
 
-- flow-id 6: `commit`スキルでcommitし、push してレビュー依頼を行う。
-- flow-id 7〜9: MRレビュー→調査計画修正（必要なら）→`describe`でMR description更新。
-- flow-id 10: 調査項目1〜7を実施し、`plans/cached-crunching-mochi.md`の「調査結果」章に記録する。
-  あわせて`reports/cached-crunching-mochi.html`を試作する。
+- flow-id 11: `commit`スキルでcommitし、push してレビュー依頼を行う。
+- flow-id 12〜14: `describe`でMR description更新→MRレビュー→調査結果修正（必要なら）。
+- flow-id 15: 調査結果をもとにPlanモードで作業計画を作成する
+  （`.claude/skills/canvas-report/SKILL.md` + `templates/`の具体的な実装計画）。
 
 ## 判断を迷った内容
 
