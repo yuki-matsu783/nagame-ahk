@@ -34,8 +34,8 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 9 | planをもとにMR descriptionを更新する | `describe` |
 | [x] | 10 | コンテキスト削減のためにセッションをcompactする | 人間 |
 | [x] | 11 | planをもとに作業を進める、作業内容はworklogに更新する | エージェント |
-| [] | 12 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
-| [] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
+| [x] | 12 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
+| [x] | 13 | 作業内容をもとにMR descriptionを更新する | `describe` |
 | [] | 14 | MRでレビュー・コメントする。レビュー済み連絡をするまで以降の作業は行わない。 | 人間 |
 | [] | 15 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（11〜15の作業ループを合意まで繰り返す） | `comments` / `reply` |
 | [] | 16 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
@@ -64,10 +64,10 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
   （詳細はworklogの「判断」節を参照）。`index.jsonl`の再生成もスコープ外と判断し見送った
   （同worklog参照）。
 
+- commit・push・レビュー依頼（flow-id 12）、MR descriptionの更新（flow-id 13）を行った。
+
 ## 次にやること
 
-- `commit`スキル経由でcommit・push・レビュー依頼を行う（flow-id 12）。
-- 作業内容をもとにMR descriptionを更新する（flow-id 13）。
 - MRでレビューを受け、完了合図を得たら`comments all`で未解決コメント無しを確認してから
   次へ進む（flow-id 14〜15ループ）。
 
