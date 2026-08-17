@@ -193,75 +193,12 @@ markdownではないため、この規約は適用されない。追加の対応
   「毎回どの程度の型に従うか」の方針レベルであり、テンプレートファイルとして固定化はしない
   （テンプレート化するかどうかは、実際に複数件運用してみてから判断する）。
 
-## 作業計画
+## 検証方法
 
-調査結果（特に項目1〜4）で確定した文言案・発見をもとに、以下を実装する。
+本issueはドキュメント・ルール変更が中心のため、コード実行によるテストは無い。以下で検証する。
 
-### 1. `.claude/skills/issue-mr-flow/SKILL.md` の更新
-
-- flow-id 10に、調査結果と同期して`reports/<plan名>.html`（TailwindCSS CDN方式の自己完結HTML）を
-  作成する旨を追記する（調査結果#1の文言案を反映）。
-- flow-id 14に、調査結果を修正する際は`reports/<plan名>.html`も同期して更新する旨を追記する。
-- flow-id 31の削除対象に`reports/`を追加する（`plans/` `worklog/` `reports/` を削除…）。
-
-### 2. `.claude/rules/docs-workflow.md` の更新
-
-「ドキュメント運用」表に、調査結果#2で確定した`reports/<plan名>.html`の行を追加する
-（worklog行と同じ4列構成・同じライフサイクル注記）。
-
-### 3. `.claude/rules/directory-structure.md` の更新
-
-ツリー図の`worklog/`直後に`reports/`を追加する（調査結果#3のコメント文言案を反映）。
-
-### 4. `.mrworkflow.json` への`reportsDir`追加
-
-`plansDir`/`worklogDir`と並べて`"reportsDir": "reports"`を追加する。
-
-### 5. `.claude/scripts/src/vcs/Provider.sh` の`get_branch_work_files`改修
-
-調査結果#4の重要な発見に対応する、今回の作業計画で最もコードに近い変更。
-
-- `get_workflow_config`から`reportsDir`を読み、`plans_dir`/`worklog_dir`と同様に
-  `reports_dir`変数へ格納する。
-- `git diff --name-only ...`・`git status --porcelain -- ...`の対象パスに`$reports_dir`を追加する。
-- 既存の`plansDir`/`worklogDir`の扱いと完全に対称になるよう実装する（特別扱いしない）。
-
-### 6. `.claude/scripts/docs/spec/issue-mr-workflow.md` の更新
-
-- 関数一覧表（86〜99行目付近）の`get_branch_work_files`の説明を
-  「`plans/` `worklog/` `reports/` ファイル一覧を返す」に更新する。
-- 「途中引き継ぎ対応（resume）」節の手順5（151行目付近）の説明も同様に更新する。
-
-### 7. `.claude/agents/issue-mr-resume.md` の更新
-
-- 手順6の説明、手順8の報告フォーマット中のラベル（「ブランチ固有のplans/worklogファイル」）を
-  「ブランチ固有のplans/worklog/reportsファイル」に更新する。
-- frontmatterの`description`（`.claude/rules/markdown-frontmatter.md`の対象外ファイル一覧により
-  `description`は変更しない方針だが、既存の`description`文中に「plans/worklogファイル」という
-  表現があるため、実際に変更するかは実装時に既存規約と照らして判断する）。
-
-### スコープ外・今回やらないこと
-
-- `reports/<plan名>.html`のテンプレート化（雛形ファイル・生成スクリプトの新設）は行わない。
-  調査結果#8の通り、当面は個別issueごとにエージェントが都度執筆する運用とし、複数件運用した
-  実績を踏まえてから判断する。
-- `describe`サブコマンド（MR description）へのreportsリンク自動挿入は行わない（調査対象外と
-  同じ理由）。
-- `get_branch_work_files`のテスト（`tests/`配下）新設は必須としない。既存に同等のテストが
-  無いため、今回追加するかは実装時の判断に委ねる（無くても既存のカバレッジ水準を下回らない）。
-- 本issueで実際に`reports/<plan名>.html`を1件試作することは行わない（この作業計画自体の
-  調査結果チャプターが十分な分量のmarkdownドキュメントであり、これをHTML化した実例を
-  この場で作ろうとすると本末転倒になるため。次回以降の実際のissue対応で自然に初適用される）。
-
-### 検証方法
-
-本issueはドキュメント・ルール変更とbash関数1つの改修が中心であり、AHKアプリ本体の実行を伴う
-検証は無い。以下で検証する。
-
-- 更新後の`SKILL.md` / `docs-workflow.md` / `directory-structure.md`を通読し、既存の表・文体との
+- 更新後の `SKILL.md` / `docs-workflow.md` / `directory-structure.md` を通読し、既存の表・文体との
   整合性、矛盾の有無を確認する。
-- `get_branch_work_files`改修後、`bash -n`で構文チェックし、実際に`reports/`配下にファイルを
-  1つ置いた状態で関数を手動実行し、出力に含まれることを確認する（このissueの一部として
-  最小限の動作確認を行う。実ファイルは確認後に削除する）。
-- 既存の`tests/test_vcs_provider.sh`があれば実行し、今回の変更で既存テストが壊れていないことを
-  確認する。
+- 可能であれば、次回以降の実際のissue対応（別issueの調査実施フェーズ）で本フローに従い
+  `reports/<plan名>.html` を1件試作し、TailwindCSS CDN方式で意図通り表示されるかブラウザで
+  目視確認する（このissue自体のスコープに含めるかは作業計画で判断する）。
