@@ -34,8 +34,8 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 12 | 調査結果をもとにMR descriptionを更新する | `describe` |
 | [x] | 13 | MRで調査結果についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
 | [x] | 14 | レビュー内容を取得し、調査結果を修正する。対応が完了したコメントには対応内容を返信する（10〜14を合意まで繰り返す） | `comments` / `reply` |
-| [] | 15 | **調査結果をもとに**Planモードで**作業計画**を作成する（`plans/<plan名>.md`の「作業計画」章へ追記・コミット） | エージェント |
-| [] | 16 | 作業計画に合意する | 人間 |
+| [x] | 15 | **調査結果をもとに**Planモードで**作業計画**を作成する（`plans/<plan名>.md`の「作業計画」章へ追記・コミット） | エージェント |
+| [x] | 16 | 作業計画に合意する | 人間 |
 | [] | 17 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | [] | 18 | MRで作業計画についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
 | [] | 19 | レビュー内容を取得し、作業計画を修正する。対応が完了したコメントには対応内容を返信する（18〜19を合意まで繰り返す） | `comments` / `reply` |
@@ -65,15 +65,19 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 - 調査を実施（flow-id 10）。追加のgrepでExplore結果の裏取りを行い、`plans/delegated-gathering-frog.md`の「調査」章に「調査結果」（ファイル分類・参照箇所一覧・hooksとの役割整理・プラグイン配布の既存記述有無・directory-structure.md記載の乖離・移行先ディレクトリ構成案・stale参照）を追記、worklogにも記録した。
 - 人間からチャットで「`extract-frontmatter.sh`と判断が分かれる部分も移行して」との指摘を受け、調査結果を修正（`extract-frontmatter.sh`・`shell-scripts.md`・`extract-frontmatter.md`・DDR`0008`を移行対象に変更）。commit・push、PR descriptionも更新した。
 - `comments all`で未解決スレッドが無いことを再確認し、調査結果レビュー完了とした（flow-id 13〜14）。
+- 調査結果をもとにPlanモードで作業計画を作成し（`plans/delegated-gathering-frog.md`の「作業計画」章）、人間の承認を得た（flow-id 15〜16）。
 
 ## 次にやること
 
-- 調査結果をもとにPlanモードで作業計画を作成する（flow-id 15）。
+- `commit`スキル経由でcommit・push・レビュー依頼を行う（flow-id 17）。
+- PR #55で作業計画についての人間のレビューを待つ（flow-id 18）。レビューコメントがあれば`comments`/`reply`で対応する（flow-id 19のループ）。
+- レビュー完了後、`describe`でMR descriptionを更新（flow-id 20）してから、作業計画に沿って実装を進める（flow-id 21）。
 
 ## 判断を迷った内容
 
-- issue本文の移行先表記（「.claudeのscripts配下」「scripts/src」「scripts/docs」）から`.claude/scripts/src/`・`.claude/scripts/docs/`と解釈したが、最終確定は作業計画（flow-id 15）で行う。
-- `shell-scripts.md`（`dev-tools/`に残る`build.sh`の規約も含む）を移行対象に含めた結果、移行後も`build.sh`から参照可能な状態をどう保つかは作業計画で検討する必要がある。
+- issue本文の移行先表記（「.claudeのscripts配下」「scripts/src」「scripts/docs」）から`.claude/scripts/src/`・`.claude/scripts/docs/`と解釈した（作業計画で確定）。
+- `shell-scripts.md`（`dev-tools/`に残る`build.sh`の規約も含む）を移行対象に含めた結果、移行後も`build.sh`から参照可能な状態をどう保つかは実装時に検討する。
+- 作業計画作成時に`.claude/agents/issue-mr-resume.md`を精読した結果、調査結果7番で想定していた「移行対象パスの書き換えのみ」では不十分と判明（旧PowerShell版Provider.ps1・PascalCase関数を前提とした記述で、単純なパス書き換えでは済まない全面的な作り直しが必要）。dev-tools分離とは独立した既存バグのため、本issueのスコープからは除外し、**別issueとしての起票を推奨する**。
 
 ## 未解決の内容
 

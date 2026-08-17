@@ -216,3 +216,93 @@ issue本文の「AIが利用するものは`.claude`のscripts配下に入れる
 
 この結果、`dev-tools/`に残るのは `build.sh`・`distribution.md`・DDR `0001`（いずれも
 exe配布ビルド専用）のみとなる見込み。
+
+## 作業計画
+
+調査結果（上記1〜8番）をもとに、以下の内容で移行を実施する。
+
+### 1. ファイル移動（`git mv`で履歴保持）
+
+- `.claude/scripts/src/`: `vcs/Provider.sh`, `vcs/Github.sh`, `vcs/Gitlab.sh`, `create-commit.sh`,
+  `create-issue.sh`, `archive-reentrant-plan.sh`, `extract-frontmatter.sh`
+- `.claude/scripts/docs/spec/`: `issue-mr-workflow.md`, `shell-scripts.md`, `extract-frontmatter.md`
+- `.claude/scripts/docs/ddr/`: `0002`〜`0012`（11ファイル）
+- `dev-tools/`に残す: `src/build.sh`, `docs/spec/distribution.md`, `docs/ddr/0001-*.md`
+
+### 2. `dev-tools/docs/README.md` ⇔ `.claude/scripts/docs/README.md` の分割
+
+- 新規`.claude/scripts/docs/README.md`を作成し、移動した`spec/`（3件）・`ddr/`（11件）の目次を記載する
+  （既存`dev-tools/docs/README.md`の構成をベースに、「AI専用スクリプト群の設計ドキュメント」という
+  位置づけを明記する）。
+- `dev-tools/docs/README.md`は`distribution.md`・DDR`0001`のみの目次に縮小し、説明文を
+  「人間専用の開発補助ツール（ビルド・配布関連）」に修正する。
+
+### 3. パス参照の一括更新
+
+以下のパターンで置換する: `dev-tools/src/...` → `.claude/scripts/src/...`、
+`dev-tools/docs/spec/(issue-mr-workflow|shell-scripts|extract-frontmatter).md` →
+`.claude/scripts/docs/spec/...`、`dev-tools/docs/ddr/00(0[2-9]|1[0-2])-*.md` →
+`.claude/scripts/docs/ddr/...`（`distribution.md`・DDR`0001`は対象外、パス変更なし）。
+
+対象ファイル（調査結果2番のリストのうち、今回移行対象になったファイルへの参照箇所）:
+
+- skills: `.claude/skills/issue-mr-flow/SKILL.md`, `.claude/skills/issue-create/SKILL.md`,
+  `.claude/skills/commit/SKILL.md`
+- hooks: `.claude/hooks/session-start.sh`, `post-push-usage-report.sh`,
+  `post-push-compact-prompt.sh`, `block-direct-git-commit.sh`（メッセージ文中の案内パス）
+- rules: `git-workflow.md`, `plan-mode-safety.md`, `shell-script-style.md`
+  （`dev-tools/docs/spec/shell-scripts.md`への自己参照リンクも含む）
+- tests: `test_vcs_provider.sh`, `test_archive_reentrant_plan.sh`, `test_extract_frontmatter.sh`,
+  `tests/README.md`
+- `index.md`（Repository Map。`.claude/`セクションに`scripts/`を追加、`dev-tools/`セクションの
+  説明を「人間専用」に修正）
+- `.mrworkflow.json`は直接参照が無いため変更不要だが、`specDirs`/`ddrDirs`の**デフォルト値**
+  （`vcs/Provider.sh`の`get_workflow_config`関数内）に`.claude/scripts/docs/spec`・
+  `.claude/scripts/docs/ddr`を追加する（既存の`docs/spec`・`dev-tools/docs/spec`等はそのまま残す）
+
+### 4. `.claude/rules/directory-structure.md` の更新
+
+- ツリー図に`.claude/scripts/{src,docs/{spec,ddr}}/`を追加する。
+- `dev-tools/`の説明を「人間専用の開発補助ツール（ビルド・配布関連のみ）」に修正し、AI専用
+  スクリプトは`.claude/scripts/`に集約されている旨を明記する。
+- 「開発補助スクリプト」節（bash/PowerShell使い分けの記述）の対象パスを`.claude/scripts/src/`に
+  更新する（`.claude/hooks/`・`tests/`は変更なし）。
+
+### 5. `.claude/rules/markdown-frontmatter.md` のtype表更新
+
+- `ddr`行に`.claude/scripts/docs/ddr/*.md`を追加する。
+- `spec`行に`.claude/scripts/docs/spec/*.md`を追加する。
+- `guide`行に新設`.claude/scripts/docs/README.md`を追加する。
+
+### 6. `index.jsonl` の再生成
+
+リポジトリルートで `bash .claude/scripts/src/extract-frontmatter.sh .` を実行し、移動・変更の
+あった全ディレクトリ（`dev-tools/docs/`, `dev-tools/docs/spec/`, `dev-tools/docs/ddr/`,
+`.claude/scripts/docs/`, `.claude/scripts/docs/spec/`, `.claude/scripts/docs/ddr/`）の
+`index.jsonl`を再生成する。
+
+### スコープ外・今回やらないこと
+
+- **`.claude/agents/issue-mr-resume.md`の修正**: 調査計画時点では「移行対象パスの書き換えのみ」を
+  想定していたが、作業計画作成にあたり内容を精読した結果、同ファイルは全体が旧PowerShell版
+  `Provider.ps1`・PascalCase関数（`Get-IssueNumberFromBranch`, `Get-Issue`, `Get-MrForBranch`,
+  `Get-MrUnresolvedComments`, `Get-BranchWorkFiles`等）を前提とした記述になっており、現行の
+  bash版`Provider.sh`（snake_case関数、関数体系自体が異なる）とは単純なパス書き換えでは
+  済まない全面的な作り直しが必要と判明した。dev-tools分離（本issue）とは独立した既存バグであり、
+  今回は着手しない。**別issueとして起票することを推奨する**旨をHANDOFF.mdに記録する。
+- `DEVELOPERS.md`の`build.ps1`記載修正（`build.sh`への未追従。dev-tools分離とは無関係の既存stale）
+- `.claude/rules/powershell-encoding.md`の旧`Provider.ps1`言及修正（同上）
+- `build.sh`・`extract-frontmatter.sh`の実行主体（人間の手動実行という運用）自体の変更
+  （今回はファイルの置き場所のみ変更する）
+
+### 検証方法
+
+- 移動した全`.sh`ファイル（7本）に対して`bash -n <file>`で構文チェックする。
+- `bash tests/test_vcs_provider.sh` / `test_archive_reentrant_plan.sh` / `test_extract_frontmatter.sh`
+  を実行し、新パスでもテストが通ることを確認する。
+- リポジトリ全体を`dev-tools/src`・`dev-tools/docs/spec/(issue-mr-workflow|shell-scripts|extract-frontmatter)`・
+  `dev-tools/docs/ddr/00(0[2-9]|1[0-2])`でgrepし、更新漏れが無いことを確認する。
+- `git status`／`git diff --stat`で移動漏れ・意図しない差分が無いことを確認する。
+- 本セッション自体が`issue-mr-flow`スキル経由で動作しているため、移行後に本セッションで
+  `commit`スキル（新パスの`create-commit.sh`経由）・`describe`サブコマンド（新パスの
+  `Provider.sh`経由）を実際に実行し、更新後のパスで動作することをもって実地検証とする。

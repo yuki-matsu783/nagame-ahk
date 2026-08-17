@@ -63,3 +63,20 @@ keywords: [dev-tools, scripts, AI専用, 人間専用, プラグイン配布]
   （いずれもexe配布ビルド専用）という見込みに変わった。
   `shell-scripts.md`は`build.sh`の規約も含むため、移行後の参照維持方法は作業計画で検討する
   課題として明記した。
+
+## 作業計画フェーズ（flow-id 15）
+
+- 調査結果をもとに、Planモードで作業計画を作成した。`plans/delegated-gathering-frog.md`に
+  「作業計画」章を追記（既存の「調査」章は保持。plan-mode-safety.mdの規則6に沿い、Planモード
+  再突入時にハーネスが同じplanファイルパスを提示したため、Editツールで追記する形にし
+  archive不要と判断した：今回は「別タスク」ではなく同一タスクの継続のため）。
+- 作業計画作成にあたり`.claude/agents/issue-mr-resume.md`を精読した結果、当初「移行対象パスの
+  書き換えのみ」で足りると想定していたが、同ファイル全体が旧PowerShell版`Provider.ps1`・
+  PascalCase関数を前提とした記述であり、単純なパス書き換えでは済まない全面的な作り直しが
+  必要と判明した。dev-tools分離とは独立した既存バグと判断し、本issueのスコープからは除外、
+  別issue化を推奨する方針に変更した（調査結果7番の想定から変更）。
+- 作業計画の主な内容: `.claude/scripts/{src,docs/{spec,ddr}}/`へのファイル移動（`git mv`）、
+  `dev-tools/docs/README.md`⇔新規`.claude/scripts/docs/README.md`の分割、パス参照の一括更新
+  （skills/hooks/rules/tests/index.md/.mrworkflow.jsonデフォルト値）、
+  `directory-structure.md`・`markdown-frontmatter.md`の更新、`index.jsonl`再生成。
+- 人間の承認を得た。次はcommit・push・レビュー依頼（flow-id 17）。
