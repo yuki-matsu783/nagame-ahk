@@ -14,17 +14,17 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## フロー進捗状況
 
-- issue: （未着手）
-- ブランチ: （未着手）
-- Draft PR: （未着手）
+- issue: #54 extract-frontmatter.shをgitignoreを読み取って対応するようにする (https://github.com/yuki-matsu783/nagame-ahk/issues/54)
+- ブランチ: feature-54-extract-frontmatter-respect-gitignore
+- Draft PR: #60 (https://github.com/yuki-matsu783/nagame-ahk/pull/60)
 
 | 進捗 | flow-id | ステップ | 担当 |
 |----|---|---|---|
-| [] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間（AIが代行する場合は `issue-create` スキル） |
-| [] | 2 | issueの内容を取得する | `start <issue番号>` |
-| [] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
-| [] | 4 | Planモードで**調査計画**を作成する（`plans/<plan名>.md`の「調査」章へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
-| [] | 5 | 調査計画に合意する | 人間 |
+| [x] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間（AIが代行する場合は `issue-create` スキル） |
+| [x] | 2 | issueの内容を取得する | `start <issue番号>` |
+| [x] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
+| [x] | 4 | Planモードで**調査計画**を作成する（`plans/<plan名>.md`の「調査」章へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
+| [x] | 5 | 調査計画に合意する | 人間 |
 | [] | 6 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | [] | 7 | MRで調査計画についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
 | [] | 8 | レビュー内容を取得し、調査計画を修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
@@ -58,11 +58,16 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## やったこと
 
-（無し）
+- issue #54を取得し、`feature-54-extract-frontmatter-respect-gitignore`ブランチとDraft PR #60を作成した。
+- 調査計画を`plans/reflective-zooming-cake.md`に作成し、ユーザーの承認を得た（flow-id 4〜5完了）。
+- `worklog/2026-08-18_reflective-zooming-cake_push1.md`を作成した。
 
 ## 次にやること
 
-（無し）
+- flow-id 6: `commit`スキル経由でcommit・push・レビュー依頼を行う。
+- flow-id 10: 調査計画の各項目（`git ls-files`ベース案 vs `git check-ignore`フィルタ案の実機比較等）
+  を実施し、`plans/reflective-zooming-cake.md`の「調査」章に結果を追記、
+  `reports/reflective-zooming-cake.html`を作成する。
 
 ## 判断を迷った内容
 
