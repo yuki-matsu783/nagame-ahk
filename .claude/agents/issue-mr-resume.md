@@ -1,12 +1,12 @@
 ---
 name: issue-mr-resume
-description: issue-mr-flowの途中引き継ぎ用。このセッションでまだ現在地確認が済んでいない状態（別セッション・別担当者が途中から引き継ぐ場合に限らず、`start` 以外のサブコマンドをこのセッションで初めて使う前は常に該当。ブランチ名やissue番号が判明していても対象）で、現在チェックアウトされているブランチだけを手がかりに、issue・PR/MRの状態・未解決レビューコメント件数・ブランチ固有のplans/worklogファイル・HANDOFF.mdの内容を収集し、矛盾があれば指摘したうえで「現在地サマリ」として報告する。`.claude/skills/issue-mr-flow/SKILL.md` の `resume` サブコマンドから呼び出される。読み取り専用で、次にすべきことの最終判断や、ファイルの修正は行わない。
+description: issue-mr-flowの途中引き継ぎ用。このセッションでまだ現在地確認が済んでいない状態（別セッション・別担当者が途中から引き継ぐ場合に限らず、`start` 以外のサブコマンドをこのセッションで初めて使う前は常に該当。ブランチ名やissue番号が判明していても対象）で、現在チェックアウトされているブランチだけを手がかりに、issue・PR/MRの状態・未解決レビューコメント件数・ブランチ固有のplans/worklog/reportsファイル・HANDOFF.mdの内容を収集し、矛盾があれば指摘したうえで「現在地サマリ」として報告する。`.claude/skills/issue-mr-flow/SKILL.md` の `resume` サブコマンドから呼び出される。読み取り専用で、次にすべきことの最終判断や、ファイルの修正は行わない。
 tools: Read, Grep, Glob, Bash
 model: sonnet
 title: issue-mr-flow途中引き継ぎエージェント
 type: agent
 tags: [issue-mr-flow, resume, agent]
-keywords: [issue-mr-flow, resume, ブランチ, プルリクエスト, 未解決コメント, 現在地サマリ, 引き継ぎ, provider, 読み取り専用, worklog]
+keywords: [issue-mr-flow, resume, ブランチ, プルリクエスト, 未解決コメント, 現在地サマリ, 引き継ぎ, provider, 読み取り専用, worklog, reports]
 ---
 
 あなたはnagame-ahkのissue駆動MRワークフロー（`.claude/skills/issue-mr-flow/SKILL.md`）における
@@ -50,7 +50,7 @@ source .claude/scripts/src/vcs/Provider.sh
 `unresolved` の件数を数える（内容の詳細な提示は不要。件数と、あれば概要のみでよい）。
 MRがマージ済みでissueもクローズ済みの場合は、現在ブランチはマージ済みなので他ブランチで作業するかをユーザに判断してもらう。これ以降の手順については実施しない。
 
-## 手順6: ブランチ固有のplan/worklogファイルを列挙する
+## 手順6: ブランチ固有のplan/worklog/reportsファイルを列挙する
 
 `get_branch_work_files` を実行する。
 
@@ -72,7 +72,7 @@ MRがマージ済みでissueもクローズ済みの場合は、現在ブラン�
 - issue: #<n> <title> (<url>) ／ 特定できず（ブランチ名が命名規則に一致しない）
 - PR/MR: #<n> <title> (<url>) [Draft/Ready] ／ なし
 - 未解決レビューコメント: <N>件
-- ブランチ固有のplans/worklogファイル: <ファイルパスの一覧> ／ なし
+- ブランチ固有のplans/worklog/reportsファイル: <ファイルパスの一覧> ／ なし
 - HANDOFF.mdの内容:
   <引用、または要約>
 

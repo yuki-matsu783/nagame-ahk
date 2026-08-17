@@ -56,6 +56,7 @@ nagame-ahk/
 │       └── lib/
 ├── plans/
 ├── worklog/
+├── reports/                   # 調査結果をmarkdownに加え視覚的にまとめた自己完結HTML（.gitignore対象外、ブランチ単位で削除。docs-workflow.md参照）
 ├── .gitignore
 ├── CLAUDE.md                 # プロジェクト概要・開発実行・.claude/rules/ へのポインタ
 ├── HANDOFF.md                # セッション間・作業者間の軽量な引継ぎメモ（ブランチの現在地・次回やること等。詳細な試行錯誤はworklog/へ）

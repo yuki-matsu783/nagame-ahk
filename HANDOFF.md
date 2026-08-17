@@ -37,16 +37,16 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 15 | **調査結果をもとに**Planモードで**作業計画**を作成する（`plans/<plan名>.md`の「作業計画」章へ追記・コミット） | エージェント |
 | [x] | 16 | 作業計画に合意する | 人間 |
 | [] | 17 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
-| [] | 18 | MRで作業計画についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
-| [] | 19 | レビュー内容を取得し、作業計画を修正する。対応が完了したコメントには対応内容を返信する（18〜19を合意まで繰り返す） | `comments` / `reply` |
-| [] | 20 | 作業計画をもとにMR descriptionを更新する | `describe` |
-| [] | 21 | 作業計画をもとに作業を進める、作業内容はworklogに更新する | エージェント |
+| [x] | 18 | MRで作業計画についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
+| [x] | 19 | レビュー内容を取得し、作業計画を修正する。対応が完了したコメントには対応内容を返信する（18〜19を合意まで繰り返す） | `comments` / `reply` |
+| [x] | 20 | 作業計画をもとにMR descriptionを更新する | `describe` |
+| [x] | 21 | 作業計画をもとに作業を進める、作業内容はworklogに更新する | エージェント |
 | [] | 22 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | [] | 23 | 作業内容をもとにMR descriptionを更新する | `describe` |
-| [] | 24 | MRでレビュー・コメントする。レビュー済み連絡をするまで以降の作業は行わない。 | 人間 |
-| [] | 25 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（21〜25の作業ループを合意まで繰り返す） | `comments` / `reply` |
-| [] | 26 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
-| [] | 27 | AIアセット改善: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
+| [x] | 24 | MRでレビュー・コメントする。レビュー済み連絡をするまで以降の作業は行わない。 | 人間 |
+| [x] | 25 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（21〜25の作業ループを合意まで繰り返す） | `comments` / `reply` |
+| [x] | 26 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
+| [x] | 27 | AIアセット改善: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
 | [] | 28 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | [] | 29 | MRでレビュー・コメントする。レビュー済み連絡をするまで以降の作業は行わない。 | 人間 |
 | [] | 30 | レビュー内容を取得し、設計反映・AIアセットの内容を修正する。対応が完了したコメントには対応内容を返信する（26〜30を合意まで繰り返す） | `comments` / `reply` |
@@ -60,24 +60,30 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 - issue #48のタイトル（readme→markdownに修正）・本文4項目を記入。
 - `start 48` でブランチ`feature-48-add-html-version-of-investigation-docs`・Draft PR #57を作成。
-- Exploreエージェントによる事前調査（issue-mr-flow・docs-workflow・既存のArtifact/html変換関連の
-  仕組みの有無等）を実施。
-- ユーザーとのAskUserQuestionで主要な設計判断を確定（生成方式=自己完結HTMLをコミット、
-  保存場所=`reports/<plan名>.html`・worklogと同じライフサイクル、スタイリング=TailwindCSS CDN第一候補）。
-- Planモードで調査計画を作成し、`plans/drifting-sniffing-clover.md`として承認済み。
-- 調査計画レビューOK確認（未解決コメント無し）→MR description更新（flow-id 9）。
-- 調査を実施（flow-id 10）。調査項目1〜8の結果を`plans/drifting-sniffing-clover.md`の
-  「調査結果」章に記録。特に重要な発見: `reportsDir`追加だけでなく`Provider.sh`の
-  `get_branch_work_files`改修が必要（詳細はworklog push2参照）。
+- Exploreエージェントによる事前調査、ユーザーとのAskUserQuestionで主要な設計判断を確定
+  （生成方式=自己完結HTMLをコミット、保存場所=`reports/<plan名>.html`・worklogと同じ
+  ライフサイクル、スタイリング=TailwindCSS CDN第一候補）。
+- Planモードで調査計画（flow-id 4）→調査実施（flow-id 10、調査結果は
+  `plans/drifting-sniffing-clover.md`「調査結果」章）→作業計画（flow-id 15）を作成、
+  いずれも承認済み。
+- ユーザーから「この先flow-id 32まで承認なしで進めてよい」との指示あり（flow-id 33のマージのみ
+  引き続き人間の指示待ち）。
+- 作業計画を実装（flow-id 21）: SKILL.md・docs-workflow.md・directory-structure.md・
+  .mrworkflow.json・Provider.sh（`get_branch_work_files`改修）・issue-mr-workflow.md・
+  issue-mr-resume.mdを更新。`bash -n`構文チェック・既存テスト（`test_vcs_provider.sh`
+  passed=14 failures=0）・`reports/`ファイル検知の手動確認まで完了（詳細はworklog push3）。
+- 設計反映（flow-id 26相当）: `.claude/scripts/docs/spec/issue-mr-workflow.md`の仕様更新・
+  changelog追加、および意思決定を`.claude/scripts/docs/ddr/0014-調査結果のhtml版は自己完結html
+  のコミットで作る.md`として新規作成（`.claude/scripts/docs/README.md`のDDR一覧にリンク追加）。
 
 ## 次にやること
 
-- flow-id 11: `commit`スキルでcommitし、push してレビュー依頼を行う。
-- flow-id 12〜14: `describe`でMR description更新→MRレビュー→（必要なら）調査結果修正。
-- flow-id 15: 調査結果をもとにPlanモードで作業計画を作成する
-  （少なくとも SKILL.md・docs-workflow.md・directory-structure.md・.mrworkflow.json・
-  Provider.sh(`get_branch_work_files`)・issue-mr-workflow.md・issue-mr-resume.mdの更新を
-  スコープに含める見込み）。
+- flow-id 22: `commit`スキルでcommitし、push する。
+- flow-id 23: `describe`でMR description更新。
+- flow-id 24〜30: レビュー待ちはスキップ（ユーザー許可済み）。未解決コメントの機械的確認のみ行う。
+- flow-id 31: `plans/` `worklog/` `reports/`を削除し、`HANDOFF.md`を次タスクへリセットする。
+- flow-id 32: commit・push・Draft解除。
+- flow-id 33（マージ）は人間からの明示的な指示を待つ。
 
 ## 判断を迷った内容
 
