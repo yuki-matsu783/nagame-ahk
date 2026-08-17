@@ -80,6 +80,60 @@ issue #54はこの問題を、`.gitignore`を読み取って対応する形で�
   `extract-frontmatter.md`, `docs-workflow.md`, DDR 0008）を読み、方式Aまたは方式Bとの整合性を
   文書化する。
 
+### 調査結果
+
+スクラッチパッド配下に`.git`初期化済みの一時リポジトリ（`README.md`・`docs/a.md`をトラッキング、
+`.gitignore`で`/usage/`・`/参考ディレクトリ/`を除外し、それぞれにmarkdownを配置）を作り、
+現状の`extract-frontmatter.sh`と、走査部分のみ`git ls-files`へ置き換えたパッチ版を実機比較した。
+
+1. **方式Aの実現可能性（結論: 採用）**: `find "$target_dir" -type f -name '*.md' -print0 | sort -z`
+   を`git ls-files --cached --others --exclude-standard -z -- "$target_dir" | grep -z '\.md$' |
+   sort -z`に置き換えたところ、`.gitignore`対象（`usage/ignored.md`,
+   `参考ディレクトリ/gaidoc.md`, `参考ディレクトリ/subdir/nested.md`）が候補集合から完全に除外され、
+   トラッキング対象の`README.md`・`docs/a.md`のみが残った。`target_dir`に`.`・サブディレクトリ
+   （`docs`）・絶対パスのいずれを指定しても同じ結果になることを確認した。生成された`index.jsonl`の
+   `concept_id`/`directory`/`frontmatter`/`mtime`は、現状版で生成された内容とバイト単位で完全一致
+   した（`realpath --relative-to`ベースのconcept_id算出ロジックは無変更のまま噛み合う。
+   `git ls-files`が返すパスに`find`のような`./`接頭辞が付かない差異はあるが、`realpath`はcwd基準で
+   絶対パス化するため結果に影響しない）。また`target_dir`に`参考ディレクトリ`（ignore対象
+   ディレクトリそのもの）を直接指定した場合は、候補ファイル0件・`index.jsonl`生成無し・エラー無しで
+   正常終了することを確認した（「完全にignore対象なら何も出力しない」という直感的な挙動）。
+2. **方式Bの実現可能性（結論: 不採用）**: `find`はそのまま維持し、列挙後に
+   `git check-ignore --stdin -z -v`で事後フィルタする方式も実機で動作させた。ignore対象の
+   3ファイルを正しく検出できたが、**`find`自体は`参考ディレクトリ/`配下を含め全ファイルを
+   再帰的に訪問してしまう**ことを確認した（`find . -type f -name '*.md'`の出力に、ignore対象の
+   3ファイルがそのまま含まれる＝訪問済みであることが根拠）。事後フィルタでは「`参考ディレクトリ/`の
+   走査自体を避けたい」というissue #43由来の根本課題（大量ファイルによるタイムアウト・
+   `index.jsonl`破損）を解消できない。
+3. **性能面の裏付け**: `参考ディレクトリ/`配下に3,000件のダミーmarkdownを追加した状態で
+   `find . -type f -name '*.md' -print0`と`git ls-files --cached --others --exclude-standard -z --
+   .`を単純比較したところ、後者はignore対象を最初から走査しないため候補ファイル数が2件（前者は
+   3,005件）に留まり、所要時間も短かった（実測: find 0.94秒 vs git ls-files 0.54秒。この程度の
+   件数では体感差は小さいが、既存の懸念点が指摘する「巨大な外部OSSクローン」規模ではこの差が
+   支配的になる）。加えて、現状版は各候補ファイルごとに`frontmatter_to_json`（`jq`のプロセス
+   起動を複数回伴う）を実行するため、候補ファイル数そのものを減らせる方式Aの効果は件数差以上に
+   大きいと考えられる。
+4. **規約適合性**: 方式Aは`git ls-files`の引数に渡すのは`$target_dir`という短い文字列のみで、
+   ファイル一覧自体はパイプ（ストリーム）で受け渡すため、`.claude/rules/shell-script-style.md`が
+   禁じる「大きなJSONを`--argjson`/`--arg`等のコマンドライン引数として渡す」パターンに該当しない。
+5. **既存テストへの影響**: `tests/test_extract_frontmatter.sh`は`frontmatter_to_json`・
+   `resolve_repo_root`・concept_id/directory算出ロジックのみを検証しており、`main()`内の
+   走査行（`find`または`git ls-files`）はテスト対象外。今回の変更は`main()`内の1行の置き換えのみで
+   完結し、既存テストへの影響は無い。
+6. **git依存の前提**: 変更後も`resolve_repo_root`が既に`git rev-parse --show-toplevel`に依存して
+   いるため、「gitリポジトリ内での実行が前提」という制約は変わらない。`git ls-files`もgitリポジトリ
+   外で実行すればエラーになるが、これは走査ロジック変更前から存在する制約の範囲内。
+7. **spec/DDRへの反映方針**: `.claude/scripts/docs/spec/extract-frontmatter.md`の「未決定事項・
+   懸念点」にある`参考ディレクトリ/`関連の記述は、issue #54の実装完了後（作業計画・実装フェーズ、
+   flow-id 26の設計反映）で「解消済み」として仕様節（「実行方法」または新設の「走査方式」節）へ
+   書き換える。当該記述はchangelog（影響範囲節のような点在記録）ではなく現在の仕様を説明する節の
+   一部と判断したため、`.claude/rules/docs-workflow.md`の「過去issueのchangelogは書き換えない」
+   制約には抵触しない。あわせて、走査方式という新しい設計判断のため
+   `.claude/scripts/docs/ddr/0008-frontmatter抽出スクリプトの設計判断.md`（既にマージ済みで追記
+   不可）とは別に、新規DDR（採用: 方式A、却下: 方式B）を作業計画で追加する。
+
+**結論**: 方式A（`git ls-files --cached --others --exclude-standard`ベースへの置き換え）を採用する。
+
 ## 検証方法
 
 調査結果は`plans/reflective-zooming-cake.md`の「調査」章に追記し、`worklog/`にも実機確認の

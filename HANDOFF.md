@@ -26,10 +26,10 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 4 | Planモードで**調査計画**を作成する（`plans/<plan名>.md`の「調査」章へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
 | [x] | 5 | 調査計画に合意する | 人間 |
 | [x] | 6 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
-| [] | 7 | MRで調査計画についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
-| [] | 8 | レビュー内容を取得し、調査計画を修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
+| [x] | 7 | MRで調査計画についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
+| [x] | 8 | レビュー内容を取得し、調査計画を修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
 | [x] | 9 | 調査計画をもとにMR descriptionを更新する | `describe` |
-| [] | 10 | **調査を実施**し、結果を`plans/<plan名>.md`の「調査」章・worklogに記録する。あわせて調査結果を視覚的に分かりやすくまとめた自己完結HTML（TailwindCSS CDN方式）を`reports/<plan名>.html`として作成する（調査結果が複数要素間の関連・依存関係を主題とする場合は、`.claude/skills/canvas-report/SKILL.md`のcanvas形式テンプレートの利用を検討する） | エージェント |
+| [x] | 10 | **調査を実施**し、結果を`plans/<plan名>.md`の「調査」章・worklogに記録する。あわせて調査結果を視覚的に分かりやすくまとめた自己完結HTML（TailwindCSS CDN方式）を`reports/<plan名>.html`として作成する（調査結果が複数要素間の関連・依存関係を主題とする場合は、`.claude/skills/canvas-report/SKILL.md`のcanvas形式テンプレートの利用を検討する） | エージェント |
 | [] | 11 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | [] | 12 | 調査結果をもとにMR descriptionを更新する | `describe` |
 | [] | 13 | MRで調査結果についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
@@ -59,15 +59,19 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 ## やったこと
 
 - issue #54を取得し、`feature-54-extract-frontmatter-respect-gitignore`ブランチとDraft PR #60を作成した。
-- 調査計画を`plans/reflective-zooming-cake.md`に作成し、ユーザーの承認を得た（flow-id 4〜5完了）。
-- `worklog/2026-08-18_reflective-zooming-cake_push1.md`を作成した。
+- 調査計画を`plans/reflective-zooming-cake.md`に作成し、ユーザーの承認を得た（flow-id 4〜9完了）。
+- 調査を実施（flow-id 10）: スクラッチパッドに一時gitリポジトリを作り、`find`（現状）・
+  `git ls-files`ベース（方式A）・`find`+`git check-ignore`事後フィルタ（方式B）を実機比較した。
+  方式Aを採用と結論し、`plans/reflective-zooming-cake.md`の「調査結果」節、
+  `worklog/2026-08-18_reflective-zooming-cake_push1.md`のpush2節、
+  `reports/reflective-zooming-cake.html`に記録した。
 
 ## 次にやること
 
-- flow-id 6: `commit`スキル経由でcommit・push・レビュー依頼を行う。
-- flow-id 10: 調査計画の各項目（`git ls-files`ベース案 vs `git check-ignore`フィルタ案の実機比較等）
-  を実施し、`plans/reflective-zooming-cake.md`の「調査」章に結果を追記、
-  `reports/reflective-zooming-cake.html`を作成する。
+- flow-id 11: `commit`スキル経由でcommit・push・レビュー依頼を行う。
+- flow-id 12: `describe`で調査結果をもとにMR descriptionを更新する。
+- flow-id 15: 調査結果（方式A採用）をもとに作業計画を作成する
+  （実装本体・`docs/spec/extract-frontmatter.md`更新・新規DDR追加を含む）。
 
 ## 判断を迷った内容
 

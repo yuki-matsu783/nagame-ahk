@@ -43,3 +43,42 @@ push回数: 1
   を作成する。
 
 ---
+
+## push2: flow-id 10（調査実施）
+
+### 試したこと
+
+- スクラッチパッド（`issue54-gitignore-test/`）に`.git`初期化済みの一時リポジトリを作成し、
+  `README.md`・`docs/a.md`をトラッキング、`.gitignore`で`/usage/`・`/参考ディレクトリ/`を除外した
+  うえで、それぞれにmarkdownを配置した。
+- 現状の`extract-frontmatter.sh`をそのまま実行し、ignore対象ディレクトリ配下のmarkdownまで
+  `index.jsonl`に含まれてしまうこと（バグの再現）を確認した。
+- `find`呼び出し1行のみを`git ls-files --cached --others --exclude-standard -z -- "$target_dir" |
+  grep -z '\.md$' | sort -z`に置き換えたパッチ版を作り、同じ一時リポジトリで実行・出力比較した
+  （方式A）。
+- `find`はそのまま維持し、列挙後に`git check-ignore --stdin -z -v`で事後フィルタする方式Bも
+  同じ一時リポジトリで実機確認した。
+- `参考ディレクトリ/`配下に3,000件のダミーmarkdownを追加し、`find`と`git ls-files`の所要時間・
+  訪問ファイル数を比較した（性能面の裏付け）。
+
+### うまくいったこと
+
+- 方式A（`git ls-files`ベース）採用に決定。ignore対象を候補集合から完全に除外でき、
+  `target_dir`が`.`／サブディレクトリ／絶対パス／ignore対象ディレクトリ自身のいずれでも
+  意図通りに動作し、正常系（README.md, docs/a.md）の`index.jsonl`出力内容は現状版とバイト単位で
+  完全一致した。方式Bは`find`自体がignore対象を訪問してしまうため、issue #43由来の性能課題を
+  解消できないことを確認し不採用とした。
+- 詳細な検証結果は`plans/reflective-zooming-cake.md`の「調査結果」節に記載済み。
+
+### ダメだったこと
+
+- 方式B（`find`維持＋`git check-ignore`事後フィルタ）は、正しさは確保できるが根本課題
+  （巨大ディレクトリの走査コスト）を解消できないため不採用。
+
+### 次の一歩
+
+- `reports/reflective-zooming-cake.html`を作成する。
+- flow-id 11: commit・push・レビュー依頼。
+- flow-id 15: 作業計画（方式Aの実装、spec更新、新規DDR追加を含む）を作成する。
+
+---
