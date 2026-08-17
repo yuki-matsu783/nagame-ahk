@@ -102,3 +102,13 @@ jqの出力を直接ファイルへ書き出す箇所は`tr -d '\r'`でLF改行�
 - **git bash（MSYS）以外での動作は未検証**: `resolve_repo_root`の`cd`によるパス表記統一は
   git bash（Windows）特有の問題への対処であり、WSL/Linux実機での動作確認は行っていない
   （`dev-tools/docs/spec/shell-scripts.md`の未決定事項と同様の制約）。
+- **リポジトリルート（`.`）に対する一括実行はタイムアウト・破損のリスクがある**（issue #43対応時に
+  実機確認）: `参考ディレクトリ/`（`.claude/rules/directory-structure.md`が定める、外部OSSを
+  ローカルにcloneする場所。`.gitignore`対象だが`find`の走査対象からは除外されない）に大量の
+  markdownファイルが存在すると、`bash dev-tools/src/extract-frontmatter.sh .`が2分以上かかり
+  タイムアウトすることがある。タイムアウトで処理を中断すると、書き込み中だった`index.jsonl`が
+  末尾の行を欠いたまま壊れた状態で残ることを確認した。**対策として、実行は影響のあるディレクトリ
+  単位に絞る**（例: `bash dev-tools/src/extract-frontmatter.sh .claude/rules`）。また、対象を
+  絞った個別実行の直後に、スコープ外のはずの他ディレクトリの`index.jsonl`（ルート`index.jsonl`等）
+  まで変更されており、ルート`index.jsonl`には同一内容の重複行が生じるという、原因を特定できない
+  挙動も観測した。この現象の根本原因の切り分けは未実施（今後の課題）。
