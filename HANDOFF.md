@@ -14,39 +14,39 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## フロー進捗状況
 
-- issue: [#24 dev-toolsをAI・人間が利用するものと人間のみが利用するもので分ける](https://github.com/yuki-matsu783/nagame-ahk/issues/24)
-- ブランチ: `feature-24-separate-ai-human-dev-tools`
-- Draft PR: [#55](https://github.com/yuki-matsu783/nagame-ahk/pull/55)
+- issue: （未着手）
+- ブランチ: （未着手）
+- Draft PR: （未着手）
 
 | 進捗 | flow-id | ステップ | 担当 |
 |----|---|---|---|
-| [x] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間（AIが代行する場合は `issue-create` スキル） |
-| [x] | 2 | issueの内容を取得する | `start <issue番号>` |
-| [x] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
-| [x] | 4 | Planモードで**調査計画**を作成する（`plans/<plan名>.md`の「調査」章へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
-| [x] | 5 | 調査計画に合意する | 人間 |
-| [x] | 6 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
-| [x] | 7 | MRで調査計画についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
-| [x] | 8 | レビュー内容を取得し、調査計画を修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
-| [x] | 9 | 調査計画をもとにMR descriptionを更新する | `describe` |
-| [x] | 10 | **調査を実施**し、結果を`plans/<plan名>.md`の「調査」章・worklogに記録する | エージェント |
-| [x] | 11 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
-| [x] | 12 | 調査結果をもとにMR descriptionを更新する | `describe` |
-| [x] | 13 | MRで調査結果についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
-| [x] | 14 | レビュー内容を取得し、調査結果を修正する。対応が完了したコメントには対応内容を返信する（10〜14を合意まで繰り返す） | `comments` / `reply` |
-| [x] | 15 | **調査結果をもとに**Planモードで**作業計画**を作成する（`plans/<plan名>.md`の「作業計画」章へ追記・コミット） | エージェント |
-| [x] | 16 | 作業計画に合意する | 人間 |
-| [x] | 17 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
-| [x] | 18 | MRで作業計画についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
-| [x] | 19 | レビュー内容を取得し、作業計画を修正する。対応が完了したコメントには対応内容を返信する（18〜19を合意まで繰り返す） | `comments` / `reply` |
-| [x] | 20 | 作業計画をもとにMR descriptionを更新する | `describe` |
-| [x] | 21 | 作業計画をもとに作業を進める、作業内容はworklogに更新する | エージェント |
-| [x] | 22 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
-| [x] | 23 | 作業内容をもとにMR descriptionを更新する | `describe` |
-| [x] | 24 | MRでレビュー・コメントする。レビュー済み連絡をするまで以降の作業は行わない。 | 人間 |
-| [x] | 25 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（21〜25の作業ループを合意まで繰り返す） | `comments` / `reply` |
-| [x] | 26 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
-| [x] | 27 | AIアセット改善: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
+| [] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間（AIが代行する場合は `issue-create` スキル） |
+| [] | 2 | issueの内容を取得する | `start <issue番号>` |
+| [] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
+| [] | 4 | Planモードで**調査計画**を作成する（`plans/<plan名>.md`の「調査」章へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
+| [] | 5 | 調査計画に合意する | 人間 |
+| [] | 6 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
+| [] | 7 | MRで調査計画についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
+| [] | 8 | レビュー内容を取得し、調査計画を修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
+| [] | 9 | 調査計画をもとにMR descriptionを更新する | `describe` |
+| [] | 10 | **調査を実施**し、結果を`plans/<plan名>.md`の「調査」章・worklogに記録する | エージェント |
+| [] | 11 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
+| [] | 12 | 調査結果をもとにMR descriptionを更新する | `describe` |
+| [] | 13 | MRで調査結果についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
+| [] | 14 | レビュー内容を取得し、調査結果を修正する。対応が完了したコメントには対応内容を返信する（10〜14を合意まで繰り返す） | `comments` / `reply` |
+| [] | 15 | **調査結果をもとに**Planモードで**作業計画**を作成する（`plans/<plan名>.md`の「作業計画」章へ追記・コミット） | エージェント |
+| [] | 16 | 作業計画に合意する | 人間 |
+| [] | 17 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
+| [] | 18 | MRで作業計画についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
+| [] | 19 | レビュー内容を取得し、作業計画を修正する。対応が完了したコメントには対応内容を返信する（18〜19を合意まで繰り返す） | `comments` / `reply` |
+| [] | 20 | 作業計画をもとにMR descriptionを更新する | `describe` |
+| [] | 21 | 作業計画をもとに作業を進める、作業内容はworklogに更新する | エージェント |
+| [] | 22 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
+| [] | 23 | 作業内容をもとにMR descriptionを更新する | `describe` |
+| [] | 24 | MRでレビュー・コメントする。レビュー済み連絡をするまで以降の作業は行わない。 | 人間 |
+| [] | 25 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（21〜25の作業ループを合意まで繰り返す） | `comments` / `reply` |
+| [] | 26 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
+| [] | 27 | AIアセット改善: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
 | [] | 28 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | [] | 29 | MRでレビュー・コメントする。レビュー済み連絡をするまで以降の作業は行わない。 | 人間 |
 | [] | 30 | レビュー内容を取得し、設計反映・AIアセットの内容を修正する。対応が完了したコメントには対応内容を返信する（26〜30を合意まで繰り返す） | `comments` / `reply` |
@@ -58,38 +58,15 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## やったこと
 
-- issue #24を取得し、featureブランチ・Draft PR #55を作成した。
-- Exploreサブエージェントで`dev-tools/`配下の構成・参照元を事前調査した上で、`plans/delegated-gathering-frog.md`に調査計画（調査の目的・調査項目8点・調査対象外・調査方法）を作成し、人間の承認を得た。
-- `commit`スキル経由でcommit・push、`describe`でPR #55のdescriptionを調査計画の内容で更新した。
-- 人間からレビュー完了の連絡を受け、`comments all`で未解決スレッドが無いことを確認した（自動投稿の対応工数レポートのみで、レビューコメントは無し）。
-- 調査を実施（flow-id 10）。追加のgrepでExplore結果の裏取りを行い、`plans/delegated-gathering-frog.md`の「調査」章に「調査結果」（ファイル分類・参照箇所一覧・hooksとの役割整理・プラグイン配布の既存記述有無・directory-structure.md記載の乖離・移行先ディレクトリ構成案・stale参照）を追記、worklogにも記録した。
-- 人間からチャットで「`extract-frontmatter.sh`と判断が分かれる部分も移行して」との指摘を受け、調査結果を修正（`extract-frontmatter.sh`・`shell-scripts.md`・`extract-frontmatter.md`・DDR`0008`を移行対象に変更）。commit・push、PR descriptionも更新した。
-- `comments all`で未解決スレッドが無いことを再確認し、調査結果レビュー完了とした（flow-id 13〜14）。
-- 調査結果をもとにPlanモードで作業計画を作成し（`plans/delegated-gathering-frog.md`の「作業計画」章）、人間の承認を得た（flow-id 15〜16）。
-- `commit`スキル経由でcommit・push・レビュー依頼を行った（flow-id 17）。
-- 人間からチャットで「スコープ外としたものについても今回の対応で作業して」との指摘を受け、作業計画に7〜9番として追加（`.claude/agents/issue-mr-resume.md`の全面書き直し、`DEVELOPERS.md`の`build.ps1`記載修正、`.claude/rules/powershell-encoding.md`の整理）。「スコープ外」節を縮小し、検証方法にも追記した。commit・push済み。
-- 作業計画に沿って実装した（flow-id 21）: AI専用ファイル一式（`.sh` 7本、spec 3本、DDR 11本）を`git mv`で`.claude/scripts/`へ移動、パス参照を一括更新、`dev-tools/docs/README.md`分割、`directory-structure.md`/`markdown-frontmatter.md`/`index.md`更新、`issue-mr-resume.md`全面書き直し、`DEVELOPERS.md`/`powershell-encoding.md`修正、`index.jsonl`再生成。詳細・ハマった点（sedによる歴史的changelog破壊とその復旧）はworklog参照。
-- 実装内容のレビュー完了連絡を受け、`comments all`で未解決スレッドが無いことを確認した（flow-id 24〜25）。
-- 設計反映（flow-id 26）: 移動したspec文書は実装時点で既に「影響範囲」changelogを更新済み。未反映だった`dev-tools/docs/spec/distribution.md`にも追記。新規DDR`.claude/scripts/docs/ddr/0013-dev-toolsをAI専用_人間専用に分離する.md`を作成（決定・却下案・issue-mr-resume.md全面書き直しの経緯を記録）。READMEにリンク追加、`index.jsonl`再生成。
-- AIアセット改善（flow-id 27）: `.claude/rules/docs-workflow.md`に「ファイル移動時のパス一括置換はDDR本文・spec changelogの歴史的記録を対象に含めない」という、今回の教訓を明文化した注記を追加。
-- 作業中、`.claude/rules/git-workflow.md`・`.claude/skills/commit/SKILL.md`・`worklog/TEMPLATE.md`が
-  未コミットの状態で`_push<N>`命名規則（worklogをpush単位のファイルに分ける新方針）へ変更されて
-  いるのに気づいた。私自身が行った変更ではなかったため作業を中断してユーザーに確認したところ、
-  「意図した変更なので一緒に取り込んでOK」との回答を得た。`docs-workflow.md`側は当初逆方向
-  （`_push<N>`を削除する方向）に修正していたが、`_push<N>`方式へ揃えるよう修正し直した。
-  なお、本ブランチで既存の`worklog/2026-08-17_delegated-gathering-frog.md`（累積1ファイル方式）は
-  新方針の遡及適用はせずそのまま維持し、新方針は今後のworklog作成から適用される想定とした。
+（無し）
 
 ## 次にやること
 
-- `commit`スキル経由でcommit・push・レビュー依頼を行う（flow-id 28）。
+（無し）
 
 ## 判断を迷った内容
 
-- issue本文の移行先表記（「.claudeのscripts配下」「scripts/src」「scripts/docs」）から`.claude/scripts/src/`・`.claude/scripts/docs/`と解釈した（作業計画で確定）。
-- `shell-scripts.md`の移動後もdev-tools/に残る`build.sh`から参照できるよう、`dev-tools/docs/spec/distribution.md`・`dev-tools/src/build.sh`内の参照パスを新パスへ更新する形で対応した。
-- 作業計画作成時に`.claude/agents/issue-mr-resume.md`を精読した結果、調査結果7番で想定していた「移行対象パスの書き換えのみ」では不十分と判明（旧PowerShell版Provider.ps1・PascalCase関数を前提とした記述で、単純なパス書き換えでは済まない全面的な作り直しが必要）。人間の指示によりスコープに含め、全面書き直しを実施した。
-- パス参照の一括sed置換で、移動したspec文書内の「## 影響範囲」（過去issueのchangelog、歴史的記録）まで書き換えてしまい歴史を破壊しかけた。`git checkout --`で復旧し、「現在の状態を説明する節」のみ手動修正する方針に切り替えた（詳細はworklog参照）。同種の作業（ファイル移動に伴うパス一括置換）を行う際は、対象ファイルに「過去の記録として意図的に古い値を保持すべき箇所」（changelog・DDR等）が無いか事前に確認すべき、という教訓が得られた。
+（無し）
 
 ## 未解決の内容
 
@@ -97,4 +74,4 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## 守るべき条件・触ってはいけない範囲
 
-- 調査計画の「調査対象外」に記載の通り、実際のファイル移動・パス書き換えは行っていない（flow-id 10以降で実施）。
+（無し）
