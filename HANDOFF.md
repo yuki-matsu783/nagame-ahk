@@ -71,13 +71,18 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
   リッチな表現軸（形状・アイコン・サイズ・エッジ色/線種・クラスタ枠）を組み込んだ
   `reports/cached-crunching-mochi.html`を試作、ブラウザで動作確認済み。新スキル名は
   `canvas-report`を暫定提案。
+- push後、ユーザーから追加要望（参照ハイライト・ミニマップ・詳細表示でのmarkdown/mermaid）を
+  受け、方針をAskUserQuestionで確認（markdown=AI生成時HTML事前変換、mermaid=CDN追加を許容）した
+  上で`reports/cached-crunching-mochi.html`をv2へ更新（ミニマップ・詳細パネル追加）、動作確認済み。
+  「セマンティックズーム」は「クリックで詳細パネル」に単純化した旨を調査結果に明記済み（項目8）。
 
 ## 次にやること
 
 - flow-id 11: `commit`スキルでcommitし、push してレビュー依頼を行う。
 - flow-id 12〜14: `describe`でMR description更新→MRレビュー→調査結果修正（必要なら）。
 - flow-id 15: 調査結果をもとにPlanモードで作業計画を作成する
-  （`.claude/skills/canvas-report/SKILL.md` + `templates/`の具体的な実装計画）。
+  （`.claude/skills/canvas-report/SKILL.md` + `templates/`の具体的な実装計画。セマンティックズーム
+  単純化の妥当性を改めてユーザーに確認する）。
 
 ## 判断を迷った内容
 

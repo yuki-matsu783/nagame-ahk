@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>調査結果: canvas形式HTML生成スキル（リッチ表現版デモ）</title>
+<title>調査結果: canvas形式HTML生成スキル（リッチ表現版デモ v2）</title>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <script>
   tailwind.config = {
     darkMode: 'media',
@@ -32,10 +33,10 @@
   <header class="fixed top-0 inset-x-0 z-20 flex flex-wrap items-center justify-between gap-2 px-6 py-3
                   bg-slate-950/80 backdrop-blur border-b border-slate-800">
     <div>
-      <p class="text-[0.68rem] font-bold uppercase tracking-widest text-slate-500">issue #58 調査結果</p>
-      <h1 class="text-base font-semibold text-slate-100">nagame-ahk features/lib 依存関係キャンバス（リッチ表現デモ）</h1>
+      <p class="text-[0.68rem] font-bold uppercase tracking-widest text-slate-500">issue #58 調査結果 v2</p>
+      <h1 class="text-base font-semibold text-slate-100">nagame-ahk features/lib 依存関係キャンバス（ミニマップ・詳細パネル版）</h1>
     </div>
-    <p class="hidden md:block text-xs text-slate-500">ホイールでズーム ・ ドラッグでパン ・ ノードにカーソルで関連をハイライト</p>
+    <p class="hidden md:block text-xs text-slate-500">ホイールでズーム ・ ドラッグでパン ・ ホバーで関連ハイライト ・ クリックで詳細パネル</p>
   </header>
 
   <div id="viewport" class="canvas-bg absolute inset-0 pt-16 cursor-grab active:cursor-grabbing">
@@ -52,6 +53,15 @@
     </div>
   </div>
 
+  <!-- ミニマップ: 全体像の把握と、クリック/ドラッグでの高速移動 -->
+  <div class="fixed top-16 right-4 z-20 mt-2">
+    <div id="minimap" class="relative rounded-lg border border-slate-700 bg-slate-900/90 backdrop-blur shadow-xl cursor-pointer overflow-hidden" style="width:200px;height:118px;">
+      <div id="minimap-nodes" class="absolute inset-0"></div>
+      <div id="minimap-viewport" class="absolute border-2 border-fuchsia-400/80 bg-fuchsia-400/10 pointer-events-none"></div>
+    </div>
+    <p class="text-[0.6rem] text-slate-500 mt-1 text-right">ミニマップ（クリックで移動）</p>
+  </div>
+
   <div class="fixed bottom-6 right-6 z-20 flex flex-col gap-2">
     <button id="zoom-in"  class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-lg leading-none">+</button>
     <button id="zoom-out" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-lg leading-none">−</button>
@@ -63,7 +73,7 @@
       <p class="font-semibold text-slate-300 mb-1">ノード（形状・アイコンで種別を表現）</p>
       <p class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-emerald-400"></span>⚡ features/（角丸四角）</p>
       <p class="flex items-center gap-2"><span class="w-3 h-3 bg-sky-400" style="clip-path:polygon(20% 0,80% 0,100% 50%,80% 100%,20% 100%,0 50%)"></span>🧩 lib/（六角形）</p>
-      <p class="text-slate-500 mt-1">サイズ＝呼ばれている数（ハブ度）</p>
+      <p class="text-slate-500 mt-1">サイズ＝呼ばれている数（ハブ度）／📄付きはクリックで詳細パネル</p>
     </div>
     <div class="border-t border-slate-800 pt-2">
       <p class="font-semibold text-slate-300 mb-1">エッジ（用途ごとに色・線種）</p>
@@ -76,22 +86,59 @@
     </div>
   </div>
 
+  <!-- 詳細パネル: ノードクリックで開く。markdownは生成時にHTMLへ事前変換、図解はmermaid.jsで描画 -->
+  <div id="detail-panel" class="fixed top-0 right-0 z-30 h-full w-full sm:w-[420px] bg-slate-900 border-l border-slate-700
+                                 shadow-2xl translate-x-full transition-transform duration-300 overflow-y-auto">
+    <div class="sticky top-0 bg-slate-900/95 backdrop-blur border-b border-slate-800 px-5 py-4 flex items-start justify-between gap-3">
+      <div>
+        <p id="detail-sub" class="text-[0.65rem] uppercase tracking-widest text-slate-500"></p>
+        <h2 id="detail-title" class="text-lg font-semibold text-slate-100 mt-0.5"></h2>
+      </div>
+      <button id="detail-close" class="w-8 h-8 shrink-0 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700">×</button>
+    </div>
+    <div id="detail-body" class="px-5 py-4 text-sm text-slate-300 space-y-4"></div>
+  </div>
+  <div id="detail-backdrop" class="fixed inset-0 z-25 bg-black/40 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
 <script>
+  mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
+
   // ---- データ定義: nagame-ahk実コード（src/）の #Include・関数呼び出しから抽出した実関係 ----
   // group: 'feature' | 'lib'（ノードの形状・色を決める）
-  // uses: 数値が大きいほど多くの箇所から使われる = ハブとしてノードを大きく表示する
+  // detailHtml: 生成時にmarkdown相当の内容をAIが直接HTMLへ変換して埋め込む（追加JSパーサ不要の方針）
+  // mermaid: あれば詳細パネルでmermaid図として描画する（関係が複雑なノードのみ付与、全ノード必須ではない）
   const NODES = [
     // --- src/features/ ---
     { id: 'ActivityStatus',    group: 'feature', x: 220,  y: 210, label: 'ActivityStatus.ahk',    desc: '対応工数の稼働状態を記録' },
     { id: 'ClipboardControl',  group: 'feature', x: 560,  y: 210, label: 'ClipboardControl.ahk',  desc: 'クリップボード操作' },
     { id: 'InputControl',      group: 'feature', x: 900,  y: 210, label: 'InputControl.ahk',      desc: 'キー・マウス入力制御' },
     { id: 'NotifyUI',          group: 'feature', x: 1240, y: 210, label: 'NotifyUI.ahk',          desc: '通知UI表示' },
-    { id: 'OfficeFileWatcher', group: 'feature', x: 220,  y: 460, label: 'OfficeFileWatcher.ahk', desc: 'Office文書オープン監視' },
+    {
+      id: 'OfficeFileWatcher', group: 'feature', x: 220,  y: 460, label: 'OfficeFileWatcher.ahk', desc: 'Office文書オープン監視',
+      detailHtml: `
+        <p><strong>役割</strong>: Office文書（Word/Excel等）がウィンドウとして開かれたことを検知し、
+        ファイルパスを解決して外部へ通知する。</p>
+        <ul class="list-disc list-inside space-y-1 text-slate-400">
+          <li><code class="text-cyan-300">WindowOpenWatcher</code> からウィンドウ表示イベントを受け取る</li>
+          <li><code class="text-violet-300">FileOpenNotifier</code> でファイルパスを解決・整形する</li>
+          <li><code class="text-cyan-300">TcpServer</code> 経由で外部コマンド受信側へ送信する</li>
+        </ul>`,
+      mermaid: `graph LR\n  A[WindowOpenWatcher] -->|ウィンドウ表示検知| B[OfficeFileWatcher]\n  B -->|ファイルパス解決| C[FileOpenNotifier]\n  C -->|通知| D[TcpServer]\n  D -->|外部へ送信| E[外部コマンド受信側]`,
+    },
     { id: 'PdfFileWatcher',    group: 'feature', x: 560,  y: 460, label: 'PdfFileWatcher.ahk',    desc: 'PDFオープン監視' },
     { id: 'RecentDocsWatcher', group: 'feature', x: 900,  y: 460, label: 'RecentDocsWatcher.ahk', desc: '最近使ったファイル監視' },
     { id: 'WindowControl',     group: 'feature', x: 1240, y: 460, label: 'WindowControl.ahk',     desc: 'ウィンドウ配置操作' },
     // --- src/lib/ ---
-    { id: 'Logger',            group: 'lib', x: 900,  y: 840, label: 'Logger.ahk',            desc: 'ログ出力（最多参照のハブ）' },
+    {
+      id: 'Logger', group: 'lib', x: 900, y: 840, label: 'Logger.ahk', desc: 'ログ出力（最多参照のハブ）',
+      detailHtml: `
+        <p><strong>役割</strong>: アプリ全体の共通ログ出力処理。<code>Info</code> / <code>Error</code> /
+        <code>Debug</code>の3レベルを提供する。</p>
+        <p>9箇所（features/6件・lib/3件）から参照される、このリポジトリで最もハブ度の高いモジュール。
+        新しいfeatureを追加する際は、独自のログ処理を書かず必ずこの経由にする
+        （<code>directory-structure.md</code>の「共通処理は<code>lib/</code>経由」ルールに対応）。</p>`,
+      mermaid: `graph TD\n  A[呼び出し元 9箇所] -->|Logger.Info/Error/Debug| B[Logger.ahk]\n  B --> C[ログファイル書き込み]\n  B --> D[コンソール出力]`,
+    },
     { id: 'Json',              group: 'lib', x: 540,  y: 840, label: 'Json.ahk',              desc: 'JSONエンコード/デコード' },
     { id: 'WindowUtils',       group: 'lib', x: 340,  y: 840, label: 'WindowUtils.ahk',       desc: 'ウィンドウ状態取得' },
     { id: 'TcpServer',         group: 'lib', x: 1240, y: 840, label: 'TcpServer.ahk',         desc: '外部コマンドサーバー' },
@@ -125,8 +172,8 @@
   ];
 
   const GROUP_STYLE = {
-    feature: { shapeClass: 'rounded-xl', icon: '⚡', bar: 'bg-gradient-to-r from-emerald-400 to-emerald-600', card: 'border-emerald-400/40 hover:ring-emerald-400/60' },
-    lib:     { shapeClass: 'node-hex',   icon: '🧩', bar: 'bg-gradient-to-r from-sky-400 to-sky-600',       card: 'border-sky-400/40 hover:ring-sky-400/60' },
+    feature: { shapeClass: 'rounded-xl', icon: '⚡', bar: 'bg-gradient-to-r from-emerald-400 to-emerald-600', card: 'border-emerald-400/40 hover:ring-emerald-400/60', dot: '#34d399' },
+    lib:     { shapeClass: 'node-hex',   icon: '🧩', bar: 'bg-gradient-to-r from-sky-400 to-sky-600',       card: 'border-sky-400/40 hover:ring-sky-400/60', dot: '#38bdf8' },
   };
 
   // エッジの見た目（色・破線・太さ）。用途カテゴリごとに変える＝「関係の種類」を視覚化する
@@ -143,6 +190,7 @@
   const clustersLayer = document.getElementById('clusters');
   const svg = document.getElementById('edges');
   const byId = Object.fromEntries(NODES.map(n => [n.id, n]));
+  const WORLD_W = 1700, WORLD_H = 1000;
 
   // ハブ度（他ノードから何回参照されているか）でノードサイズを決める
   const inDegree = Object.fromEntries(NODES.map(n => [n.id, 0]));
@@ -187,10 +235,13 @@
       transition-all duration-200 cursor-pointer select-none text-center`;
     el.innerHTML = `
       <div class="h-1 w-6 mx-auto rounded-full ${s.bar} mb-1.5"></div>
-      <div class="${sz.font} font-semibold text-slate-100">${s.icon} ${n.label}</div>
+      <div class="${sz.font} font-semibold text-slate-100">${s.icon} ${n.label}${n.detailHtml ? ' <span class=\"text-slate-500\">📄</span>' : ''}</div>
       <div class="text-[0.62rem] text-slate-400 mt-0.5 leading-snug">${n.desc}</div>
       ${inDegree[n.id] >= 3 ? `<div class="text-[0.6rem] text-slate-500 mt-1">被参照 ${inDegree[n.id]}件</div>` : ''}
     `;
+    // ノード上でのmousedownはキャンバスのパン開始に巻き込まれないようにする
+    el.addEventListener('mousedown', (ev) => ev.stopPropagation());
+    el.addEventListener('click', () => { if (n.detailHtml) openDetail(n); });
     nodesLayer.appendChild(el);
   });
 
@@ -207,7 +258,7 @@
   EDGES.forEach(e => {
     const a = byId[e.from], b = byId[e.to];
     const style = EDGE_STYLE[e.category];
-    const { d, mx, my } = edgePath(a, b);
+    const { d } = edgePath(a, b);
 
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     path.setAttribute('d', d);
@@ -250,12 +301,48 @@
     el.addEventListener('mouseleave', () => setHighlight(null));
   });
 
+  // ---- 詳細パネル: markdownは生成時HTML事前変換済み、図解はmermaid.jsで描画 ----
+  const detailPanel = document.getElementById('detail-panel');
+  const detailBackdrop = document.getElementById('detail-backdrop');
+  const detailTitle = document.getElementById('detail-title');
+  const detailSub = document.getElementById('detail-sub');
+  const detailBody = document.getElementById('detail-body');
+  let mermaidSeq = 0;
+
+  async function openDetail(n) {
+    const s = GROUP_STYLE[n.group];
+    detailTitle.textContent = `${s.icon} ${n.label}`;
+    detailSub.textContent = n.group === 'feature' ? 'src/features/' : 'src/lib/';
+    let bodyHtml = n.detailHtml || '';
+    let mermaidId = null;
+    if (n.mermaid) {
+      mermaidId = `mmd-${++mermaidSeq}`;
+      bodyHtml += `<div class="mt-2 rounded-lg bg-slate-800/60 p-3 overflow-x-auto"><pre class="mermaid" id="${mermaidId}">${n.mermaid}</pre></div>`;
+    }
+    detailBody.innerHTML = bodyHtml;
+    detailPanel.classList.remove('translate-x-full');
+    detailBackdrop.classList.remove('opacity-0', 'pointer-events-none');
+    if (mermaidId) {
+      const el = document.getElementById(mermaidId);
+      await mermaid.run({ nodes: [el] });
+    }
+  }
+  function closeDetail() {
+    detailPanel.classList.add('translate-x-full');
+    detailBackdrop.classList.add('opacity-0', 'pointer-events-none');
+  }
+  document.getElementById('detail-close').addEventListener('click', closeDetail);
+  detailBackdrop.addEventListener('click', closeDetail);
+
   // ---- パン & ズーム ----
   const viewport = document.getElementById('viewport');
   const world = document.getElementById('world');
   let scale = 0.62, panX = 60, panY = 30;
   let dragging = false, lastX = 0, lastY = 0;
-  function applyTransform() { world.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`; }
+  function applyTransform() {
+    world.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+    updateMinimapViewport();
+  }
   applyTransform();
 
   viewport.addEventListener('wheel', (ev) => {
@@ -281,6 +368,48 @@
   document.getElementById('zoom-in').addEventListener('click', () => { scale = Math.min(2.2, scale * 1.2); applyTransform(); });
   document.getElementById('zoom-out').addEventListener('click', () => { scale = Math.max(0.3, scale * 0.8); applyTransform(); });
   document.getElementById('zoom-reset').addEventListener('click', () => { scale = 0.62; panX = 60; panY = 30; applyTransform(); });
+
+  // ---- ミニマップ: 全体像の把握とクリック/ドラッグでの高速移動（seamlessなズーム切り替えの導線） ----
+  const minimap = document.getElementById('minimap');
+  const minimapNodes = document.getElementById('minimap-nodes');
+  const minimapViewportEl = document.getElementById('minimap-viewport');
+  const MM_W = 200, MM_H = 118;
+  const mmScale = Math.min(MM_W / WORLD_W, MM_H / WORLD_H);
+
+  NODES.forEach(n => {
+    const dot = document.createElement('div');
+    dot.className = 'absolute rounded-full';
+    dot.style.width = '4px';
+    dot.style.height = '4px';
+    dot.style.left = (n.x * mmScale) + 'px';
+    dot.style.top = (n.y * mmScale) + 'px';
+    dot.style.background = GROUP_STYLE[n.group].dot;
+    minimapNodes.appendChild(dot);
+  });
+
+  function updateMinimapViewport() {
+    const vw = viewport.clientWidth, vh = viewport.clientHeight;
+    const worldX0 = -panX / scale, worldY0 = -panY / scale;
+    const worldW = vw / scale, worldH = vh / scale;
+    minimapViewportEl.style.left = Math.max(0, worldX0 * mmScale) + 'px';
+    minimapViewportEl.style.top = Math.max(0, worldY0 * mmScale) + 'px';
+    minimapViewportEl.style.width = Math.min(MM_W, worldW * mmScale) + 'px';
+    minimapViewportEl.style.height = Math.min(MM_H, worldH * mmScale) + 'px';
+  }
+
+  function jumpFromMinimap(ev) {
+    const rect = minimap.getBoundingClientRect();
+    const mx = ev.clientX - rect.left, my = ev.clientY - rect.top;
+    const targetWorldX = mx / mmScale, targetWorldY = my / mmScale;
+    const vw = viewport.clientWidth, vh = viewport.clientHeight;
+    panX = vw / 2 - targetWorldX * scale;
+    panY = vh / 2 - targetWorldY * scale;
+    applyTransform();
+  }
+  let mmDragging = false;
+  minimap.addEventListener('mousedown', (ev) => { mmDragging = true; jumpFromMinimap(ev); });
+  window.addEventListener('mousemove', (ev) => { if (mmDragging) jumpFromMinimap(ev); });
+  window.addEventListener('mouseup', () => mmDragging = false);
 </script>
 
 </body>
