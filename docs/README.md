@@ -30,3 +30,4 @@ DDR（Design Decision Record）はADR（Architecture Decision Record）の考え
 architectureに限らない意思決定（運用ルールの決定等）も記録対象とする。
 
 - [0001-意思決定ログをADRからDDRへ改称.md](ddr/0001-意思決定ログをADRからDDRへ改称.md) ── adr→ddr改称の経緯
+- [0015-調査結果canvas形式スキルの技術選定.md](ddr/0015-調査結果canvas形式スキルの技術選定.md) ── canvas-reportスキルの表現方式・外部ライブラリ・ズーム操作の技術選定
