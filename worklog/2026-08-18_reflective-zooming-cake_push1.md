@@ -82,3 +82,28 @@ push回数: 1
 - flow-id 15: 作業計画（方式Aの実装、spec更新、新規DDR追加を含む）を作成する。
 
 ---
+
+## push3: flow-id 15〜17（作業計画作成）
+
+### 試したこと
+
+- 調査結果レビューOKの合図を受け、`get_mr_unresolved_comments 60 true`で未解決スレッドが
+  無いことを確認した（自動投稿の工数レポートコメントのみ）。
+- Planモードへ再突入し、`plans/reflective-zooming-cake.md`の「作業計画」章に、実装内容
+  （`extract-frontmatter.sh`の走査行1行の置換）・spec更新方針・新規DDR追加方針・対象外・
+  検証方法を追記した。
+
+### うまくいったこと
+
+- 作業計画のユーザー承認を得た。commit・push後、MR descriptionを作業計画の要約で更新した。
+
+### ダメだったこと
+
+- 特になし。
+
+### 次の一歩
+
+- flow-id 18: 作業計画についてMRレビューを受ける。
+- flow-id 21: 作業計画に沿って実装（`extract-frontmatter.sh`の1行変更、spec更新、新規DDR追加）を進める。
+
+---
