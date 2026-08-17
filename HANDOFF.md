@@ -14,17 +14,17 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## フロー進捗状況
 
-- issue: （未着手）
-- ブランチ: （未着手）
-- Draft PR: （未着手）
+- issue: #58 調査結果のcanvas形式HTML生成スキルを作る
+- ブランチ: feature-58-canvas-format-report-skill
+- Draft PR: #59 https://github.com/yuki-matsu783/nagame-ahk/pull/59
 
 | 進捗 | flow-id | ステップ | 担当 |
 |----|---|---|---|
-| [] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間（AIが代行する場合は `issue-create` スキル） |
-| [] | 2 | issueの内容を取得する | `start <issue番号>` |
-| [] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
-| [] | 4 | Planモードで**調査計画**を作成する（`plans/<plan名>.md`の「調査」章へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
-| [] | 5 | 調査計画に合意する | 人間 |
+| [x] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間（AIが代行する場合は `issue-create` スキル） |
+| [x] | 2 | issueの内容を取得する | `start <issue番号>` |
+| [x] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
+| [x] | 4 | Planモードで**調査計画**を作成する（`plans/<plan名>.md`の「調査」章へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
+| [x] | 5 | 調査計画に合意する | 人間 |
 | [] | 6 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | [] | 7 | MRで調査計画についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
 | [] | 8 | レビュー内容を取得し、調査計画を修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
@@ -58,11 +58,20 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## やったこと
 
-（無し）
+- issue #48での対話中、通常の一覧・表形式では表現しづらい「複数要素間の関連・依存関係」を
+  主題とする調査結果向けに、codecanvas.app的なノード・エッジのcanvas形式が有効だと分かり、
+  4種の比較試作（TailwindCSS CDN通常版・自前ミニマムCSSハイブリッド版・リッチ演出版・canvas版）
+  をscratchpad上で実施。
+- issue #48はスコープ外・完了間近だったため、新規issue #58として起票（`issue-create`スキル）。
+  ユーザー要望「ノード・エッジの表現できる幅はリッチにしてほしい」を受け入れ条件に反映。
+- `start 58`でブランチ・Draft PR #59を作成し、Planモードで調査計画を作成（承認済み）。
 
 ## 次にやること
 
-（無し）
+- flow-id 6: `commit`スキルでcommitし、push してレビュー依頼を行う。
+- flow-id 7〜9: MRレビュー→調査計画修正（必要なら）→`describe`でMR description更新。
+- flow-id 10: 調査項目1〜7を実施し、`plans/cached-crunching-mochi.md`の「調査結果」章に記録する。
+  あわせて`reports/cached-crunching-mochi.html`を試作する。
 
 ## 判断を迷った内容
 
@@ -74,4 +83,6 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## 守るべき条件・触ってはいけない範囲
 
-（無し）
+- issue #48自体の内容・成果物は変更しない（既に完了・マージ待ちのため）。
+- 検証は「軽めのvibe check」に留める（skill-creatorの本格的な評価ループ・サブエージェント並列
+  実行・eval viewerは使わない。ユーザー確認済み）。
