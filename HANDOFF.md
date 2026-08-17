@@ -14,17 +14,17 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## フロー進捗状況
 
-- issue: （未着手）
-- ブランチ: （未着手）
-- Draft PR: （未着手）
+- issue: #48 調査ドキュメントはmarkdownとhtmlで作る
+- ブランチ: feature-48-add-html-version-of-investigation-docs
+- Draft PR: #57 https://github.com/yuki-matsu783/nagame-ahk/pull/57
 
 | 進捗 | flow-id | ステップ | 担当 |
 |----|---|---|---|
-| [] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間（AIが代行する場合は `issue-create` スキル） |
-| [] | 2 | issueの内容を取得する | `start <issue番号>` |
-| [] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
-| [] | 4 | Planモードで**調査計画**を作成する（`plans/<plan名>.md`の「調査」章へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
-| [] | 5 | 調査計画に合意する | 人間 |
+| [x] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間（AIが代行する場合は `issue-create` スキル） |
+| [x] | 2 | issueの内容を取得する | `start <issue番号>` |
+| [x] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
+| [x] | 4 | Planモードで**調査計画**を作成する（`plans/<plan名>.md`の「調査」章へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
+| [x] | 5 | 調査計画に合意する | 人間 |
 | [] | 6 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | [] | 7 | MRで調査計画についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
 | [] | 8 | レビュー内容を取得し、調査計画を修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
@@ -58,15 +58,27 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## やったこと
 
-（無し）
+- issue #48のタイトル（readme→markdownに修正）・本文4項目を記入。
+- `start 48` でブランチ`feature-48-add-html-version-of-investigation-docs`・Draft PR #57を作成。
+- Exploreエージェントによる事前調査（issue-mr-flow・docs-workflow・既存のArtifact/html変換関連の
+  仕組みの有無等）を実施。
+- ユーザーとのAskUserQuestionで主要な設計判断を確定（生成方式=自己完結HTMLをコミット、
+  保存場所=`reports/<plan名>.html`・worklogと同じライフサイクル、スタイリング=TailwindCSS CDN第一候補）。
+- Planモードで調査計画を作成し、`plans/drifting-sniffing-clover.md`として承認済み。
+  `worklog/2026-08-18_drifting-sniffing-clover_push1.md`に経緯を記録。
 
 ## 次にやること
 
-（無し）
+- flow-id 6: `commit`スキルでcommitし、push してレビュー依頼を行う。
+- flow-id 7〜9: MRレビュー→調査計画修正（必要なら）→`describe`でMR description更新。
+- flow-id 10: 調査計画の「調査項目」1〜8を実施し、`plans/drifting-sniffing-clover.md`の
+  「調査結果」章に記録する。
 
 ## 判断を迷った内容
 
-（無し）
+- flow-id 31の「`plans/` `worklog/` を削除」という記述と、docs-workflow.mdの「plansは永続」という
+  記述の整合性について、「ブランチ/PRのコミット履歴には残るがmainのツリーには残らない」という
+  解釈で整合させた（詳細はworklog参照）。この解釈の妥当性は要注意。
 
 ## 未解決の内容
 
@@ -74,4 +86,5 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## 守るべき条件・触ってはいけない範囲
 
-（無し）
+- 今回の対象は「調査結果」のHTML化のみ（「調査計画」「作業計画」章は対象外、ユーザー明示）。
+- `usage/`配下の対応工数レポート機能自体は変更しない（`reports/`という名称衝突の有無のみ確認）。
