@@ -42,11 +42,11 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 20 | 作業計画をもとにMR descriptionを更新する | `describe` |
 | [x] | 21 | 作業計画をもとに作業を進める、作業内容はworklogに更新する | エージェント |
 | [x] | 22 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
-| [] | 23 | 作業内容をもとにMR descriptionを更新する | `describe` |
-| [] | 24 | MRでレビュー・コメントする。レビュー済み連絡をするまで以降の作業は行わない。 | 人間 |
-| [] | 25 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（21〜25の作業ループを合意まで繰り返す） | `comments` / `reply` |
-| [] | 26 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
-| [] | 27 | AIアセット改善: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
+| [x] | 23 | 作業内容をもとにMR descriptionを更新する | `describe` |
+| [x] | 24 | MRでレビュー・コメントする。レビュー済み連絡をするまで以降の作業は行わない。 | 人間 |
+| [x] | 25 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（21〜25の作業ループを合意まで繰り返す） | `comments` / `reply` |
+| [x] | 26 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
+| [x] | 27 | AIアセット改善: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
 | [] | 28 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | [] | 29 | MRでレビュー・コメントする。レビュー済み連絡をするまで以降の作業は行わない。 | 人間 |
 | [] | 30 | レビュー内容を取得し、設計反映・AIアセットの内容を修正する。対応が完了したコメントには対応内容を返信する（26〜30を合意まで繰り返す） | `comments` / `reply` |
@@ -85,12 +85,18 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
   （`.claude/skills/`間の参照関係）に差し替えた`canvas-report-verify.html`をscratchpad上で作成し
   ブラウザで動作確認済み（ユーザーへ提示済み）。
 
+- flow-id 26〜27: 設計反映として`docs/ddr/0015-調査結果canvas形式スキルの技術選定.md`を新設し
+  `docs/README.md`にリンク追加。AIアセット改善として`.claude/rules/directory-structure.md`に
+  `.claude/skills/<name>/templates/`のバンドルリソース配置パターンを追記。
+  `extract-frontmatter.sh`で`.claude/skills/`・`docs/`のindex.jsonlを再生成。
+
 ## 次にやること
 
-- ユーザーからのフィードバック待ち（`canvas-report-verify.html`の動作確認結果）。
-- 問題なければflow-id 22: `commit`スキルでcommitし、push してレビュー依頼を行う。
-- flow-id 23〜25: `describe`でMR description更新→MRレビュー→修正（必要なら）。
-- flow-id 26〜27: 設計反映（`docs/spec/`・`docs/ddr/`）、AIアセット改善。
+- flow-id 28: `commit`スキルでcommitし、push してレビュー依頼を行う。
+- flow-id 29〜30: MRレビュー→修正（必要なら）。
+- flow-id 31: `plans/` `worklog/` `reports/`を削除し、`HANDOFF.md`を次タスクへリセットする。
+- flow-id 32: commit・push・Draft解除。
+- flow-id 33（マージ）は人間からの明示的な指示を待つ。
 
 ## 判断を迷った内容
 

@@ -78,6 +78,10 @@ nagame-ahk/
     ドキュメント（`spec/`・`ddr/`）を置く。Claude Codeのplugin配布は`.claude/`配下一式を
     パッケージ化する想定のため、AIが実行時に必要とするスクリプト・設計書は`.claude/`の外に
     置かない。
+  - 各`.claude/skills/<name>/`は`SKILL.md`単体が基本だが、スキルの実行に必須のバンドル
+    リソース（テンプレート・補助スクリプト等）がある場合は`.claude/skills/<name>/templates/`
+    のようなサブディレクトリを追加してよい（実例: `canvas-report/templates/canvas-report.html`。
+    issue #58で導入。他に`scripts/`・`references/`・`assets/`等、用途に応じた名前を使ってよい）。
   - ドキュメント運用（`docs-workflow.md`）は `dev-tools/docs/`・`.claude/scripts/docs/` の
     いずれにも同様に適用する。
   - 人間が手動実行するがAI可読データを生成するなど、両方の性質を併せ持つスクリプトは、
