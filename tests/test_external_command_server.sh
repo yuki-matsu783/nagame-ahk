@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # ExternalCommandServer(docs/spec/external-command-server.md)の結合スモークテスト（bash版）。
-# 設計: dev-tools/docs/spec/shell-scripts.md
+# 設計: .claude/scripts/docs/spec/shell-scripts.md
 #
 # src/main.ahk を実際に起動し、TCPクライアントとして接続して Auth および代表的なコマンドを
 # 送受信し、レスポンスが期待通りかを確認する。テスト終了後は起動したAutoHotkeyプロセスを終了する。
@@ -19,7 +19,7 @@
 #
 # 注意（git bashのパス変換）: `tasklist`/`taskkill` のDOS形式フラグ（`/FI` 等）はgit bashの
 # パス自動変換に巻き込まれるため `//FI` のように先頭を`//`にする（詳細:
-# dev-tools/docs/spec/shell-scripts.md「git bashのパス変換」節）。
+# .claude/scripts/docs/spec/shell-scripts.md「git bashのパス変換」節）。
 #
 # 使い方:
 #     tests/test_external_command_server.sh

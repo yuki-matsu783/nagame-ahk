@@ -2,7 +2,7 @@
 #
 # post-push-usage-report.sh（PostToolUse, git push検知）が使う共有ロジック（bash版）。
 # 設計: plans/inherited-gathering-biscuit.md（issue #37）,
-#       dev-tools/docs/spec/issue-mr-workflow.md, dev-tools/docs/spec/shell-scripts.md
+#       .claude/scripts/docs/spec/issue-mr-workflow.md, .claude/scripts/docs/spec/shell-scripts.md
 #
 # 単体でsourceせず、`source "$(dirname "${BASH_SOURCE[0]}")/lib/UsageTracking.sh"` の形でsourceして
 # 使う。

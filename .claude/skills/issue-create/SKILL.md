@@ -1,6 +1,6 @@
 ---
 name: issue-create
-description: nagame-ahkでissueをAIエージェントが起票（作成）したいときに使う。issue-mr-flowのflow-id 1（人間による起票）をAIが代行する手段。ユーザーからの依頼内容をもとに目的・現状・期待する動作・受け入れ条件の4見出しを組み立て、ユーザーの確認を得たうえでdev-tools/src/create-issue.shを呼び出しGitHub/GitLab上にissueを作成する。issueをUIを使わずAIから起票したい場合に使う。
+description: nagame-ahkでissueをAIエージェントが起票（作成）したいときに使う。issue-mr-flowのflow-id 1（人間による起票）をAIが代行する手段。ユーザーからの依頼内容をもとに目的・現状・期待する動作・受け入れ条件の4見出しを組み立て、ユーザーの確認を得たうえで.claude/scripts/src/create-issue.shを呼び出しGitHub/GitLab上にissueを作成する。issueをUIを使わずAIから起票したい場合に使う。
 title: issue起票（AI代行）
 type: skill
 tags: [issue, automation, github, gitlab]
@@ -23,10 +23,10 @@ keywords: [issue作成, create-issue.sh, 目的, 現状, 期待する動作, 受
 2. 組み立てたタイトルと4項目の内容をユーザーに提示し、issueとして作成してよいか確認を取る
    （GitHub/GitLab上に公開される操作のため、他のissue-mr-flowサブコマンド同様、明示的な合図を
    待ってから実行する）。
-3. 承認を得たら、以下の形で `dev-tools/src/create-issue.sh` を実行する。
+3. 承認を得たら、以下の形で `.claude/scripts/src/create-issue.sh` を実行する。
 
    ```bash
-   dev-tools/src/create-issue.sh \
+   .claude/scripts/src/create-issue.sh \
      --title "<タイトル>" \
      --purpose "<目的>" \
      --current "<現状>" \

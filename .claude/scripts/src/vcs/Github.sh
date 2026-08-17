@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #
 # GitHub固有の処理（`gh` CLIラッパー、bash版）。
-# 設計: dev-tools/docs/spec/issue-mr-workflow.md, dev-tools/docs/spec/shell-scripts.md
+# 設計: .claude/scripts/docs/spec/issue-mr-workflow.md, .claude/scripts/docs/spec/shell-scripts.md
 #
-# 単体でsourceせず、必ず dev-tools/src/vcs/Provider.sh 経由で使う
+# 単体でsourceせず、必ず .claude/scripts/src/vcs/Provider.sh 経由で使う
 # （Provider.sh が get_provider の判定結果に応じてこのファイルの関数へディスパッチする）。
 # 前提: `gh` CLIがインストール・認証済み（`gh auth login`）であること。
 
@@ -38,7 +38,7 @@ github_new_draft_merge_request() {
 
   if ! gh pr create --draft --base "$base_branch" --head "$branch" --title "$title" --body "$body" >/dev/null; then
     # baseとの差分（コミット）が無いブランチでは `gh pr create` が失敗する既知の制約
-    # （dev-tools/docs/spec/issue-mr-workflow.md参照）。空コミットで解消して1回だけリトライする。
+    # （.claude/scripts/docs/spec/issue-mr-workflow.md参照）。空コミットで解消して1回だけリトライする。
     add_empty_commit_for_draft_mr
     if ! gh pr create --draft --base "$base_branch" --head "$branch" --title "$title" --body "$body" >/dev/null; then
       echo "gh pr create に失敗しました（空コミットでのリトライ後も失敗）" >&2

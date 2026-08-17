@@ -9,17 +9,17 @@ keywords: [start, resume, sync, comments, reply, describe, draft-pr, 実装フ�
 
 # issue駆動 開発フロー（唯一の実装フロー定義）
 
-このファイルは `dev-tools/docs/spec/issue-mr-workflow.md` の実装であり、nagame-ahkにおける
+このファイルは `.claude/scripts/docs/spec/issue-mr-workflow.md` の実装であり、nagame-ahkにおける
 **issue起票からマージまでの唯一の実装フロー定義**である。新機能追加・既存動作の変更など、
 ごく小さな変更（誤字修正等。`.claude/rules/git-workflow.md` 参照）を除くあらゆるタスクは、
 このファイルの手順で進める。
 
-裏側の実処理は `dev-tools/src/vcs/Provider.sh`（GitHub/GitLabの差異を吸収する共通関数群。bash版。
-設計: `dev-tools/docs/spec/shell-scripts.md`）に実装されている。各ステップの手順内で、必要に応じて
+裏側の実処理は `.claude/scripts/src/vcs/Provider.sh`（GitHub/GitLabの差異を吸収する共通関数群。bash版。
+設計: `.claude/scripts/docs/spec/shell-scripts.md`）に実装されている。各ステップの手順内で、必要に応じて
 Bashツールで以下のようにsourceして使う。
 
 ```bash
-source dev-tools/src/vcs/Provider.sh
+source .claude/scripts/src/vcs/Provider.sh
 ```
 
 各関数はJSON文字列をstdoutへ出力する設計のため、`jq`でフィールドを取り出す
@@ -226,13 +226,13 @@ PR #29のセッションで実際に発生）。この場合、タスク固有�
 - bashスクリプトの規約（`set -euo pipefail`・jq前提・改行/エンコーディング等）:
   `.claude/rules/shell-script-style.md`
 - `Provider.sh`の設計・スクリプト言語選定方針（bash化できる/できない判断基準）:
-  `dev-tools/docs/spec/shell-scripts.md`
+  `.claude/scripts/docs/spec/shell-scripts.md`
 
 ## 前提
 
 - `gh` CLI（GitHubの場合）または `glab` CLI（GitLabの場合）、および `jq` がインストール・認証済みで
   あること。認証情報自体は各CLIの既存ログイン状態に依存し、本スキル側では管理しない。
-- リポジトリ直下に `.mrworkflow.json` があること（無い場合は `dev-tools/src/vcs/Provider.sh` の
+- リポジトリ直下に `.mrworkflow.json` があること（無い場合は `.claude/scripts/src/vcs/Provider.sh` の
   既定値が使われる）。
 - issueは `.github/ISSUE_TEMPLATE/task.md`（GitHub）/ `.gitlab/issue_templates/task.md`（GitLab）の
   テンプレートに沿って「目的・現状・期待する動作・受け入れ条件」を記載しておくことが望ましい

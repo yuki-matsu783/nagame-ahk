@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
 # Claude Code PostToolUse hook（git push検知、bash版）。
-# 設計: plans/groovy-zooming-balloon.md（issue #15）→ dev-tools/docs/spec/issue-mr-workflow.md,
-#       dev-tools/docs/spec/shell-scripts.md（issue #6、bash化）
+# 設計: plans/groovy-zooming-balloon.md（issue #15）→ .claude/scripts/docs/spec/issue-mr-workflow.md,
+#       .claude/scripts/docs/spec/shell-scripts.md（issue #6、bash化）
 #
 # .claude/settings.json 側で matcher: "Bash|PowerShell" と、各エントリの if フィールド
 # （"Bash(git push*)" / "PowerShell(git push*)"）によって、tool_input のコマンドが
@@ -23,7 +23,7 @@
 # 注意（エラー方針）: 本体処理は `main` 関数にまとめ、`( main )` のように実サブシェル（丸括弧）の
 # 中で呼ぶことで、内部で失敗したコマンドの時点で確実にサブシェルごと終了させる（bashの
 # 「if/||の条件式の中では-eが一時停止する」という仕様の影響を受けないようにするため。詳細:
-# dev-tools/docs/spec/shell-scripts.md「bashでのtry/catch相当の書き方」節）。失敗はすべて
+# .claude/scripts/docs/spec/shell-scripts.md「bashでのtry/catch相当の書き方」節）。失敗はすべて
 # 握りつぶし、git push自体はブロックしない。
 
 set -uo pipefail
@@ -78,7 +78,7 @@ main() {
   fi
 
   cd "$CLAUDE_PROJECT_DIR"
-  source "${CLAUDE_PROJECT_DIR}/dev-tools/src/vcs/Provider.sh"
+  source "${CLAUDE_PROJECT_DIR}/.claude/scripts/src/vcs/Provider.sh"
   source "${CLAUDE_PROJECT_DIR}/.claude/hooks/lib/UsageTracking.sh"
 
   local branch base_branch

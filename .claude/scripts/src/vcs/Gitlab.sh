@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 #
 # GitLab固有の処理（`glab` CLIラッパー、bash版）。
-# 設計: dev-tools/docs/spec/issue-mr-workflow.md, dev-tools/docs/spec/shell-scripts.md
+# 設計: .claude/scripts/docs/spec/issue-mr-workflow.md, .claude/scripts/docs/spec/shell-scripts.md
 #
-# 単体でsourceせず、必ず dev-tools/src/vcs/Provider.sh 経由で使う
+# 単体でsourceせず、必ず .claude/scripts/src/vcs/Provider.sh 経由で使う
 # （Provider.sh が get_provider の判定結果に応じてこのファイルの関数へディスパッチする）。
 # 前提: `glab` CLIがインストール・認証済み（`glab auth login`）であること。
 #
 # 【未検証】このリポジトリのremoteはGitHubのみのため、以下は`glab`のドキュメントを元にした
 # 実装であり実機での動作確認ができていない（PowerShell版Gitlab.ps1と同様の制約を引き継ぐ。
-# dev-tools/docs/spec/issue-mr-workflow.md の「未決定事項・懸念点」参照）。GitLabリポジトリで
+# .claude/scripts/docs/spec/issue-mr-workflow.md の「未決定事項・懸念点」参照）。GitLabリポジトリで
 # 実際に使う前に動作確認すること。
 
 gitlab_get_issue() {
@@ -45,7 +45,7 @@ gitlab_new_draft_merge_request() {
   if ! glab mr create --draft --source-branch "$branch" --target-branch "$base_branch" \
       --title "$title" --description "$description" --yes >/dev/null; then
     # baseとの差分（コミット）が無いブランチでは `glab mr create` が失敗する既知の制約
-    # （dev-tools/docs/spec/issue-mr-workflow.md参照）。空コミットで解消して1回だけリトライする。
+    # （.claude/scripts/docs/spec/issue-mr-workflow.md参照）。空コミットで解消して1回だけリトライする。
     # 【未検証】このリポジトリのremoteはGitHubのみのためGitLab側の実機確認はできていない。
     add_empty_commit_for_draft_mr
     if ! glab mr create --draft --source-branch "$branch" --target-branch "$base_branch" \

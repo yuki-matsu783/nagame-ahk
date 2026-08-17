@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# dev-tools/src/extract-frontmatter.sh の単体テスト。
+# .claude/scripts/src/extract-frontmatter.sh の単体テスト。
 # 設計反映時に dev-tools/docs/spec/ へ記録予定（issue #7 PR #23レビュー対応）。
 #
 # 対象: ネットワークを伴わない純粋ロジック（frontmatter_to_json のYAML→JSON変換、
@@ -20,7 +20,7 @@ set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # main() の自動実行を避けるため、直接実行ではなくsourceする（extract-frontmatter.sh側の
 # `[[ "${BASH_SOURCE[0]}" == "${0}" ]]` ガードにより、source時はmainが呼ばれない）。
-source "${REPO_ROOT}/dev-tools/src/extract-frontmatter.sh"
+source "${REPO_ROOT}/.claude/scripts/src/extract-frontmatter.sh"
 
 PASSED=0
 FAILURES=0

@@ -3,6 +3,6 @@
   "defaultBaseBranch": "main",
   "plansDir": "plans",
   "worklogDir": "worklog",
-  "specDirs": ["docs/spec", "dev-tools/docs/spec"],
-  "ddrDirs": ["docs/ddr", "dev-tools/docs/ddr"]
+  "specDirs": ["docs/spec", "dev-tools/docs/spec", ".claude/scripts/docs/spec"],
+  "ddrDirs": ["docs/ddr", "dev-tools/docs/ddr", ".claude/scripts/docs/ddr"]
 }

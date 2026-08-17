@@ -31,14 +31,14 @@ OKF（Open Knowledge Format、https://okf.md/spec/ ）のフィールド定義�
 
 | type | 対象 |
 |---|---|
-| `ddr` | `docs/ddr/*.md`, `dev-tools/docs/ddr/*.md` |
+| `ddr` | `docs/ddr/*.md`, `dev-tools/docs/ddr/*.md`, `.claude/scripts/docs/ddr/*.md` |
 | `rule` | `.claude/rules/*.md`, `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` |
 | `agent` | `.claude/agents/*.md` |
 | `skill` | `.claude/skills/*/SKILL.md` |
 | `log` | `worklog/*.md` |
-| `guide` | `README.md`, `DEVELOPERS.md`, `docs/README.md`, `dev-tools/docs/README.md`, `tests/README.md`, `index.md` |
+| `guide` | `README.md`, `DEVELOPERS.md`, `docs/README.md`, `dev-tools/docs/README.md`, `.claude/scripts/docs/README.md`, `tests/README.md`, `index.md` |
 | `handoff` | `HANDOFF.md` |
-| `spec` | `docs/spec/*.md`, `dev-tools/docs/spec/*.md` |
+| `spec` | `docs/spec/*.md`, `dev-tools/docs/spec/*.md`, `.claude/scripts/docs/spec/*.md` |
 
 `type`の値は自動判定せず、ファイルごとに内容を見て個別に決定する。上表は現時点の割り当て例であり、
 新しいディレクトリ・用途が増えた場合はこの表に追記する。

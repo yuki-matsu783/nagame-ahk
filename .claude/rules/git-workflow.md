@@ -34,7 +34,7 @@ keywords: [featureブランチ, ブランチ命名, worklog, squash-merge, draft
   exit code 2でブロックする。`permissions.deny`にも`Bash(git commit*)` / `PowerShell(git commit*)`
   を追加しているが、複合コマンド（例: `cd src && git commit -m "fix"`）はprefixマッチをすり抜ける
   ため、実質的な強制はhook側が担う（多重防御）。
-  - `commit`スキル自身は `dev-tools/src/create-commit.sh` というラッパースクリプト経由で
+  - `commit`スキル自身は `.claude/scripts/src/create-commit.sh` というラッパースクリプト経由で
     `git add` / `git commit` を実行する。呼び出し文字列自体に `git commit` という部分文字列を
     含まないため、hookの対象にならず正規に実行できる。
   - 既知のトレードオフ: 部分文字列マッチのため、たまたま `git commit` という語を含む無関係な
@@ -47,11 +47,11 @@ keywords: [featureブランチ, ブランチ命名, worklog, squash-merge, draft
     半角スペース区切りで連続させず（例:「gitのコミット操作」「直接コミットを実行する」のように
     言い換える）、同一Bash/PowerShellツール呼び出し文字列内で誤検知を避ける。
   - 経緯・却下案は
-    `dev-tools/docs/ddr/0012-コミットはcommitスキル経由を機構的に強制する.md` を参照。
+    `.claude/scripts/docs/ddr/0012-コミットはcommitスキル経由を機構的に強制する.md` を参照。
 
 ## worklogの配置・命名
 
-`worklog/日付_<planファイル名>.md` に記録する（配置・命名は `directory-structure.md`、ライフサイクルは
+`worklog/日付_<planファイル名>_push<N>.md` に記録する（配置・命名は `directory-structure.md`、ライフサイクルは
 `docs-workflow.md` の「ドキュメント運用」表、作成・削除のタイミングは `.claude/skills/issue-mr-flow/SKILL.md`
 の全体フローを参照）。
 

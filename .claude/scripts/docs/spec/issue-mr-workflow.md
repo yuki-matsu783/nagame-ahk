@@ -28,7 +28,7 @@ MRとのやり取りだけを自動化する薄い層」として設計したが
 そちらを**唯一の実装フロー定義**とした。今後はごく小さな変更を除くあらゆるタスクをissue起点で
 進める前提とする。`docs-workflow.md` / `git-workflow.md` はドキュメントの置き場所・ライフサイクルや
 ブランチ命名規則といった参照情報のみを残す。詳細は
-[dev-tools/docs/ddr/0002-issue-mr-flowへの実装フロー統合.md](../ddr/0002-issue-mr-flowへの実装フロー統合.md) 参照。
+[.claude/scripts/docs/ddr/0002-issue-mr-flowへの実装フロー統合.md](../ddr/0002-issue-mr-flowへの実装フロー統合.md) 参照。
 
 ## 仕様
 
@@ -46,7 +46,7 @@ MRとのやり取りだけを自動化する薄い層」として設計したが
 └── task.md                         # GitHub用issueテンプレート（目的・現状・期待する動作・受け入れ条件）
 .gitlab/issue_templates/
 └── task.md                         # GitLab用issueテンプレート（同上）
-dev-tools/src/vcs/
+.claude/scripts/src/vcs/
 ├── Provider.sh                     # git remote からGitHub/GitLabを判定し、共通関数をディスパッチ
 ├── Github.sh                       # gh CLIラッパー
 └── Gitlab.sh                       # glab CLIラッパー
@@ -62,8 +62,9 @@ dev-tools/src/vcs/
     └── UsageTracking.sh              # 集計ロジック（sync_usage_state）
 ```
 
-上記は全てbash製（`.sh`）。issue #6でPowerShell版（`.ps1`）から移行した。設計方針・移行の経緯・
-git bash特有の注意点は [shell-scripts.md](shell-scripts.md) を参照。
+上記は全てbash製（`.sh`）。issue #6でPowerShell版（`.ps1`）から移行し、issue #24で
+`dev-tools/`（AI・人間共用の開発補助ツール置き場）から`.claude/scripts/`（AI専用スクリプト置き場）へ
+移動した。設計方針・移行の経緯・git bash特有の注意点は [shell-scripts.md](shell-scripts.md) を参照。
 
 - **`Provider.sh`**: `git remote get-url origin` のホスト名（`github.com` / `gitlab.*`）でプロバイダを判定し、
   共通インターフェース関数を `Github.sh` / `Gitlab.sh` の対応関数へディスパッチする。呼び出し側
@@ -558,7 +559,7 @@ issueはGitHubのUIからしか作成できず、標準4見出し（目的・現
   `github_get_issue`/`gitlab_get_issue`を呼んで`get_issue`と同じ形（number/title/body/url/slug）に
   正規化する（呼び出し側が取得・作成のどちらの戻り値も同じ形で扱えるようにするため）。番号抽出に
   失敗した場合はエラーメッセージを出して`return 1`する。
-- **`dev-tools/src/create-issue.sh`（新規CLIスクリプト）**: `--title`/`--purpose`/`--current`/
+- **`.claude/scripts/src/create-issue.sh`（新規CLIスクリプト）**: `--title`/`--purpose`/`--current`/
   `--expected`/`--acceptance`の5フラグ（すべて必須）を受け取り、`build_issue_body`→
   `test_issue_sections`（安全網）→`new_issue`の順に呼び出す。標準出力に作成結果のJSONを返す。
   人間が直接実行することも、AIエージェントが呼び出すことも想定する。
@@ -846,6 +847,30 @@ issueはGitHubのUIからしか作成できず、標準4見出し（目的・現
 - `dev-tools/docs/spec/issue-mr-workflow.md`（本セクション「全体フロー23ステップ」表現・
   `flow-id 21`参照（→`flow-id 31`）を更新、本エントリを追加）
 
+変更（issue #24 dev-toolsをAI専用/人間専用に分離）:
+- AIエージェントが能動的に利用するスクリプト・設計書一式を `dev-tools/` から `.claude/scripts/` へ
+  移動した（`git mv`で履歴保持）。
+  - `.claude/scripts/src/`: `vcs/Provider.sh` `Github.sh` `Gitlab.sh`, `create-commit.sh`,
+    `create-issue.sh`, `archive-reentrant-plan.sh`, `extract-frontmatter.sh`
+  - `.claude/scripts/docs/spec/`: `issue-mr-workflow.md`（本ドキュメント）, `shell-scripts.md`,
+    `extract-frontmatter.md`
+  - `.claude/scripts/docs/ddr/`: `0002`〜`0012`
+  - `dev-tools/`には人間専用のexe配布ビルド関連（`src/build.sh`, `docs/spec/distribution.md`,
+    `docs/ddr/0001-*.md`）のみ残した。
+- 上記移動に伴い、本ドキュメント・`.claude/skills/*/SKILL.md`・`.claude/hooks/*.sh`・
+  `.claude/rules/*.md`・`tests/*.sh`内のパス参照を新パスへ一括更新した（「## 仕様」節の現在の
+  記述のみ更新し、本「## 影響範囲」節の過去エントリは変更当時の記録として書き換えていない）。
+  `.mrworkflow.json`のデフォルト値（`specDirs`/`ddrDirs`）に`.claude/scripts/docs/{spec,ddr}`を追加。
+- `.claude/rules/directory-structure.md`（`dev-tools/`の説明を「人間専用の開発補助ツール」に修正、
+  ツリー図に`.claude/scripts/`を追加）
+- `.claude/rules/markdown-frontmatter.md`（`ddr`/`spec`/`guide`行に`.claude/scripts/docs/`配下の
+  新パスを追加）
+- `.claude/agents/issue-mr-resume.md`（旧PowerShell版`Provider.ps1`前提の記述を、現行bash版
+  `Provider.sh`のsnake_case関数へ全面書き換え）
+- `DEVELOPERS.md`（`build.ps1`→`build.sh`の実行コマンド表記を修正）
+- `.claude/rules/powershell-encoding.md`（既に現存しない`Provider.ps1`の仕組みを説明していた節を削除）
+- 詳細な調査・作業計画は `plans/delegated-gathering-frog.md` 参照。
+
 ## 設定項目
 
 `.mrworkflow.json`（nagame-ahk向けの初期値）
@@ -856,8 +881,8 @@ issueはGitHubのUIからしか作成できず、標準4見出し（目的・現
   "defaultBaseBranch": "main",
   "plansDir": "plans",
   "worklogDir": "worklog",
-  "specDirs": ["docs/spec", "dev-tools/docs/spec"],
-  "ddrDirs": ["docs/ddr", "dev-tools/docs/ddr"]
+  "specDirs": ["docs/spec", "dev-tools/docs/spec", ".claude/scripts/docs/spec"],
+  "ddrDirs": ["docs/ddr", "dev-tools/docs/ddr", ".claude/scripts/docs/ddr"]
 }
 ```
 
@@ -875,13 +900,13 @@ issueはGitHubのUIからしか作成できず、標準4見出し（目的・現
   （レビュアー側の操作という位置づけ）。かわりに、人間からの完了合図を受けた際は
   `Get-MrUnresolvedComments -IncludeResolved` で再確認してから次のステップへ進む運用にした。
   背景・却下案は
-  [dev-tools/docs/ddr/0003-レビュースレッド解決は自動化しない.md](../ddr/0003-レビュースレッド解決は自動化しない.md)
+  [.claude/scripts/docs/ddr/0003-レビュースレッド解決は自動化しない.md](../ddr/0003-レビュースレッド解決は自動化しない.md)
   参照。
 - **AI返信のアイデンティティ表示**: `Add-MrThreadReply` の投稿者アカウントはAI/人間で分離できない
   （`gh`/`glab` CLIは人間の認証情報を使うため）。かわりに返信本文の先頭に `Claude Codeより:` の
   署名行を必ず付ける運用ルールを `reply` サブコマンド手順に追加した。botアカウントによる
   投稿者分離は規模超過のため見送り。背景・却下案は
-  [dev-tools/docs/ddr/0004-AI返信は署名で識別しbotアカウント分離は見送る.md](../ddr/0004-AI返信は署名で識別しbotアカウント分離は見送る.md)
+  [.claude/scripts/docs/ddr/0004-AI返信は署名で識別しbotアカウント分離は見送る.md](../ddr/0004-AI返信は署名で識別しbotアカウント分離は見送る.md)
   参照。
 - **SessionStart hookの実装言語はPowerShell**（issue #6で覆した過去の決定）: issue #5対応時点では
   Bashスクリプトへの置き換え（`gh`/`git`/`jq`がUTF-8をそのまま扱えるため、Windows PowerShell 5.1

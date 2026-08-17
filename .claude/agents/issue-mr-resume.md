@@ -1,7 +1,7 @@
 ---
 name: issue-mr-resume
 description: issue-mr-flowの途中引き継ぎ用。このセッションでまだ現在地確認が済んでいない状態（別セッション・別担当者が途中から引き継ぐ場合に限らず、`start` 以外のサブコマンドをこのセッションで初めて使う前は常に該当。ブランチ名やissue番号が判明していても対象）で、現在チェックアウトされているブランチだけを手がかりに、issue・PR/MRの状態・未解決レビューコメント件数・ブランチ固有のplans/worklogファイル・HANDOFF.mdの内容を収集し、矛盾があれば指摘したうえで「現在地サマリ」として報告する。`.claude/skills/issue-mr-flow/SKILL.md` の `resume` サブコマンドから呼び出される。読み取り専用で、次にすべきことの最終判断や、ファイルの修正は行わない。
-tools: Read, Grep, Glob, Bash, PowerShell
+tools: Read, Grep, Glob, Bash
 model: sonnet
 title: issue-mr-flow途中引き継ぎエージェント
 type: agent
@@ -16,18 +16,15 @@ keywords: [issue-mr-flow, resume, ブランチ, プルリクエスト, 未解決
 
 ## 手順1: 環境準備
 
-リポジトリルートで以下をdot-sourceする。
+リポジトリルートで以下をsourceする。
 
-```powershell
-. dev-tools\src\vcs\Provider.ps1
+```bash
+source .claude/scripts/src/vcs/Provider.sh
 ```
 
 `gh`/`glab` がインストール直後でPATHに反映されていない場合があるため、コマンドが見つからない
-エラーが出た場合は以下でPATHを再構築してから再試行する。
-
-```powershell
-$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-```
+エラーが出た場合はシェルを再起動する、または `hash -r` でbashのPATHキャッシュをクリアしてから
+再試行する。
 
 ## 手順2: 現在のブランチを確認する
 
@@ -37,25 +34,25 @@ $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";"
 
 ## 手順3: issue情報を取得する
 
-`Get-IssueNumberFromBranch` で現在のブランチ名からissue番号を抽出する。
+`get_issue_number_from_branch` で現在のブランチ名からissue番号を抽出する。
 
-- 抽出できた場合: `Get-Issue -Number <n>` でissueのtitle/body/urlを取得する。
+- 抽出できた場合: `get_issue <n>` でissueのtitle/body/urlを取得する。
 - 抽出できなかった場合: 「ブランチ名が `branchPrefixTemplate`（`.mrworkflow.json`）の命名規則に
   一致しない」旨を記録し、以降の手順は続行する（issue情報は「特定できず」として報告する）。
 
 ## 手順4: PR/MRの状態を取得する
 
-`Get-MrForBranch -Branch <現在のブランチ>` を実行する。`$null` ならPR/MRなしとして扱う。
+`get_mr_for_branch "<現在のブランチ>"` を実行する。出力が空文字列ならPR/MRなしとして扱う。
 
 ## 手順5: 未解決レビューコメントを集計する
 
-手順4でPR/MRが見つかった場合のみ、`Get-MrUnresolvedComments -MrNumber <n> -IncludeResolved` を
-実行し、`unresolved` の件数を数える（内容の詳細な提示は不要。件数と、あれば概要のみでよい）。
+手順4でPR/MRが見つかった場合のみ、`get_mr_unresolved_comments <n> true` を実行し、
+`unresolved` の件数を数える（内容の詳細な提示は不要。件数と、あれば概要のみでよい）。
 MRがマージ済みでissueもクローズ済みの場合は、現在ブランチはマージ済みなので他ブランチで作業するかをユーザに判断してもらう。これ以降の手順については実施しない。
 
 ## 手順6: ブランチ固有のplan/worklogファイルを列挙する
 
-`Get-BranchWorkFiles` を実行する。
+`get_branch_work_files` を実行する。
 
 ## 手順7: HANDOFF.mdを読む
 
@@ -66,7 +63,7 @@ MRがマージ済みでissueもクローズ済みの場合は、現在ブラン�
 手順2〜7の結果を、以下のフォーマットで報告する。**HANDOFF.mdの記述と実際の状態
 （PR有無・未解決コメント件数等）に矛盾があれば「矛盾・注意点」に明記する**
 （例: HANDOFF.mdには「PR未作成」とあるが実際はPRが存在する、`resolve済み`と書かれているが
-`Get-MrUnresolvedComments` は未解決を返す、等）。次のステップの提案・判断はここでは行わない。
+`get_mr_unresolved_comments` は未解決を返す、等）。次のステップの提案・判断はここでは行わない。
 
 ```markdown
 ## 現在地サマリ

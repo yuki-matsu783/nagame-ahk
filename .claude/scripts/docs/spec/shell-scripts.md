@@ -25,9 +25,9 @@ keywords: [git-bash, jq, powershellからの移行, パス変換, bash化, フ�
 
 | 旧ファイル(`.ps1`) | 新ファイル(`.sh`) | 役割 |
 |---|---|---|
-| `dev-tools/src/vcs/Provider.ps1` | `dev-tools/src/vcs/Provider.sh` | issue-mr-flowの中核。GitHub/GitLab差異吸収 |
-| `dev-tools/src/vcs/Github.ps1` | `dev-tools/src/vcs/Github.sh` | `gh` CLIラッパー |
-| `dev-tools/src/vcs/Gitlab.ps1` | `dev-tools/src/vcs/Gitlab.sh` | `glab` CLIラッパー（未検証。GitLab実remoteが無いため） |
+| `dev-tools/src/vcs/Provider.ps1` | `.claude/scripts/src/vcs/Provider.sh` | issue-mr-flowの中核。GitHub/GitLab差異吸収 |
+| `dev-tools/src/vcs/Github.ps1` | `.claude/scripts/src/vcs/Github.sh` | `gh` CLIラッパー |
+| `dev-tools/src/vcs/Gitlab.ps1` | `.claude/scripts/src/vcs/Gitlab.sh` | `glab` CLIラッパー（未検証。GitLab実remoteが無いため） |
 | `dev-tools/src/build.ps1` | `dev-tools/src/build.sh` | Ahk2Exeビルド |
 | `.claude/hooks/session-start.ps1` | `.claude/hooks/session-start.sh` | SessionStart hook |
 | `.claude/hooks/post-push-usage-report.ps1` | `.claude/hooks/post-push-usage-report.sh` | PostToolUse hook（使用量レポート） |
@@ -152,6 +152,12 @@ keywords: [git-bash, jq, powershellからの移行, パス変換, bash化, フ�
 - `.claude/rules/directory-structure.md`（`.sh`配置ルール・jq前提の追記）
 - `.claude/rules/shell-script-style.md`（新規。bashスクリプトの規約）
 - `.claude/rules/powershell-encoding.md`（「PowerShellを直接書く場合のみ適用」である旨を明確化）
+
+変更（issue #24 dev-toolsをAI専用/人間専用に分離）:
+- `dev-tools/src/vcs/{Provider,Github,Gitlab}.sh`, `create-commit.sh`, `create-issue.sh`,
+  `archive-reentrant-plan.sh`, `extract-frontmatter.sh` を `.claude/scripts/src/` へ、本ドキュメント含む
+  AI専用spec/ddrを `.claude/scripts/docs/` へ移動（詳細: `.claude/scripts/docs/spec/issue-mr-workflow.md`
+  「影響範囲」issue #24エントリ参照）。`dev-tools/src/build.sh`は人間専用のため`dev-tools/`に残した。
 
 ## 設定項目
 
