@@ -30,3 +30,24 @@ keywords: [dev-tools, scripts, AI専用, 人間専用, プラグイン配布]
     おり、実態（AI専用スクリプトが大半）と乖離している。
   - 既知のstale参照（`.claude/agents/issue-mr-resume.md`が旧PowerShell関数名のまま、
     `DEVELOPERS.md`が`build.ps1`のまま）は本issueのスコープ外だが記録した。
+
+## 調査実施フェーズ（flow-id 10）
+
+- PR #55への人間レビュー完了の合図を受け、`comments all`で未解決スレッドが無いことを確認した
+  （自動投稿の対応工数レポートコメントのみで、レビュースレッドは無し）。
+- 上記の下書きを、`plans/delegated-gathering-frog.md`の「調査」章に「調査結果」として正式に
+  追記した。追記にあたり、以下を追加でリポジトリへ直接grepし、Explore結果の裏取りを行った。
+  - `プラグイン`/`plugin`のリポジトリ全体grep → 自作の`plans/`/`worklog/`以外に該当箇所0件を再確認
+  - `dev-tools/src`参照箇所の再grep → Explore結果と一致
+  - `.claude/agents/issue-mr-resume.md`・`DEVELOPERS.md`のstale参照を個別grepで再確認
+- 調査結果のポイント:
+  - AI専用: `vcs/Provider.sh`, `vcs/Github.sh`, `vcs/Gitlab.sh`, `create-commit.sh`,
+    `create-issue.sh`, `archive-reentrant-plan.sh`, 設計書`issue-mr-workflow.md`,
+    DDR `0002`〜`0007`,`0009`〜`0012`
+  - 人間専用: `build.sh`, `extract-frontmatter.sh`, 設計書`distribution.md`, DDR `0001`
+  - 判断が分かれる: `shell-scripts.md`, `extract-frontmatter.md`, DDR `0008`
+  - 移行先叩き台: `.claude/scripts/src/`・`.claude/scripts/docs/{spec,ddr}/`
+  - プラグイン配布に関する既存記述は0件（今回が最初の対応）
+  - `.claude/rules/directory-structure.md`の`dev-tools/`記載は実態と乖離しており更新が必要
+- 次は結果レビュー待ち（flow-id 13〜14）。完了後、調査結果をもとに作業計画（flow-id 15）を
+  Planモードで作成する。
