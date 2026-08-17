@@ -203,7 +203,7 @@ main() {
       --arg mtime "$mtime" \
       '{concept_id: $concept_id, directory: $directory, frontmatter: $frontmatter, mtime: $mtime}' \
       | tr -d '\r' >>"$out_file"
-  done < <(find "$target_dir" -type f -name '*.md' -print0 | sort -z)
+  done < <(git ls-files --cached --others --exclude-standard -z -- "$target_dir" | grep -z '\.md$' | sort -z)
 
   local out_file
   for out_file in "${!seen_out_files[@]}"; do

@@ -69,6 +69,15 @@ bash .claude/scripts/src/extract-frontmatter.sh <directory>
 [0008-frontmatter抽出スクリプトの設計判断.md](../ddr/0008-frontmatter抽出スクリプトの設計判断.md)
 を参照。
 
+### 走査方式
+
+対象ディレクトリ配下のmarkdownファイル列挙は`git ls-files --cached --others --exclude-standard`
+（トラッキング済み + 未トラッキングだが`.gitignore`非対象、NUL区切り）で行う。`.gitignore`に
+マッチするファイル・ディレクトリは列挙自体の対象にならない（走査自体が発生しない）ため、
+`.gitignore`対象ディレクトリに大量のファイルが存在していても性能に影響しない。本スクリプトは
+gitリポジトリ内での実行を前提とする（`resolve_repo_root`が`git rev-parse --show-toplevel`に
+依存するのと同様の制約）。
+
 ### 文字コード
 
 jqの出力を直接ファイルへ書き出す箇所は`tr -d '\r'`でLF改行に統一している（Windows版native jq
@@ -94,6 +103,13 @@ jqの出力を直接ファイルへ書き出す箇所は`tr -d '\r'`でLF改行�
   `dev-tools/docs/spec/index.jsonl`・`dev-tools/docs/ddr/index.jsonl`は縮小、
   `.claude/scripts/docs/`配下に新規`index.jsonl`が追加された。
 
+変更（issue #54 走査方式の`.gitignore`対応）:
+- `.claude/scripts/src/extract-frontmatter.sh`の`main()`内のファイル列挙を、`find`ベースから
+  `git ls-files --cached --others --exclude-standard`ベースへ置き換えた。issue #43で判明していた
+  「`参考ディレクトリ/`（`.gitignore`対象）配下の大量ファイルによるタイムアウト・`index.jsonl`
+  破損」を根本解消した（詳細: 上記「走査方式」節）。
+- 新規: `.claude/scripts/docs/ddr/0016-frontmatterスクリプトの走査方式にgit-ls-filesを採用する.md`
+
 ## 設定項目
 
 新規の`Settings`値は不要（本スクリプトはアプリ本体ではなくdev-tool）。
@@ -109,13 +125,9 @@ jqの出力を直接ファイルへ書き出す箇所は`tr -d '\r'`でLF改行�
 - **git bash（MSYS）以外での動作は未検証**: `resolve_repo_root`の`cd`によるパス表記統一は
   git bash（Windows）特有の問題への対処であり、WSL/Linux実機での動作確認は行っていない
   （`.claude/scripts/docs/spec/shell-scripts.md`の未決定事項と同様の制約）。
-- **リポジトリルート（`.`）に対する一括実行はタイムアウト・破損のリスクがある**（issue #43対応時に
-  実機確認）: `参考ディレクトリ/`（`.claude/rules/directory-structure.md`が定める、外部OSSを
-  ローカルにcloneする場所。`.gitignore`対象だが`find`の走査対象からは除外されない）に大量の
-  markdownファイルが存在すると、`bash .claude/scripts/src/extract-frontmatter.sh .`が2分以上かかり
-  タイムアウトすることがある。タイムアウトで処理を中断すると、書き込み中だった`index.jsonl`が
-  末尾の行を欠いたまま壊れた状態で残ることを確認した。**対策として、実行は影響のあるディレクトリ
-  単位に絞る**（例: `bash .claude/scripts/src/extract-frontmatter.sh .claude/rules`）。また、対象を
-  絞った個別実行の直後に、スコープ外のはずの他ディレクトリの`index.jsonl`（ルート`index.jsonl`等）
-  まで変更されており、ルート`index.jsonl`には同一内容の重複行が生じるという、原因を特定できない
-  挙動も観測した。この現象の根本原因の切り分けは未実施（今後の課題）。
+- **対象を絞った個別実行が、スコープ外のディレクトリの`index.jsonl`に影響することがある**
+  （issue #43対応時に実機確認、原因未特定）: `bash .claude/scripts/src/extract-frontmatter.sh
+  .claude/rules`のようにディレクトリを絞って実行した直後、スコープ外のはずの他ディレクトリの
+  `index.jsonl`（ルート`index.jsonl`等）まで変更されており、ルート`index.jsonl`には同一内容の
+  重複行が生じることがある。issue #54の走査方式変更（`.gitignore`対応）とは別の現象であり、
+  今回の対応では未解消。根本原因の切り分けは今後の課題。

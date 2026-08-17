@@ -107,3 +107,45 @@ push回数: 1
 - flow-id 21: 作業計画に沿って実装（`extract-frontmatter.sh`の1行変更、spec更新、新規DDR追加）を進める。
 
 ---
+
+## push4: flow-id 21（実装）
+
+### 試したこと
+
+- 作業計画レビューOKの合図を受け、`get_mr_unresolved_comments 60 true`で未解決スレッドが
+  無いことを確認した。
+- `.claude/scripts/src/extract-frontmatter.sh`の走査行（206行目）を`find`ベースから
+  `git ls-files --cached --others --exclude-standard -z -- "$target_dir" | grep -z '\.md$' |
+  sort -z`へ置き換えた。
+- `bash -n`で構文チェック、`bash tests/test_extract_frontmatter.sh`で既存単体テスト（15件）が
+  通ることを確認した。
+- 実リポジトリの`docs`・`.claude/rules`ディレクトリに対して実行し、既存の`index.jsonl`との差分を
+  確認したところ、`mtime`（ファイル最終更新時刻。走査方式と無関係な項目）以外は完全一致した。
+- 実リポジトリのリポジトリルート（`.`）に対して実行し、`参考ディレクトリ/`（実在し
+  `.gitignore`対象）配下が`index.jsonl`一覧に一切含まれず、タイムアウトも無く正常終了する
+  （exit code 0）ことを確認した。検証用に生成された`index.jsonl`の変更（mtimeのみの差分）は
+  `git checkout --`で元に戻した。
+- `docs/spec/extract-frontmatter.md`に「走査方式」節を新設し、影響範囲章にchangelogエントリを
+  追記、解消済みの懸念点（`参考ディレクトリ/`のタイムアウト・破損）を削除した。ただし同じ
+  懸念点ブロックに含まれていた別の未解決の観測事象（スコープを絞った個別実行が他ディレクトリの
+  `index.jsonl`に影響する現象。原因未特定）は、issue #54の対応範囲外のため独立した項目として
+  残した。
+- 新規DDR `.claude/scripts/docs/ddr/0016-frontmatterスクリプトの走査方式にgit-ls-filesを採用する.md`
+  を作成し、方式A採用・方式B却下・実機検証結果の要約・DDR 0008との関係を記録した。
+
+### うまくいったこと
+
+- 作業計画で予定した3点（実装・spec更新・新規DDR）を完了した。既存テスト・出力フォーマットへの
+  影響は無いことを実機で再確認できた。
+
+### ダメだったこと
+
+- 特になし。
+
+### 次の一歩
+
+- flow-id 22: `commit`スキル経由でcommit・push・レビュー依頼を行う。
+- flow-id 23: `describe`で実装内容をもとにMR descriptionを更新する。
+- flow-id 24: 実装についてMRレビューを受ける。
+
+---
