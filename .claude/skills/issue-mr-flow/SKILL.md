@@ -44,11 +44,11 @@ source .claude/scripts/src/vcs/Provider.sh
 | 7 | MRで調査計画についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
 | 8 | レビュー内容を取得し、調査計画を修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
 | 9 | 調査計画をもとにMR descriptionを更新する | `describe` |
-| 10 | **調査を実施**し、結果を`plans/<plan名>.md`の「調査」章・worklogに記録する | エージェント |
+| 10 | **調査を実施**し、結果を`plans/<plan名>.md`の「調査」章・worklogに記録する。あわせて調査結果を視覚的に分かりやすくまとめた自己完結HTML（TailwindCSS CDN方式）を`reports/<plan名>.html`として作成する | エージェント |
 | 11 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | 12 | 調査結果をもとにMR descriptionを更新する | `describe` |
 | 13 | MRで調査結果についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
-| 14 | レビュー内容を取得し、調査結果を修正する。対応が完了したコメントには対応内容を返信する（10〜14を合意まで繰り返す） | `comments` / `reply` |
+| 14 | レビュー内容を取得し、調査結果を修正する。対応が完了したコメントには対応内容を返信する（`reports/<plan名>.html`も調査結果と同期して更新する。10〜14を合意まで繰り返す） | `comments` / `reply` |
 | 15 | **調査結果をもとに**Planモードで**作業計画**を作成する（`plans/<plan名>.md`の「作業計画」章へ追記・コミット） | エージェント |
 | 16 | 作業計画に合意する | 人間 |
 | 17 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
@@ -65,7 +65,7 @@ source .claude/scripts/src/vcs/Provider.sh
 | 28 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | 29 | MRでレビュー・コメントする。レビュー済み連絡をするまで以降の作業は行わない。 | 人間 |
 | 30 | レビュー内容を取得し、設計反映・AIアセットの内容を修正する。対応が完了したコメントには対応内容を返信する（26〜30を合意まで繰り返す） | `comments` / `reply` |
-| 31 | `plans/` `worklog/` を削除し、`HANDOFF.md` を次タスクへリセットする | エージェント |
+| 31 | `plans/` `worklog/` `reports/` を削除し、`HANDOFF.md` を次タスクへリセットする | エージェント |
 | 32 | `commit`スキル経由でcommitし、push して Draftを解除する | エージェント |
 | 33 | マージする（squash merge。ブランチは削除してよい） | 人間 |
 
@@ -191,23 +191,23 @@ HANDOFF.mdとの矛盾など、ブランチ名だけでは分からない「こ�
 
 ## PRがflow-id 31実施前にマージされてしまった場合の対処
 
-人間がレビュー後にそのままMR/PRをマージするなど、flow-id 31（`plans/` `worklog/`の削除・
-`HANDOFF.md`のリセット）を実施する前に**先にマージが完了してしまう**ことがある（issue #28,
+人間がレビュー後にそのままMR/PRをマージするなど、flow-id 31（`plans/` `worklog/` `reports/`の
+削除・`HANDOFF.md`のリセット）を実施する前に**先にマージが完了してしまう**ことがある（issue #28,
 PR #29のセッションで実際に発生）。この場合、タスク固有の`plans/<plan名>.md`・
-`worklog/日付_<plan名>.md`・作業途中のままの`HANDOFF.md`が、そのまま`main`へ残ってしまう
-（本来`worklog/`はsquash mergeの対象からflow-id 31で除外され`main`に残らない設計であり、
-このズレはdocs-workflow.mdの運用と矛盾する）。
+`worklog/日付_<plan名>.md`・`reports/<plan名>.html`・作業途中のままの`HANDOFF.md`が、そのまま
+`main`へ残ってしまう（本来`worklog/`・`reports/`はsquash mergeの対象からflow-id 31で除外され
+`main`に残らない設計であり、このズレはdocs-workflow.mdの運用と矛盾する）。
 
 マージ後にこのズレに気づいた場合、**`main`へ直接コミットせず**、以下の手順で対処する
 （`main`は共有の正史であり、レビューを経ないままの直接変更は避ける）。
 
-1. `git fetch origin main` 等で最新の`main`を確認し、残ってしまった`plans/`・`worklog/`ファイル・
-   `HANDOFF.md`の状態を特定する。
+1. `git fetch origin main` 等で最新の`main`を確認し、残ってしまった`plans/`・`worklog/`・
+   `reports/`ファイル・`HANDOFF.md`の状態を特定する。
 2. 新しいクリーンアップ用ブランチを`main`から作成する（対象のissue番号が無いことが多いため、
    `.mrworkflow.json`の`branchPrefixTemplate`に従う必要はなく、`chore/cleanup-<簡潔な説明>`の
    ような分かりやすい名前でよい）。
-3. そのブランチ上で、該当する`plans/`・`worklog/`ファイルを削除し、`HANDOFF.md`を次タスク向けの
-   空テンプレートへリセットする（内容はflow-id 31で行うものと同じ）。
+3. そのブランチ上で、該当する`plans/`・`worklog/`・`reports/`ファイルを削除し、`HANDOFF.md`を
+   次タスク向けの空テンプレートへリセットする（内容はflow-id 31で行うものと同じ）。
 4. commit・pushし、`main`を対象にPRを作成する。PR作成・マージの実行は、他のPR操作と同様
    ユーザーから明示的な指示を受けてから行う（`.claude/rules/git-workflow.md`の原則どおり、
    マージ自体は人間が行う）。

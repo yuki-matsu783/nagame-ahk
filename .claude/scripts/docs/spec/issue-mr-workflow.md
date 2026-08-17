@@ -74,7 +74,7 @@ MRとのやり取りだけを自動化する薄い層」として設計したが
   プロジェクト固有の値を切り出す。他リポジトリへ移植する場合はこのファイルの値を書き換えるだけで済む
   ようにする。nagame-ahk用の値は以下「設定項目」に記載。
 - **`.claude/skills/issue-mr-flow/SKILL.md`**: issue起票からマージまでの**唯一の実装フロー定義**。
-  現在のブランチ・issue番号・`plans/` `worklog/` の有無・MRの有無などから「今どの段階か」を判定し、
+  現在のブランチ・issue番号・`plans/` `worklog/` `reports/` の有無・MRの有無などから「今どの段階か」を判定し、
   次に何をすべきかをAIエージェントに指示する。実処理は `Provider.sh` 経由のスクリプト呼び出しに
   委譲し、設計ドキュメント作成・plan作成・実装の詳細手順（AHK機能実装の場合）は
   `.claude/skills/ahk-implement/SKILL.md` に委ねる。
@@ -94,7 +94,7 @@ MRとのやり取りだけを自動化する薄い層」として設計したが
 | `test_issue_sections <body>` | issue本文に「目的／現状／期待する動作／受け入れ条件」の4見出しが揃っているか確認し、欠けている見出し名を1行1件でstdoutへ出力する（プロバイダ非依存） | — | — |
 | `get_issue_number_from_branch [<branch>]` | ブランチ名を `branchPrefixTemplate` に照らしてissue番号を抽出する（省略時は現在のブランチ）。マッチすればstdoutへ出力し終了コード0、マッチしなければ終了コード1（プロバイダ非依存） | — | — |
 | `get_mr_for_branch <branch>` | 指定ブランチに紐づくPR/MRの番号・URL・タイトル・Draft状態を取得する（JSON。無ければ何も出力せず終了コード0） | `gh pr view <branch>` | `glab mr view <branch>` |
-| `get_branch_work_files` | 現在のブランチ固有（`<defaultBaseBranch>` に無い）の `plans/` `worklog/` ファイル一覧を返す（プロバイダ非依存） | — | — |
+| `get_branch_work_files` | 現在のブランチ固有（`<defaultBaseBranch>` に無い）の `plans/` `worklog/` `reports/` ファイル一覧を返す（プロバイダ非依存） | — | — |
 | `build_issue_body <purpose> <current> <expected> <acceptance>` | 標準4見出し（目的・現状・期待する動作・受け入れ条件）に沿ってissue本文を組み立てる（プロバイダ非依存。issue #25） | — | — |
 | `new_issue <title> <body>` | タイトル・本文からissueを新規作成し、`get_issue`と同じ形（number/title/body/url/slug）のJSONを返す（issue #25） | `gh issue create` → URLから番号抽出 → `github_get_issue` | `glab issue create` → URLから番号抽出 → `gitlab_get_issue` |
 
@@ -148,7 +148,7 @@ resumeを省略してしまう事故が発生した）。そのため発動条�
    （抽出できなければ「命名規則に一致しないブランチです」と警告しつつ以降を続行する）。
 3. `get_mr_for_branch` で対応するPR/MRの有無・番号・URL・Draft状態を取得する。
 4. PR/MRがあれば `get_mr_unresolved_comments <n> true` で全件取得し、未解決件数を集計する。
-5. `get_branch_work_files` で、このブランチ固有の `plans/` `worklog/` ファイルを列挙する
+5. `get_branch_work_files` で、このブランチ固有の `plans/` `worklog/` `reports/` ファイルを列挙する
    （`<defaultBaseBranch>` との差分から求めるため、削除済み＝設計反映済みの判別にも使える）。
 6. `HANDOFF.md` の内容を読む。
 7. 1〜6を「現在地サマリ」としてまとめ、呼び出し元（メインのAIエージェント）に返す。**HANDOFF.mdの
@@ -871,6 +871,23 @@ issueはGitHubのUIからしか作成できず、標準4見出し（目的・現
 - `.claude/rules/powershell-encoding.md`（既に現存しない`Provider.ps1`の仕組みを説明していた節を削除）
 - 詳細な調査・作業計画は `plans/delegated-gathering-frog.md` 参照。
 
+変更（追加分・issue #48 調査結果をmarkdownとhtmlで作る）:
+- `.claude/skills/issue-mr-flow/SKILL.md`（flow-id 10に調査結果のHTML版
+  （`reports/<plan名>.html`、TailwindCSS CDN方式の自己完結HTML）作成を追記、flow-id 14に
+  reportsの同期更新を追記、flow-id 31の削除対象に`reports/`を追加。「PRがflow-id 31実施前に
+  マージされてしまった場合の対処」節も同様に`reports/`を反映）
+- `.claude/rules/docs-workflow.md`（「ドキュメント運用」表に`reports/<plan名>.html`の行を追加）
+- `.claude/rules/directory-structure.md`（ツリー図に`reports/`を追加）
+- `.mrworkflow.json`・`.claude/scripts/src/vcs/Provider.sh`の`get_workflow_config`既定値
+  （`"reportsDir": "reports"`を追加）
+- `.claude/scripts/src/vcs/Provider.sh`の`get_branch_work_files`（`reports_dir`を`plans_dir`/
+  `worklog_dir`と対称に扱うよう改修。`resume`サブコマンドが検知するブランチ固有ファイルに
+  `reports/`が含まれるようになる）
+- `.claude/scripts/docs/spec/issue-mr-workflow.md`（「仕様」節の`SKILL.md`概要文・「提供関数」表の
+  `get_branch_work_files`説明、「途中引き継ぎ対応（resume）」節の手順5を更新、本エントリを追加）
+- `.claude/agents/issue-mr-resume.md`（手順6・手順8の説明ラベルに`reports`を追加）
+- 詳細な調査・作業計画は `plans/drifting-sniffing-clover.md` 参照。
+
 ## 設定項目
 
 `.mrworkflow.json`（nagame-ahk向けの初期値）
@@ -881,6 +898,7 @@ issueはGitHubのUIからしか作成できず、標準4見出し（目的・現
   "defaultBaseBranch": "main",
   "plansDir": "plans",
   "worklogDir": "worklog",
+  "reportsDir": "reports",
   "specDirs": ["docs/spec", "dev-tools/docs/spec", ".claude/scripts/docs/spec"],
   "ddrDirs": ["docs/ddr", "dev-tools/docs/ddr", ".claude/scripts/docs/ddr"]
 }

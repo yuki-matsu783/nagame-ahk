@@ -58,6 +58,7 @@ get_workflow_config() {
   "defaultBaseBranch": "main",
   "plansDir": "plans",
   "worklogDir": "worklog",
+  "reportsDir": "reports",
   "specDirs": ["docs/spec", "dev-tools/docs/spec", ".claude/scripts/docs/spec"],
   "ddrDirs": ["docs/ddr", "dev-tools/docs/ddr", ".claude/scripts/docs/ddr"]
 }
@@ -247,17 +248,18 @@ get_issue_number_from_branch() {
   return 1
 }
 
-# 現在のブランチ固有（<defaultBaseBranch> には無い）の plans/worklog ファイル一覧を返す
+# 現在のブランチ固有（<defaultBaseBranch> には無い）の plans/worklog/reports ファイル一覧を返す
 # （コミット済み差分＋作業ツリーの未コミット分をマージ・重複排除）。プロバイダ非依存。
 get_branch_work_files() {
-  local config plans_dir worklog_dir base_branch committed working
+  local config plans_dir worklog_dir reports_dir base_branch committed working
   config="$(get_workflow_config)"
   plans_dir="$(printf '%s' "$config" | jq -r '.plansDir')"
   worklog_dir="$(printf '%s' "$config" | jq -r '.worklogDir')"
+  reports_dir="$(printf '%s' "$config" | jq -r '.reportsDir')"
   base_branch="$(printf '%s' "$config" | jq -r '.defaultBaseBranch')"
 
-  committed="$(git diff --name-only "origin/${base_branch}...HEAD" -- "$plans_dir" "$worklog_dir" 2>/dev/null || true)"
-  working="$(git status --porcelain -- "$plans_dir" "$worklog_dir" | sed -E 's/^...//')"
+  committed="$(git diff --name-only "origin/${base_branch}...HEAD" -- "$plans_dir" "$worklog_dir" "$reports_dir" 2>/dev/null || true)"
+  working="$(git status --porcelain -- "$plans_dir" "$worklog_dir" "$reports_dir" | sed -E 's/^...//')"
 
   printf '%s\n%s\n' "$committed" "$working" | sed '/^$/d' | sort -u
 }
