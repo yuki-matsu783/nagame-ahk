@@ -14,35 +14,35 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## フロー進捗状況
 
-- issue: #54 extract-frontmatter.shをgitignoreを読み取って対応するようにする (https://github.com/yuki-matsu783/nagame-ahk/issues/54)
-- ブランチ: feature-54-extract-frontmatter-respect-gitignore
-- Draft PR: #60 (https://github.com/yuki-matsu783/nagame-ahk/pull/60)
+- issue: （未着手）
+- ブランチ: （未着手）
+- Draft PR: （未着手）
 
 | 進捗 | flow-id | ステップ | 担当 |
 |----|---|---|---|
-| [x] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間（AIが代行する場合は `issue-create` スキル） |
-| [x] | 2 | issueの内容を取得する | `start <issue番号>` |
-| [x] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
-| [x] | 4 | Planモードで**調査計画**を作成する（`plans/<plan名>.md`の「調査」章へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
-| [x] | 5 | 調査計画に合意する | 人間 |
-| [x] | 6 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
-| [x] | 7 | MRで調査計画についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
-| [x] | 8 | レビュー内容を取得し、調査計画を修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
-| [x] | 9 | 調査計画をもとにMR descriptionを更新する | `describe` |
-| [x] | 10 | **調査を実施**し、結果を`plans/<plan名>.md`の「調査」章・worklogに記録する。あわせて調査結果を視覚的に分かりやすくまとめた自己完結HTML（TailwindCSS CDN方式）を`reports/<plan名>.html`として作成する（調査結果が複数要素間の関連・依存関係を主題とする場合は、`.claude/skills/canvas-report/SKILL.md`のcanvas形式テンプレートの利用を検討する） | エージェント |
-| [x] | 11 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
-| [x] | 12 | 調査結果をもとにMR descriptionを更新する | `describe` |
-| [x] | 13 | MRで調査結果についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
-| [x] | 14 | レビュー内容を取得し、調査結果を修正する。対応が完了したコメントには対応内容を返信する（`reports/<plan名>.html`も調査結果と同期して更新する。10〜14を合意まで繰り返す） | `comments` / `reply` |
-| [x] | 15 | **調査結果をもとに**Planモードで**作業計画**を作成する（`plans/<plan名>.md`の「作業計画」章へ追記・コミット） | エージェント |
-| [x] | 16 | 作業計画に合意する | 人間 |
-| [x] | 17 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
-| [x] | 18 | MRで作業計画についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
-| [x] | 19 | レビュー内容を取得し、作業計画を修正する。対応が完了したコメントには対応内容を返信する（18〜19を合意まで繰り返す） | `comments` / `reply` |
-| [x] | 20 | 作業計画をもとにMR descriptionを更新する | `describe` |
-| [x] | 21 | 作業計画をもとに作業を進める、作業内容はworklogに更新する | エージェント |
-| [x] | 22 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
-| [x] | 23 | 作業内容をもとにMR descriptionを更新する | `describe` |
+| [] | 1 | issueを起票する（`.github/ISSUE_TEMPLATE/task.md` / `.gitlab/issue_templates/task.md` で目的・現状・期待する動作・受け入れ条件を記載） | 人間（AIが代行する場合は `issue-create` スキル） |
+| [] | 2 | issueの内容を取得する | `start <issue番号>` |
+| [] | 3 | featureブランチ（`feature-<issue番号>-<slug>`）とDraft MRを作成する（既にあれば `sync` のみ） | `start` |
+| [] | 4 | Planモードで**調査計画**を作成する（`plans/<plan名>.md`の「調査」章へ出力・コミット。このタイミングで `worklog/日付_<plan名>.md` を作成） | エージェント |
+| [] | 5 | 調査計画に合意する | 人間 |
+| [] | 6 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
+| [] | 7 | MRで調査計画についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
+| [] | 8 | レビュー内容を取得し、調査計画を修正する。対応が完了したコメントには対応内容を返信する（7〜8を合意まで繰り返す） | `comments` / `reply` |
+| [] | 9 | 調査計画をもとにMR descriptionを更新する | `describe` |
+| [] | 10 | **調査を実施**し、結果を`plans/<plan名>.md`の「調査」章・worklogに記録する。あわせて調査結果を視覚的に分かりやすくまとめた自己完結HTML（TailwindCSS CDN方式）を`reports/<plan名>.html`として作成する（調査結果が複数要素間の関連・依存関係を主題とする場合は、`.claude/skills/canvas-report/SKILL.md`のcanvas形式テンプレートの利用を検討する） | エージェント |
+| [] | 11 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
+| [] | 12 | 調査結果をもとにMR descriptionを更新する | `describe` |
+| [] | 13 | MRで調査結果についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
+| [] | 14 | レビュー内容を取得し、調査結果を修正する。対応が完了したコメントには対応内容を返信する（`reports/<plan名>.html`も調査結果と同期して更新する。10〜14を合意まで繰り返す） | `comments` / `reply` |
+| [] | 15 | **調査結果をもとに**Planモードで**作業計画**を作成する（`plans/<plan名>.md`の「作業計画」章へ追記・コミット） | エージェント |
+| [] | 16 | 作業計画に合意する | 人間 |
+| [] | 17 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
+| [] | 18 | MRで作業計画についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
+| [] | 19 | レビュー内容を取得し、作業計画を修正する。対応が完了したコメントには対応内容を返信する（18〜19を合意まで繰り返す） | `comments` / `reply` |
+| [] | 20 | 作業計画をもとにMR descriptionを更新する | `describe` |
+| [] | 21 | 作業計画をもとに作業を進める、作業内容はworklogに更新する | エージェント |
+| [] | 22 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
+| [] | 23 | 作業内容をもとにMR descriptionを更新する | `describe` |
 | [] | 24 | MRでレビュー・コメントする。レビュー済み連絡をするまで以降の作業は行わない。 | 人間 |
 | [] | 25 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（21〜25の作業ループを合意まで繰り返す） | `comments` / `reply` |
 | [] | 26 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
@@ -58,33 +58,11 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 
 ## やったこと
 
-- issue #54を取得し、`feature-54-extract-frontmatter-respect-gitignore`ブランチとDraft PR #60を作成した。
-- 調査計画を`plans/reflective-zooming-cake.md`に作成し、ユーザーの承認を得た（flow-id 4〜9完了）。
-- 調査を実施（flow-id 10〜12）: スクラッチパッドに一時gitリポジトリを作り、`find`（現状）・
-  `git ls-files`ベース（方式A）・`find`+`git check-ignore`事後フィルタ（方式B）を実機比較した。
-  方式Aを採用と結論し、`plans/reflective-zooming-cake.md`の「調査結果」節、
-  `worklog/2026-08-18_reflective-zooming-cake_push1.md`のpush2節、
-  `reports/reflective-zooming-cake.html`に記録した。commit・push後、MR descriptionを更新した。
-- 調査結果のレビューOKを受け、未解決コメント無しを確認した（flow-id 13〜14）。
-- 作業計画を`plans/reflective-zooming-cake.md`の「作業計画」章に追記し、ユーザーの承認を得た
-  （flow-id 15〜16）。内容: (1) `extract-frontmatter.sh`の走査行をgit ls-filesベースへ置換、
-  (2) `docs/spec/extract-frontmatter.md`更新、(3) 新規DDR 0016追加。commit・push、MR description
-  更新済み（flow-id 17）。
-- 作業計画レビューOKを受け、未解決コメント無しを確認した（flow-id 18〜19）。
-- 作業計画に沿って実装した（flow-id 21）: `extract-frontmatter.sh`の走査行（find→git ls-files）を
-  置換、`docs/spec/extract-frontmatter.md`更新（走査方式節新設・changelog追記・解消済み懸念点削除）、
-  新規DDR 0016作成。既存単体テスト（15件）通過、実リポジトリでの動作確認（`参考ディレクトリ/`が
-  除外されタイムアウトしないこと、既存index.jsonlとの差分がmtimeのみであること）を確認済み。
-  **本タスクでは作業計画の時点でspec/ddr反映（通常flow-id 26）を実装作業に含める設計としたため、
-  flow-id 26の内容は実質的に完了済み。** commit・push、MR description更新済み（flow-id 22〜23）。
+（無し）
 
 ## 次にやること
 
-- flow-id 24: 実装についてMRレビューを受ける（レビュー完了連絡待ち）。
-- flow-id 25: レビュー内容があれば対応する（合意まで繰り返す）。
-- flow-id 26: 追加のspec/ddr反映が必要になった場合のみ対応（通常分は実装時に完了済み）。
-- flow-id 27: AIアセット改善の要否を確認する。
-- flow-id 31: `plans/` `worklog/` `reports/` を削除し、`HANDOFF.md`をリセットする。
+（無し）
 
 ## 判断を迷った内容
 
