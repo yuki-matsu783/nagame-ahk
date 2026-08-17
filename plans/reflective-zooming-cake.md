@@ -134,6 +134,58 @@ issue #54はこの問題を、`.gitignore`を読み取って対応する形で�
 
 **結論**: 方式A（`git ls-files --cached --others --exclude-standard`ベースへの置き換え）を採用する。
 
+## 作業計画
+
+調査結果（方式A採用）をもとに、以下3点を実施する。
+
+### 1. `extract-frontmatter.sh`の走査行を置き換える
+
+`.claude/scripts/src/extract-frontmatter.sh` の `main()` 内、[extract-frontmatter.sh:206](../.claude/scripts/src/extract-frontmatter.sh#L206) の1行のみを変更する。
+
+```diff
+-  done < <(find "$target_dir" -type f -name '*.md' -print0 | sort -z)
++  done < <(git ls-files --cached --others --exclude-standard -z -- "$target_dir" | grep -z '\.md$' | sort -z)
+```
+
+- 他の関数（`frontmatter_to_json`, `resolve_repo_root`, `frontmatter_block_to_json`等）・冒頭コメント（1〜13行目の説明文。`find`という語を含まないため変更不要）は変更しない。
+- 変更後、`bash -n .claude/scripts/src/extract-frontmatter.sh` で構文チェックする。
+
+### 2. `docs/spec/extract-frontmatter.md`の更新
+
+- 「未決定事項・懸念点」節（[extract-frontmatter.md:112-121](../.claude/scripts/docs/spec/extract-frontmatter.md#L112-L121)）の「リポジトリルート（`.`）に対する一括実行はタイムアウト・破損のリスクがある」項目を削除する（issue #54対応により解消したため）。
+- 「仕様」章に新設節「走査方式」を追加し、`git ls-files --cached --others --exclude-standard`ベースで列挙すること、`.gitignore`対象は候補から完全に除外され走査自体が発生しないこと、対象がgitリポジトリ内であることが前提であることを記載する。
+- 「影響範囲」章の末尾に、issue #54対応による変更点（走査ロジックの置き換え、新規DDR追加）を新規changelogエントリとして追記する（既存のchangelogエントリ自体は変更しない。`.claude/rules/docs-workflow.md`のchangelog不変更原則に従う）。
+
+### 3. 新規DDRの追加
+
+`.claude/scripts/docs/ddr/0016-frontmatterスクリプトの走査方式にgit-ls-filesを採用する.md`（連番は`docs/ddr`・`.claude/scripts/docs/ddr`通番で次が0016のため）を新規作成する。内容:
+
+- 背景: issue #43で判明した`参考ディレクトリ/`走査によるタイムアウト・`index.jsonl`破損。issue #54でこれを解消。
+- 決定: `find`ベースの走査を`git ls-files --cached --others --exclude-standard`ベースに置き換える（方式A採用）。
+- 却下した案: `find`維持＋`git check-ignore`事後フィルタ（方式B）。正しさは確保できるが、`find`自体がignore対象ディレクトリを訪問してしまうため根本課題を解消できない。
+- 実機検証結果の要約（`plans/reflective-zooming-cake.md`の調査結果を要約引用。件数・所要時間の実測値を含む）。
+- 既存DDR 0008（出力単位・concept_id基準・YAML解析方式）とは別トピックのため、0008への追記ではなく新規DDRとする旨を明記。
+
+既存DDR 0008の本文は変更しない（マージ済みDDRは追記不可の原則）。
+
+### 対象外
+
+- `tests/test_extract_frontmatter.sh`の変更（`main()`内の走査ロジックはテスト対象外であり、既存テストに影響しないことを調査済み。新規テスト追加も本作業計画のスコープ外とする）。
+- `index.jsonl`の出力フォーマット自体の変更。
+- 他スクリプトへの同種対応。
+
+### 作業計画の検証方法
+
+- `bash -n .claude/scripts/src/extract-frontmatter.sh` で構文チェックする。
+- `bash tests/test_extract_frontmatter.sh` を実行し、既存単体テストが通ることを確認する
+  （`passed=N failures=N`の規約に従う）。
+- リポジトリルートで `bash .claude/scripts/src/extract-frontmatter.sh docs` 等、既存のgit管理下
+  `index.jsonl`が存在するディレクトリに対して実行し、`git diff`で出力内容に差分が無いこと
+  （既存の`index.jsonl`と完全一致すること）を確認する。
+- `参考ディレクトリ/`が存在する場合、それを含むディレクトリに対して実行し、`参考ディレクトリ/`配下の
+  ファイルが`index.jsonl`に含まれないこと・タイムアウトしないことを確認する（存在しない場合は
+  スクラッチパッドで再現した調査時の一時リポジトリでの確認結果を根拠とする）。
+
 ## 検証方法
 
 調査結果は`plans/reflective-zooming-cake.md`の「調査」章に追記し、`worklog/`にも実機確認の
