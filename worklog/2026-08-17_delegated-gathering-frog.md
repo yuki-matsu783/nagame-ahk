@@ -132,3 +132,46 @@ keywords: [dev-tools, scripts, AI専用, 人間専用, プラグイン配布]
   grepで`dev-tools/src`・移動した`dev-tools/docs/spec/*`・`dev-tools/docs/ddr/000[2-9]|001[0-2]`の
   残存参照を確認し、意図的に残した箇所（DDRの歴史的記録、影響範囲changelogの過去エントリ、
   `dev-tools/`に残った`build.sh`関連）以外に更新漏れが無いことを確認した。
+
+## 設計反映（flow-id 26）
+
+- 人間から実装内容へのレビュー完了連絡を受け、`comments all`で未解決スレッドが無いことを確認した。
+- 実装（flow-id 21）の時点で、移動した`.claude/scripts/docs/spec/*.md`（issue-mr-workflow.md,
+  shell-scripts.md, extract-frontmatter.md）の「## 影響範囲」節へissue #24の変更内容を新規
+  changelogエントリとして追記済みだったため、これらは既に設計反映済み。
+- 未反映だった`dev-tools/docs/spec/distribution.md`の「## 影響範囲」にも、issue #24による
+  参照パス変更・README分割の変更点を追記した。
+- 新規DDR `.claude/scripts/docs/ddr/0013-dev-toolsをAI専用_人間専用に分離する.md`を作成し、
+  以下を記録した:
+  - 決定: 利用者（誰が実行するか）を軸に`dev-tools/`を物理分離する方針、`extract-frontmatter.sh`等
+    「実行主体は人間だがAI専用群と一体」なものを移行対象に含める判断基準
+  - 決定: 既存の歴史的記録（DDR本文・spec「影響範囲」changelog）は書き換えず、新規エントリの
+    追記のみで対応する方針（実装中に一度sedで書き換えてしまい復旧した教訓を反映）
+  - 却下案: シンボリックリンク方式、dev-tools全体を.claude/scriptsへ統合する案、
+    過去パス参照の機械的一括置換
+  - `.claude/agents/issue-mr-resume.md`を全面書き直すに至った経緯（調査時の想定との差分）
+- `.claude/scripts/docs/README.md`にDDR 0013へのリンクを追加した。
+- `.claude/scripts/src/extract-frontmatter.sh .`を再実行し、新規DDRを含むindex.jsonlを再生成した。
+
+## 想定外の並行変更への対応
+
+- flow-id 27作業中、`git status`で以下3ファイルが未コミットの変更を持っていることに気づいた。
+  自分がこのセッションで編集した覚えが無い内容だったため、詳細を確認した。
+  - `.claude/rules/git-workflow.md`: worklogの命名を`日付_<planファイル名>.md`から
+    `日付_<planファイル名>_push<N>.md`へ変更
+  - `.claude/skills/commit/SKILL.md`: 「`git add` / `git commit` を直接実行せず」から
+    `git add`の言及を削除
+  - `worklog/TEMPLATE.md`: 同様の`_push<N>`命名への変更、`push回数: N`行の追加
+  - 直近のコミット（`e6f5fdc`, 00:33作成）より後、00:36〜00:50の間に変更されていた（自分の
+    このセッションの作業時間帯と重なる）。sedによる一括置換の対象にもしていたが、置換パターンには
+    `_push<N>`や`git add`関連の文字列は一切含まれていないため、自分の操作による副作用ではないと
+    判断した。
+  - 折しも自分は同じタイミングで、`docs-workflow.md`のworklog命名規則を「`_push<N>`という記述が
+    残っているが実際には一度も使われたことがない」という理由で**逆方向**（`_push<N>`を削除する
+    方向）に修正しており、矛盾する2方向の変更が同時に発生していた。
+  - 作業を中断し、ユーザーに「他セッションでの意図的な変更か」を確認する形で報告した。
+    「意図した変更なので一緒に取り込んでOK」との回答を得たため、3ファイルの変更はそのまま
+    取り込み、`docs-workflow.md`側は`_push<N>`方式に合わせて修正し直した。
+  - 本ブランチの既存worklogファイル（累積1ファイル方式で運用中）は新方針への遡及的な分割は
+    行わず、新方針は今後のworklog作成から適用される想定とした（本タスクのスコープ外の構造変更を
+    避けるため）。

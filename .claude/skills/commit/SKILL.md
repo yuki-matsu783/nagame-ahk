@@ -114,7 +114,7 @@ hookの対象にならず正規に実行できる。
   - README.md
 ```
 
-`git add` / `git commit` を直接実行せず、`.claude/scripts/src/create-commit.sh` を使う
+`git commit` を直接実行せず、`.claude/scripts/src/create-commit.sh` を使う
 （`git commit` の直接実行は `.claude/hooks/block-direct-git-commit.sh` によりブロックされる）。
 
 ```

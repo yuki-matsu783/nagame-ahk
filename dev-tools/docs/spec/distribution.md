@@ -55,6 +55,13 @@ Ahk2Exe（AutoHotkey v2付属のコンパイラ）で単体のexeを生成し、
 - 変更: `DEVELOPERS.md`（ビルド・配布手順を記載し `dev-tools/docs/` への導線とする）
 - 変更: `assets/icons/icon.ico`（アプリアイコンを追加・完了済み）
 
+変更（issue #24 dev-toolsをAI専用/人間専用に分離）:
+- 本ドキュメント（`shell-scripts.md`への参照パスを`.claude/scripts/docs/spec/shell-scripts.md`へ更新。
+  `build.sh`は人間専用のため`dev-tools/`に残留し、本ドキュメント自体もdev-tools/docs/spec/に残る）
+- `dev-tools/docs/README.md`（AI専用spec/ddrの掲載を`.claude/scripts/docs/README.md`へ移し、
+  `distribution.md`・DDR`0001`のみの目次に縮小）
+- `DEVELOPERS.md`（`build.ps1`→`build.sh`の実行コマンド表記を修正）
+
 ## 設定項目
 
 新規の `Settings` 値は不要。既存の `Settings.AppName` / `Settings.Version`

@@ -43,10 +43,10 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 21 | 作業計画をもとに作業を進める、作業内容はworklogに更新する | エージェント |
 | [x] | 22 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | [x] | 23 | 作業内容をもとにMR descriptionを更新する | `describe` |
-| [] | 24 | MRでレビュー・コメントする。レビュー済み連絡をするまで以降の作業は行わない。 | 人間 |
-| [] | 25 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（21〜25の作業ループを合意まで繰り返す） | `comments` / `reply` |
-| [] | 26 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
-| [] | 27 | AIアセット改善: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
+| [x] | 24 | MRでレビュー・コメントする。レビュー済み連絡をするまで以降の作業は行わない。 | 人間 |
+| [x] | 25 | レビュー内容を取得し、実装・ドキュメントを修正する。対応が完了したコメントには対応内容を返信する（21〜25の作業ループを合意まで繰り返す） | `comments` / `reply` |
+| [x] | 26 | 設計反映: `plans/` `worklog/` の内容を `docs/spec/` `docs/ddr/` へ反映する | エージェント |
+| [x] | 27 | AIアセット改善: 作業中に気づいたルール・スキルの不備があれば `.claude/rules/` `.claude/skills/` `CLAUDE.md` `AGENTS.md` に反映する | エージェント |
 | [] | 28 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | [] | 29 | MRでレビュー・コメントする。レビュー済み連絡をするまで以降の作業は行わない。 | 人間 |
 | [] | 30 | レビュー内容を取得し、設計反映・AIアセットの内容を修正する。対応が完了したコメントには対応内容を返信する（26〜30を合意まで繰り返す） | `comments` / `reply` |
@@ -69,11 +69,20 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 - `commit`スキル経由でcommit・push・レビュー依頼を行った（flow-id 17）。
 - 人間からチャットで「スコープ外としたものについても今回の対応で作業して」との指摘を受け、作業計画に7〜9番として追加（`.claude/agents/issue-mr-resume.md`の全面書き直し、`DEVELOPERS.md`の`build.ps1`記載修正、`.claude/rules/powershell-encoding.md`の整理）。「スコープ外」節を縮小し、検証方法にも追記した。commit・push済み。
 - 作業計画に沿って実装した（flow-id 21）: AI専用ファイル一式（`.sh` 7本、spec 3本、DDR 11本）を`git mv`で`.claude/scripts/`へ移動、パス参照を一括更新、`dev-tools/docs/README.md`分割、`directory-structure.md`/`markdown-frontmatter.md`/`index.md`更新、`issue-mr-resume.md`全面書き直し、`DEVELOPERS.md`/`powershell-encoding.md`修正、`index.jsonl`再生成。詳細・ハマった点（sedによる歴史的changelog破壊とその復旧）はworklog参照。
+- 実装内容のレビュー完了連絡を受け、`comments all`で未解決スレッドが無いことを確認した（flow-id 24〜25）。
+- 設計反映（flow-id 26）: 移動したspec文書は実装時点で既に「影響範囲」changelogを更新済み。未反映だった`dev-tools/docs/spec/distribution.md`にも追記。新規DDR`.claude/scripts/docs/ddr/0013-dev-toolsをAI専用_人間専用に分離する.md`を作成（決定・却下案・issue-mr-resume.md全面書き直しの経緯を記録）。READMEにリンク追加、`index.jsonl`再生成。
+- AIアセット改善（flow-id 27）: `.claude/rules/docs-workflow.md`に「ファイル移動時のパス一括置換はDDR本文・spec changelogの歴史的記録を対象に含めない」という、今回の教訓を明文化した注記を追加。
+- 作業中、`.claude/rules/git-workflow.md`・`.claude/skills/commit/SKILL.md`・`worklog/TEMPLATE.md`が
+  未コミットの状態で`_push<N>`命名規則（worklogをpush単位のファイルに分ける新方針）へ変更されて
+  いるのに気づいた。私自身が行った変更ではなかったため作業を中断してユーザーに確認したところ、
+  「意図した変更なので一緒に取り込んでOK」との回答を得た。`docs-workflow.md`側は当初逆方向
+  （`_push<N>`を削除する方向）に修正していたが、`_push<N>`方式へ揃えるよう修正し直した。
+  なお、本ブランチで既存の`worklog/2026-08-17_delegated-gathering-frog.md`（累積1ファイル方式）は
+  新方針の遡及適用はせずそのまま維持し、新方針は今後のworklog作成から適用される想定とした。
 
 ## 次にやること
 
-- PR #55で実装内容のレビューを待つ（flow-id 24）。レビューコメントがあれば`comments`/`reply`で対応する（flow-id 25のループ）。
-- レビュー完了後、設計反映（flow-id 26: plans/worklogの内容をdocs/spec, docs/ddrへ反映）・AIアセット改善（flow-id 27）へ進む。
+- `commit`スキル経由でcommit・push・レビュー依頼を行う（flow-id 28）。
 
 ## 判断を迷った内容
 

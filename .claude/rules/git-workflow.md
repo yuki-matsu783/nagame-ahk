@@ -51,7 +51,7 @@ keywords: [featureブランチ, ブランチ命名, worklog, squash-merge, draft
 
 ## worklogの配置・命名
 
-`worklog/日付_<planファイル名>.md` に記録する（配置・命名は `directory-structure.md`、ライフサイクルは
+`worklog/日付_<planファイル名>_push<N>.md` に記録する（配置・命名は `directory-structure.md`、ライフサイクルは
 `docs-workflow.md` の「ドキュメント運用」表、作成・削除のタイミングは `.claude/skills/issue-mr-flow/SKILL.md`
 の全体フローを参照）。
 

@@ -9,7 +9,7 @@ keywords: [worklog, 計画, 試したこと, うまくいったこと, ダメだ
 <!--
   worklogテンプレート。
   新規worklog作成時はこのファイルをコピーし、
-  `worklog/日付_<planファイル名>.md`（例: worklog/20260815_fancy-painting-prism.md）に
+  `worklog/日付_<planファイル名>_push<N>.md`（例: worklog/20260815_fancy-painting-prism_push<N>.md）に
   リネームしてから中身を埋めること。配置・運用ルールは .claude/rules/docs-workflow.md,
   .claude/rules/git-workflow.md を参照。
 -->
@@ -18,6 +18,7 @@ keywords: [worklog, 計画, 試したこと, うまくいったこと, ダメだ
 
 対象: <タスクの概要>（<日付>）。
 plan: `plans/<plan名>.md`
+push回数: N
 
 ## 試したこと
 
