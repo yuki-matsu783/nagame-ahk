@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# dev-tools/src/vcs/Provider.sh の単体テスト。
-# 設計: dev-tools/docs/spec/shell-scripts.md
+# .claude/scripts/src/vcs/Provider.sh の単体テスト。
+# 設計: .claude/scripts/docs/spec/shell-scripts.md
 #
 # 対象: 外部API呼び出し（gh/glab）を伴わない純粋ロジックのみ（to_slug, test_issue_sections,
 # get_issue_number_from_branch）。gh/glab呼び出しを伴う関数（get_issue等）はここでは検証しない
@@ -15,7 +15,7 @@
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-source "${REPO_ROOT}/dev-tools/src/vcs/Provider.sh"
+source "${REPO_ROOT}/.claude/scripts/src/vcs/Provider.sh"
 
 PASSED=0
 FAILURES=0

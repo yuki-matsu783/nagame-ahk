@@ -5,7 +5,7 @@
 # 人間が直接実行してもよい。
 #
 # 使い方:
-#   dev-tools/src/create-issue.sh --title "<タイトル>" --purpose "<目的>" \
+#   .claude/scripts/src/create-issue.sh --title "<タイトル>" --purpose "<目的>" \
 #     --current "<現状>" --expected "<期待する動作>" --acceptance "<受け入れ条件>"
 #
 # 標準出力に、作成したissueのJSON（number/title/body/url/slug）を出力する。

@@ -97,3 +97,38 @@ keywords: [dev-tools, scripts, AI専用, 人間専用, プラグイン配布]
 - `plans/delegated-gathering-frog.md`の「作業計画」章に7〜9番として追記し、「スコープ外」節を
   縮小した。「検証方法」にも2点（issue-mr-resume.mdの動作確認、powershell-encoding.mdのリンク切れ
   確認）を追加した。
+
+## 実装（flow-id 21）
+
+- `git mv`でAI専用ファイル（`.sh` 7本、`.claude/scripts/docs/spec/` 3本、DDR 11本）を
+  `.claude/scripts/`配下へ移動した。
+- **ハマった点**: パス参照の一括置換を`sed`で機械的に行った結果、移動した`.claude/scripts/docs/spec/`
+  配下2ファイル（`issue-mr-workflow.md`, `shell-scripts.md`）の「## 影響範囲」節（過去issueごとの
+  changelog、歴史的記録）まで新パスへ書き換えてしまい、当時存在しなかった`.claude/scripts/...`パスが
+  過去のエントリに紛れ込む形で歴史を破壊した。`git checkout --`で該当ファイルをsed適用前の状態へ
+  戻し、「## 仕様」等の**現在の状態を説明する節のみ**を手動で個別修正する方針に切り替えた
+  （「## 影響範囲」等の過去changelogは書き換えず、issue #24用の新規エントリを追記する形にした）。
+  DDR（`.claude/scripts/docs/ddr/*.md`）は不変の意思決定記録のため、`git mv`のみでsedによる
+  本文書き換えは一切行わなかった（内部の相互リンクは同じディレクトリツリーごと移動したため
+  相対パスとして引き続き有効）。
+- パス参照が現在有効な箇所（skills, hooks, rules, tests, index.md）は`sed`で一括更新し、grepで
+  更新漏れが無いことを確認した。
+- `dev-tools/docs/README.md`を`distribution.md`/DDR`0001`のみの目次に縮小し、新規
+  `.claude/scripts/docs/README.md`を作成した。
+- `.claude/rules/directory-structure.md`のツリー図・配置の指針を、AI専用/人間専用の区分が
+  明確になるよう書き換えた。`.claude/rules/markdown-frontmatter.md`のtype表、`index.md`
+  （Repository Map）も同様に更新した。
+- `.mrworkflow.json`・`Provider.sh`内の`get_workflow_config`デフォルト値の`specDirs`/`ddrDirs`に
+  `.claude/scripts/docs/{spec,ddr}`を追加した。
+- `.claude/agents/issue-mr-resume.md`を全面書き直し（旧PowerShell版`Provider.ps1`・PascalCase関数を
+  bash版`Provider.sh`のsnake_case関数へ変換、`tools:`から`PowerShell`を削除）。
+- `DEVELOPERS.md`の`build.ps1`記載を`bash dev-tools/src/build.sh`に修正。
+- `.claude/rules/powershell-encoding.md`を整理（既に存在しない`Provider.ps1`の仕組みを説明していた
+  節を削除し、将来`.ps1`を書く場合の一般的な注意事項に書き改めた）。
+- リポジトリルートで`.claude/scripts/src/extract-frontmatter.sh .`を実行し、影響を受けた全
+  `index.jsonl`を再生成した。
+- 検証: 移動した`.sh`7本すべて`bash -n`で構文OK。`test_vcs_provider.sh`（14件）・
+  `test_archive_reentrant_plan.sh`（19件）・`test_extract_frontmatter.sh`（15件）すべてpassed。
+  grepで`dev-tools/src`・移動した`dev-tools/docs/spec/*`・`dev-tools/docs/ddr/000[2-9]|001[0-2]`の
+  残存参照を確認し、意図的に残した箇所（DDRの歴史的記録、影響範囲changelogの過去エントリ、
+  `dev-tools/`に残った`build.sh`関連）以外に更新漏れが無いことを確認した。

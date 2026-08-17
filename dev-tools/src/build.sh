@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Windows用exeへのビルドスクリプト（Ahk2Exeを呼び出す。bash版）。
-# 設計: dev-tools/docs/spec/distribution.md, dev-tools/docs/spec/shell-scripts.md
+# 設計: dev-tools/docs/spec/distribution.md, .claude/scripts/docs/spec/shell-scripts.md
 #
 # 使い方:
 #     dev-tools/src/build.sh
@@ -59,7 +59,7 @@ OUT_FILE="${BUILD_DIR}/nagame-ahk-v${VERSION}.exe"
 # （実機確認: `/in` が `C:/Program Files/Git/in` に化けて「Unrecognised parameter」エラーになった）。
 # 先頭を `//` にするとMSYSの自動変換対象から外れ、ネイティブ側には `/in` として渡る
 # （`tasklist`/`taskkill`のWindowsフラグも同様の理由で `//FI` 等と書く。詳細:
-# dev-tools/docs/spec/shell-scripts.md「git bashのパス変換」節）。
+# .claude/scripts/docs/spec/shell-scripts.md「git bashのパス変換」節）。
 ICON_PATH="${REPO_ROOT}/assets/icons/icon.ico"
 AHK2EXE_ARGS=(//in "$MAIN_AHK" //out "$OUT_FILE" //base "$AHK_V2_EXE")
 if [ -f "$ICON_PATH" ]; then

@@ -35,7 +35,7 @@ keywords: [exitplanmode, 計画ファイル, 誤送信, 承認, セルフチェ�
    失ってはならない（`docs-workflow.md` の「plansはそのままコミットして履歴に残す」方針と同じ）。
    原則として計画ごとに新しいplanファイル名を使うことでこれを実現する。ただし規則6の制約
    （ハーネスがPlanモードre-entry時に同じファイルパスを提示し続ける）に対応する場合に限り、
-   `dev-tools/src/archive-reentrant-plan.sh` で旧内容を確実に退避してから同じパスを再利用してよい
+   `.claude/scripts/src/archive-reentrant-plan.sh` で旧内容を確実に退避してから同じパスを再利用してよい
    （退避により内容は失われないため、この規則の趣旨には反しない。詳細は規則6）。
 
 3. **送信直前のセルフチェック**
@@ -66,12 +66,12 @@ keywords: [exitplanmode, 計画ファイル, 誤送信, 承認, セルフチェ�
 
    旧手順（一時的にハーネス提示パスへ上書き→承認後に`git checkout`で復元）は、復元忘れや
    タイミングミスが起きると1回前の計画内容を破壊しかねず、かつ一時的な上書き内容がgit履歴に
-   一切残らないという問題があった（issue #26）。代わりに、`dev-tools/src/archive-reentrant-plan.sh`
+   一切残らないという問題があった（issue #26）。代わりに、`.claude/scripts/src/archive-reentrant-plan.sh`
    を使い、ハーネス提示パスに残っている1つ前の計画を`_actN`付きの別名へ退避してから、
    ハーネス提示パスへ直接新しい計画を書く。
 
    - `EnterPlanMode`実行後、ハーネスが提示するplanファイルパスを確認する。
-   - `bash dev-tools/src/archive-reentrant-plan.sh "<提示されたパス>"` を実行する（このセッション
+   - `bash .claude/scripts/src/archive-reentrant-plan.sh "<提示されたパス>"` を実行する（このセッション
      最初のre-entryではplanファイルがまだ存在しないためno-opになる。re-entry回数を問わず毎回
      実行してよい）。
    - 出力されたJSONの`archived`が`true`であれば、`planArchivedTo`（必要なら`worklogArchivedTo`）を

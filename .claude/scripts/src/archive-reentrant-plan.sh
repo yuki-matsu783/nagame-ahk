@@ -19,7 +19,7 @@
 #   plan_file_path: ハーネスがEnterPlanMode時に提示するパス（例: plans/groovy-twirling-puffin.md）
 #   worklog_dir:    省略可。既定 "worklog"
 #
-# 出力: 結果をJSON文字列でstdoutへ出力する（dev-tools/src/vcs/Provider.sh と同じ規約）。
+# 出力: 結果をJSON文字列でstdoutへ出力する（.claude/scripts/src/vcs/Provider.sh と同じ規約）。
 #   例: {"archived": true, "suffix": 1,
 #        "planArchivedTo": "plans/groovy-twirling-puffin_act1.md",
 #        "worklogArchivedTo": "worklog/20260815_groovy-twirling-puffin_act1.md"}

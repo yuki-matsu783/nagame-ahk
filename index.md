@@ -24,18 +24,25 @@ keywords: [directory, repository-map, リポジトリマップ, ディレクト�
 - [./docs/](./docs/) アプリ本体の設計ドキュメント。
   - [./docs/spec/](./docs/spec/) 機能ごとの正史仕様（最新の仕様を上書き更新）。
   - [./docs/ddr/](./docs/ddr/) 意思決定ログ（DDR: Design Decision Record。追記のみ）。
-- [./dev-tools/](./dev-tools/) 開発者向けツール一式。アプリ本体（`src/`, `docs/`）とは分離して管理する。
-  - [./dev-tools/src/](./dev-tools/src/) ビルドスクリプト・issue駆動MRワークフロー支援スクリプト等（bash）。
-    - [./dev-tools/src/vcs/](./dev-tools/src/vcs/) GitHub/GitLabの差異を吸収するVCS抽象化層（`Provider.sh`）。
+- [./dev-tools/](./dev-tools/) 人間専用の開発補助ツール一式（exe配布ビルド関連）。アプリ本体
+  （`src/`, `docs/`）とは分離して管理する。AIエージェントが能動的に実行するスクリプトは
+  `.claude/scripts/`に分離されている（issue #24）。
+  - [./dev-tools/src/](./dev-tools/src/) exe配布ビルドスクリプト（bash）。
   - [./dev-tools/docs/](./dev-tools/docs/) dev-tools機能の設計ドキュメント。
     - [./dev-tools/docs/spec/](./dev-tools/docs/spec/) dev-tools機能ごとの正史仕様。
     - [./dev-tools/docs/ddr/](./dev-tools/docs/ddr/) dev-tools関連の意思決定ログ。
 - [./tests/](./tests/) 手動/自動テスト用スクリプト（AutoHotkey・bash）。
   - [./tests/lib/](./tests/lib/) テスト共通処理（`Assert.ahk`）。
-- [./.claude/](./.claude/) Claude Code向けのルール・スキル・エージェント・hook定義一式。
+- [./.claude/](./.claude/) Claude Code向けのルール・スキル・エージェント・hook・スクリプト定義一式。
   - [./.claude/rules/](./.claude/rules/) AI向け詳細ルール（コーディング規約・ディレクトリ構成・ドキュメント運用等）。
   - [./.claude/skills/](./.claude/skills/) `/issue-mr-flow`（唯一の実装フロー定義）・`/ahk-implement` などのスキル定義。
   - [./.claude/agents/](./.claude/agents/) サブエージェント定義（コードレビュー・issue-mr-flow途中引き継ぎ等）。
+  - [./.claude/scripts/](./.claude/scripts/) AIエージェントが`.claude/skills/*`経由で能動的に実行するスクリプト一式（issue #24）。
+    - [./.claude/scripts/src/](./.claude/scripts/src/) issue駆動MRワークフロー支援スクリプト等（bash）。
+      - [./.claude/scripts/src/vcs/](./.claude/scripts/src/vcs/) GitHub/GitLabの差異を吸収するVCS抽象化層（`Provider.sh`）。
+    - [./.claude/scripts/docs/](./.claude/scripts/docs/) `.claude/scripts`機能の設計ドキュメント。
+      - [./.claude/scripts/docs/spec/](./.claude/scripts/docs/spec/) 機能ごとの正史仕様。
+      - [./.claude/scripts/docs/ddr/](./.claude/scripts/docs/ddr/) 関連の意思決定ログ。
   - [./.claude/hooks/](./.claude/hooks/) SessionStart/PostToolUse等のClaude Code hookスクリプト。
     - [./.claude/hooks/lib/](./.claude/hooks/lib/) 複数hookスクリプトで使い回す共通ロジック。
 - [./.gemini/](./.gemini/) Gemini CLI向け設定（`settings.json`）。

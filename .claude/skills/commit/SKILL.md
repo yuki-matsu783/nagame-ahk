@@ -1,6 +1,6 @@
 ---
 name: commit
-description: 'Generate a Japanese commit message with Conventional Commits prefix and create one or more atomic commits. Use whenever a commit needs to be made in this repository — both when the user explicitly invokes /commit AND whenever an AI agent commits autonomously as part of the issue-mr-flow (flow-id 6/11/17/22/28/32). All commits in this repo MUST go through this skill; direct git commit is blocked by a PreToolUse hook. Flow: git status → analyze diff → filter sensitive/junk files → dev-tools/src/create-commit.sh (NO Claude footer, no confirmation; multiple mixed prefixes are auto-split into separate commits)'
+description: 'Generate a Japanese commit message with Conventional Commits prefix and create one or more atomic commits. Use whenever a commit needs to be made in this repository — both when the user explicitly invokes /commit AND whenever an AI agent commits autonomously as part of the issue-mr-flow (flow-id 6/11/17/22/28/32). All commits in this repo MUST go through this skill; direct git commit is blocked by a PreToolUse hook. Flow: git status → analyze diff → filter sensitive/junk files → .claude/scripts/src/create-commit.sh (NO Claude footer, no confirmation; multiple mixed prefixes are auto-split into separate commits)'
 title: git commit標準化
 type: skill
 tags: [issue-mr-flow, workflow, skill]
@@ -23,7 +23,7 @@ keywords: [commit, コミット]
 
 `git commit` の直接実行は `.claude/hooks/block-direct-git-commit.sh`（PreToolUse hook）により
 機構的にブロックされる（`.claude/rules/git-workflow.md` の「コミット運用」節参照）。このスキルの
-Step 4は `dev-tools/src/create-commit.sh` というラッパースクリプト経由でコミットするため、
+Step 4は `.claude/scripts/src/create-commit.sh` というラッパースクリプト経由でコミットするため、
 hookの対象にならず正規に実行できる。
 
 ## 絶対ルール
@@ -114,11 +114,11 @@ hookの対象にならず正規に実行できる。
   - README.md
 ```
 
-`git add` / `git commit` を直接実行せず、`dev-tools/src/create-commit.sh` を使う
+`git add` / `git commit` を直接実行せず、`.claude/scripts/src/create-commit.sh` を使う
 （`git commit` の直接実行は `.claude/hooks/block-direct-git-commit.sh` によりブロックされる）。
 
 ```
-bash dev-tools/src/create-commit.sh --message "<prefix>: <日本語説明>" -- <file1> [file2 ...]
+bash .claude/scripts/src/create-commit.sh --message "<prefix>: <日本語説明>" -- <file1> [file2 ...]
 ```
 
 **コミットメッセージ形式：**

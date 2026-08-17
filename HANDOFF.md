@@ -38,9 +38,9 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 | [x] | 16 | 作業計画に合意する | 人間 |
 | [x] | 17 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | [x] | 18 | MRで作業計画についてレビュー・コメントする。レビュー完了済み連絡をするまで以降の作業は行わない。 | 人間 |
-| [] | 19 | レビュー内容を取得し、作業計画を修正する。対応が完了したコメントには対応内容を返信する（18〜19を合意まで繰り返す） | `comments` / `reply` |
-| [] | 20 | 作業計画をもとにMR descriptionを更新する | `describe` |
-| [] | 21 | 作業計画をもとに作業を進める、作業内容はworklogに更新する | エージェント |
+| [x] | 19 | レビュー内容を取得し、作業計画を修正する。対応が完了したコメントには対応内容を返信する（18〜19を合意まで繰り返す） | `comments` / `reply` |
+| [x] | 20 | 作業計画をもとにMR descriptionを更新する | `describe` |
+| [x] | 21 | 作業計画をもとに作業を進める、作業内容はworklogに更新する | エージェント |
 | [] | 22 | `commit`スキル経由でcommitし、push してレビュー依頼を行う | エージェント |
 | [] | 23 | 作業内容をもとにMR descriptionを更新する | `describe` |
 | [] | 24 | MRでレビュー・コメントする。レビュー済み連絡をするまで以降の作業は行わない。 | 人間 |
@@ -68,17 +68,20 @@ AI⇔AI/AI⇔人間の状況引継ぎメモ。常に「このブランチの現�
 - 調査結果をもとにPlanモードで作業計画を作成し（`plans/delegated-gathering-frog.md`の「作業計画」章）、人間の承認を得た（flow-id 15〜16）。
 - `commit`スキル経由でcommit・push・レビュー依頼を行った（flow-id 17）。
 - 人間からチャットで「スコープ外としたものについても今回の対応で作業して」との指摘を受け、作業計画に7〜9番として追加（`.claude/agents/issue-mr-resume.md`の全面書き直し、`DEVELOPERS.md`の`build.ps1`記載修正、`.claude/rules/powershell-encoding.md`の整理）。「スコープ外」節を縮小し、検証方法にも追記した。commit・push済み。
+- 作業計画に沿って実装した（flow-id 21）: AI専用ファイル一式（`.sh` 7本、spec 3本、DDR 11本）を`git mv`で`.claude/scripts/`へ移動、パス参照を一括更新、`dev-tools/docs/README.md`分割、`directory-structure.md`/`markdown-frontmatter.md`/`index.md`更新、`issue-mr-resume.md`全面書き直し、`DEVELOPERS.md`/`powershell-encoding.md`修正、`index.jsonl`再生成。詳細・ハマった点（sedによる歴史的changelog破壊とその復旧）はworklog参照。
 
 ## 次にやること
 
-- 上記の作業計画修正について、人間からのレビュー完了連絡を待つ（flow-id 19のループ継続）。
-- レビュー完了後、`describe`でMR descriptionを更新（flow-id 20）してから、作業計画に沿って実装を進める（flow-id 21）。
+- `commit`スキル経由でcommit・push・レビュー依頼を行う（flow-id 22）。
+- `describe`でMR descriptionを実装内容で更新する（flow-id 23）。
+- PR #55で実装内容のレビューを待つ（flow-id 24）。レビューコメントがあれば`comments`/`reply`で対応する（flow-id 25のループ）。
 
 ## 判断を迷った内容
 
 - issue本文の移行先表記（「.claudeのscripts配下」「scripts/src」「scripts/docs」）から`.claude/scripts/src/`・`.claude/scripts/docs/`と解釈した（作業計画で確定）。
-- `shell-scripts.md`（`dev-tools/`に残る`build.sh`の規約も含む）を移行対象に含めた結果、移行後も`build.sh`から参照可能な状態をどう保つかは実装時に検討する。
-- 作業計画作成時に`.claude/agents/issue-mr-resume.md`を精読した結果、調査結果7番で想定していた「移行対象パスの書き換えのみ」では不十分と判明（旧PowerShell版Provider.ps1・PascalCase関数を前提とした記述で、単純なパス書き換えでは済まない全面的な作り直しが必要）。dev-tools分離とは独立した既存バグのため、本issueのスコープからは除外し、**別issueとしての起票を推奨する**。
+- `shell-scripts.md`の移動後もdev-tools/に残る`build.sh`から参照できるよう、`dev-tools/docs/spec/distribution.md`・`dev-tools/src/build.sh`内の参照パスを新パスへ更新する形で対応した。
+- 作業計画作成時に`.claude/agents/issue-mr-resume.md`を精読した結果、調査結果7番で想定していた「移行対象パスの書き換えのみ」では不十分と判明（旧PowerShell版Provider.ps1・PascalCase関数を前提とした記述で、単純なパス書き換えでは済まない全面的な作り直しが必要）。人間の指示によりスコープに含め、全面書き直しを実施した。
+- パス参照の一括sed置換で、移動したspec文書内の「## 影響範囲」（過去issueのchangelog、歴史的記録）まで書き換えてしまい歴史を破壊しかけた。`git checkout --`で復旧し、「現在の状態を説明する節」のみ手動修正する方針に切り替えた（詳細はworklog参照）。同種の作業（ファイル移動に伴うパス一括置換）を行う際は、対象ファイルに「過去の記録として意図的に古い値を保持すべき箇所」（changelog・DDR等）が無いか事前に確認すべき、という教訓が得られた。
 
 ## 未解決の内容
 

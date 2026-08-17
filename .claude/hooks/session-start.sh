@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
 # Claude Code SessionStart hook（bash版）。
-# 設計: dev-tools/docs/spec/issue-mr-workflow.md「セッション開始時の自動コンテキスト注入」,
-#       dev-tools/docs/spec/shell-scripts.md
+# 設計: .claude/scripts/docs/spec/issue-mr-workflow.md「セッション開始時の自動コンテキスト注入」,
+#       .claude/scripts/docs/spec/shell-scripts.md
 #
 # セッション開始・resume・clear時（.claude/settings.jsonのmatcher参照）に、現在チェックアウトされて
 # いるブランチに紐づくissue/MRの状態を取得し、追加コンテキストとしてコンテキストに注入する。
@@ -18,7 +18,7 @@
 # 関数化してコマンド置換 `$(...)` の中で呼ぶ（コマンド置換は必ずサブシェル＝別プロセスで実行される
 # ため、`set -e` の「if の条件式の中では-eが一時停止する」というbashの仕様の影響を受けず、
 # 内部で失敗したコマンドの時点で確実にサブシェルごと終了し、呼び出し元の if で失敗を検知できる。
-# 詳細: dev-tools/docs/spec/shell-scripts.md「bashでのtry/catch相当の書き方」節）。
+# 詳細: .claude/scripts/docs/spec/shell-scripts.md「bashでのtry/catch相当の書き方」節）。
 
 set -uo pipefail
 
@@ -47,7 +47,7 @@ fi
 build_context() {
   set -euo pipefail
   cd "$CLAUDE_PROJECT_DIR"
-  source "${CLAUDE_PROJECT_DIR}/dev-tools/src/vcs/Provider.sh"
+  source "${CLAUDE_PROJECT_DIR}/.claude/scripts/src/vcs/Provider.sh"
 
   local branch
   branch="$(git branch --show-current 2>/dev/null || true)"

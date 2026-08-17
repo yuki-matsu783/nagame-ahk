@@ -60,7 +60,7 @@ AutoHotkey64.exe src\main.ahk
 前提: 開発者PCに AutoHotkey v2（Ahk2Exeを含む）がインストール済みであること。
 
 ```
-powershell -File dev-tools\src\build.ps1
+bash dev-tools/src/build.sh
 ```
 
 `build\nagame-ahk-vX.Y.Z.exe`（`.gitignore` 対象・コミット不要）が生成される。バージョンは
@@ -70,7 +70,7 @@ Ahk2Exe.exe が標準の場所（`%ProgramFiles%\AutoHotkey\Compiler\Ahk2Exe.exe
 環境変数 `AHK2EXE_PATH` で実際のパスを指定する。同様にAutoHotkey v2本体
 （既定 `%ProgramFiles%\AutoHotkey\v2\AutoHotkey64.exe`）が標準の場所に無い場合は
 `AHK_V2_EXE_PATH` で指定する（v1/v2が共存する環境ではAhk2Exeの既定baseがv1になっていることがあり、
-`build.ps1` は `/base` でv2本体を明示指定してビルドする。経緯は
+`build.sh` は `/base` でv2本体を明示指定してビルドする。経緯は
 [dev-tools/docs/ddr/0001-ahk2exeビルドの環境依存対応.md](dev-tools/docs/ddr/0001-ahk2exeビルドの環境依存対応.md)参照）。
 
 ## リリース時の手順

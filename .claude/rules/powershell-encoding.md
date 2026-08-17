@@ -9,46 +9,34 @@ keywords: [文字コード, cp932, utf-8, bom, provider-ps1, コンソール出�
 # PowerShellスクリプト・コマンドの文字コード注意事項
 
 **適用範囲**: 本ファイルはPowerShell（`.ps1`・`powershell.exe`経由のコマンド）を直接書く場合にのみ
-適用する。issue #6でリポジトリ内の開発補助スクリプトは全てbash（`.sh`）へ移行しており、bashには
-本ファイルが扱うANSI/OEMコードページの問題自体が発生しない（詳細:
-[dev-tools/docs/spec/shell-scripts.md](../../dev-tools/docs/spec/shell-scripts.md)「文字コード」節）。
+適用する。issue #6でリポジトリ内の開発補助スクリプトは全てbash（`.sh`）へ移行しており、
+2026-08-16時点でリポジトリ内に`.ps1`ファイルは1つも存在しない（bashには本ファイルが扱う
+ANSI/OEMコードページの問題自体が発生しない。詳細:
+[.claude/scripts/docs/spec/shell-scripts.md](../scripts/docs/spec/shell-scripts.md)「文字コード」節）。
 bashスクリプトの規約は [shell-script-style.md](shell-script-style.md) を参照。
+本ファイルは、将来新規に`.ps1`スクリプトを書く必要が生じた場合に備えた注意事項を残すためのもの。
 
 Windows PowerShell 5.1（`powershell.exe`。本プロジェクトの実行環境）は既定で、コンソール入出力・
 `Get-Content`/`Set-Content`/`Out-File`等のファイルI/Oを**システムのANSI/OEMコードページ**
 （日本語Windowsでは通常cp932）で扱う。UTF-8を前提とする`gh`/`glab` CLIとのやり取りや、日本語を含む
 テキストファイルの読み書きでこれを踏まえないと、実機でのみ再現する文字化け・構文エラーが発生する
 （issue #5対応時に2種類の実例で確認済み。詳細は
-[dev-tools/docs/spec/issue-mr-workflow.md](../../dev-tools/docs/spec/issue-mr-workflow.md)
+[.claude/scripts/docs/spec/issue-mr-workflow.md](../scripts/docs/spec/issue-mr-workflow.md)
 「セッション開始時の自動コンテキスト注入」節参照）。
 
-## `dev-tools/src/vcs/Provider.ps1`をdot-sourceしていれば自動的に安全
+## 新規`.ps1`スクリプトを書く場合の注意
 
-`Provider.ps1`はdot-source直後に以下を設定し、呼び出し側が個別に`-Encoding UTF8`を書かなくても
-安全になるようにしている（呼び出し側の書き忘れに依存しない、スクリプト側だけで完結する対策）。
-
-- `[Console]::OutputEncoding` / `[Console]::InputEncoding` をUTF-8へ切り替え（`gh`/`glab`等の
-  外部コマンドとのI/Oを保護）。
-- `$PSDefaultParameterValues` で `Get-Content` / `Set-Content` / `Add-Content` / `Out-File` の
-  既定エンコーディングをUTF-8へ切り替え（ファイル読み書きを保護。ワイルドカード`'*:Encoding'`は
-  他コマンドレットの`-Encoding`パラメータ定義と衝突して警告が出たため、対象コマンドレットを
-  個別に指定している）。
-
-`.claude/skills/issue-mr-flow/SKILL.md` のサブコマンド手順（`comments`/`reply`/`describe`等）は
-すべて `Provider.ps1` のdot-sourceを前提としているため、通常はこのルールを意識する必要はない。
-
-## `Provider.ps1`をdot-sourceしない場合のみ注意が必要
-
-- `Provider.ps1`をdot-sourceせずに新規のPowerShellスクリプトから直接`gh`/`git`を呼ぶ、または
-  日本語を含むテキストファイルを読み書きする場合は、上記と同じ設定（コンソールエンコーディングの
-  切り替え、必要なら`$PSDefaultParameterValues`）をそのスクリプト側で行う。実例:
-  `.claude/hooks/session-start.ps1`（独立プロセスとして起動されるhookのため、`Provider.ps1`とは
-  別に`[Console]::OutputEncoding`/`InputEncoding`の切り替えを自前で持つ）。
+- コンソール入出力（`gh`/`glab`等の外部コマンドとのI/O）を保護するには、スクリプト冒頭で
+  `[Console]::OutputEncoding` / `[Console]::InputEncoding` をUTF-8へ切り替える。
+- ファイル読み書き（`Get-Content`/`Set-Content`/`Add-Content`/`Out-File`）を保護するには、
+  `$PSDefaultParameterValues` で既定エンコーディングをUTF-8へ切り替える（ワイルドカード
+  `'*:Encoding'`は他コマンドレットの`-Encoding`パラメータ定義と衝突して警告が出るため、
+  対象コマンドレットを個別に指定する）。
 - `.ps1`ファイル自体は**BOM付きUTF-8で保存する**。BOM無しUTF-8で保存すると、Windows PowerShell 5.1が
-  日本語コメント等を正しく解釈できず、離れた箇所で構文エラーになることがある（実例: hookスクリプトを
-  新規作成した際、BOM無しUTF-8で保存され`[Draft]`のような無関係な箇所でパースエラーになった）。
-  これはランタイムの設定では防げない、ファイル保存時の性質のため、新規`.ps1`作成時は既存の
-  `dev-tools/src/build.ps1`と同じくBOM付きUTF-8で保存する。
+  日本語コメント等を正しく解釈できず、離れた箇所で構文エラーになることがある（実例: issue #5対応時、
+  hookスクリプトを新規作成した際、BOM無しUTF-8で保存され`[Draft]`のような無関係な箇所でパース
+  エラーになった。当時のhookスクリプトは現在はbash化され存在しない）。これはランタイムの設定では
+  防げない、ファイル保存時の性質のため、新規`.ps1`作成時は必ずBOM付きUTF-8で保存する。
   **AIエージェント向け注記**: Writeツールで新規`.ps1`を作成した場合は既定でBOM無しになるため、
   作成直後に必ず以下で変換し、構文検証まで行う（issue #15対応でこの手順を怠り、同じ事故を1セッション内で
   3回再発させた実例あり。ルールの存在を知っているだけでは防げず、新規`.ps1`作成のたびに機械的に

@@ -4,14 +4,14 @@
 # `.claude/skills/commit/SKILL.md` のStep 5から呼び出す想定。
 #
 # `git add -- <files>` → `git commit -m <message>` を行うだけの薄いラッパーだが、呼び出し文字列
-# 自体（例: `bash dev-tools/src/create-commit.sh --message "..." -- file1 file2`）に
+# 自体（例: `bash .claude/scripts/src/create-commit.sh --message "..." -- file1 file2`）に
 # "git commit" という部分文字列を含まないことが目的。`.claude/hooks/block-direct-git-commit.sh`
 # （PreToolUse hook）は Bash/PowerShell ツールのコマンド文字列に "git commit" が含まれる場合を
 # ブロックするため、このラッパー経由のコミットはhookの対象外になり、commitスキルの正規の実行を
-# 妨げない（詳細: dev-tools/docs/ddr/0012-コミットはcommitスキル経由を機構的に強制する.md）。
+# 妨げない（詳細: .claude/scripts/docs/ddr/0012-コミットはcommitスキル経由を機構的に強制する.md）。
 #
 # 使い方:
-#   dev-tools/src/create-commit.sh --message "<コミットメッセージ>" -- <file1> [file2 ...]
+#   .claude/scripts/src/create-commit.sh --message "<コミットメッセージ>" -- <file1> [file2 ...]
 #
 # `--amend` `--no-verify` `git add .`/`-A` 相当のオプションは持たない（commitスキルの絶対ルールを
 # 呼び出し側だけでなくラッパー側でも構造的に不可能にするため）。

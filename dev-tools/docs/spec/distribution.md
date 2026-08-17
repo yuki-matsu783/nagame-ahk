@@ -29,7 +29,8 @@ Ahk2Exe（AutoHotkey v2付属のコンパイラ）で単体のexeを生成し、
   する。Ahk2Exe本体・AutoHotkey v2本体のパスは環境変数 `AHK2EXE_PATH` / `AHK_V2_EXE_PATH` で
   上書きできる。Ahk2Exeへ渡す`/in` `/out` `/base` `/icon`はDOS形式の単一スラッシュ引数のため、
   git bashのパス自動変換を避けるために`//in`のように先頭を`//`にしている（詳細:
-  `dev-tools/docs/spec/shell-scripts.md`「git bashのパス変換」節）。
+  `.claude/scripts/docs/spec/shell-scripts.md`「git bashのパス変換」節。issue #24で
+  `dev-tools/`から移動した）。
 - **バージョン・アプリ名の埋め込み**: `src/main.ahk` の先頭にAhk2Exeディレクティブ
   （`;@Ahk2Exe-SetName`, `;@Ahk2Exe-SetVersion`, `;@Ahk2Exe-SetProductName` 等）を追加し、
   `src/config/Settings.ahk` の `AppName` / `Version` の値と一致させる（自動連携はせず、

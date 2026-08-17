@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 #
 # issue駆動MRワークフロー支援の共通レイヤー（bash版）。
-# 設計: dev-tools/docs/spec/issue-mr-workflow.md, dev-tools/docs/spec/shell-scripts.md
+# 設計: .claude/scripts/docs/spec/issue-mr-workflow.md, .claude/scripts/docs/spec/shell-scripts.md
 #
 # GitHub/GitLabの差異を吸収する共通インターフェースを提供する。呼び出し側
 # （.claude/skills/issue-mr-flow/SKILL.md 等）はこのファイルをsourceして使う。
-#     source dev-tools/src/vcs/Provider.sh
+#     source .claude/scripts/src/vcs/Provider.sh
 #
 # プロバイダ非依存の関数（new_issue_branch, sync_branch 等）はここに実装し、
 # プロバイダ依存の関数（get_issue, new_draft_merge_request, get_mr_unresolved_comments,
@@ -15,14 +15,14 @@
 # 戻り値の受け渡しはPowerShell版のPSCustomObjectに代えてJSON文字列をstdoutへ出力する形にする
 # （呼び出し側はjqでフィールドを取り出す。例: get_issue 6 | jq -r '.title'）。JSONのキー名は
 # PowerShell版のPascalCase（Number/Title/...）ではなく、bash/jqのエコシステムに合わせて
-# camelCase（number/title/...）に統一している（詳細: dev-tools/docs/spec/shell-scripts.md）。
+# camelCase（number/title/...）に統一している（詳細: .claude/scripts/docs/spec/shell-scripts.md）。
 #
 # 前提: bash, git, jq, gh（GitHubの場合）または glab（GitLabの場合）。
 #
 # 注意（文字コード）: PowerShell版はシステムのANSI/OEMコードページ対策として明示的な
 # UTF-8切り替えが必要だったが、git bash + gh/jq の組み合わせではこの問題が発生しない
 # （bashの標準入出力・パイプはコードページの影響を受けない）ため、本ファイルには
-# 同種の対策は不要（詳細: dev-tools/docs/spec/shell-scripts.md「文字コード」節）。
+# 同種の対策は不要（詳細: .claude/scripts/docs/spec/shell-scripts.md「文字コード」節）。
 #
 # 注意（エラー方針）: PowerShell版の `$ErrorActionPreference = "Stop"` に相当する方針として
 # `set -euo pipefail` を用いる。個々の関数内で「失敗してもスクリプト全体を止めたくない」箇所は
@@ -36,7 +36,7 @@ source "${SCRIPT_DIR}/Github.sh"
 # shellcheck source=./Gitlab.sh
 source "${SCRIPT_DIR}/Gitlab.sh"
 
-# issue本文に標準として求める見出し（dev-tools/docs/spec/issue-mr-workflow.md
+# issue本文に標準として求める見出し（.claude/scripts/docs/spec/issue-mr-workflow.md
 # 「Issueテンプレート標準化」参照。.github/ISSUE_TEMPLATE/task.md, .gitlab/issue_templates/task.md と対応）
 REQUIRED_ISSUE_SECTIONS=("目的" "現状" "期待する動作" "受け入れ条件")
 
@@ -58,8 +58,8 @@ get_workflow_config() {
   "defaultBaseBranch": "main",
   "plansDir": "plans",
   "worklogDir": "worklog",
-  "specDirs": ["docs/spec", "dev-tools/docs/spec"],
-  "ddrDirs": ["docs/ddr", "dev-tools/docs/ddr"]
+  "specDirs": ["docs/spec", "dev-tools/docs/spec", ".claude/scripts/docs/spec"],
+  "ddrDirs": ["docs/ddr", "dev-tools/docs/ddr", ".claude/scripts/docs/ddr"]
 }
 EOF
 }
@@ -183,7 +183,7 @@ add_mr_comment() {
 }
 
 # baseとの差分（コミット）が無いブランチでは `gh pr create` / `glab mr create` が失敗するため
-# （new_issue_branch直後など。dev-tools/docs/spec/issue-mr-workflow.md の既知の制約参照）、
+# （new_issue_branch直後など。.claude/scripts/docs/spec/issue-mr-workflow.md の既知の制約参照）、
 # 空コミットを1つ積んでpushすることで回避する。呼び出し元（github_/gitlab_new_draft_merge_request）が
 # 失敗を検知した後にこれを呼び、作成を1回だけリトライする。
 add_empty_commit_for_draft_mr() {

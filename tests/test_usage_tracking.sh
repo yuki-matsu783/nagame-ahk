@@ -2,7 +2,7 @@
 #
 # .claude/hooks/lib/UsageTracking.sh の単体テスト。
 # 設計: plans/inherited-gathering-biscuit.md（issue #37）,
-#       dev-tools/docs/spec/issue-mr-workflow.md「対応工数レポート」節
+#       .claude/scripts/docs/spec/issue-mr-workflow.md「対応工数レポート」節
 #
 # 対象: gh/glab呼び出しを伴わない純粋ロジック（_usage_aggregate_transcript, _usage_aggregate_new_lines,
 # _usage_merge_state, _usage_merge_agent_state, _usage_sync_session_logs,

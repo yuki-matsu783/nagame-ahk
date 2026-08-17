@@ -9,13 +9,13 @@ keywords: [bashスクリプト, jq, サブシェル, 命名規則, パス変換,
 # bashスクリプトの規約
 
 issue #6でリポジトリ内の開発補助スクリプトを全てPowerShellからbashへ移行した際に定めた規約。
-設計方針・移行の経緯は [dev-tools/docs/spec/shell-scripts.md](../../dev-tools/docs/spec/shell-scripts.md)
+設計方針・移行の経緯は [.claude/scripts/docs/spec/shell-scripts.md](../../.claude/scripts/docs/spec/shell-scripts.md)
 を参照（このファイルは規約のみを記載し、経緯の重複は避ける）。
 
 ## 前提・保存形式
 
 - 実行環境はgit bash（Git for Windows付属のMSYS bash）。WSL/Linux実機での動作確認は行っていない
-  （`dev-tools/docs/spec/shell-scripts.md`の未決定事項参照）。
+  （`.claude/scripts/docs/spec/shell-scripts.md`の未決定事項参照）。
 - ファイルはUTF-8・**BOM無し**・LF改行で保存する（PowerShellの`.ps1`と異なり、BOMは不要かつ
   有害。シバン行`#!/usr/bin/env bash`の直前にBOMがあるとインタプリタ判定に失敗する処理系がある）。
   このリポジトリは`core.autocrlf=input`のためコミット時にCRLFはLFへ変換されるが、Write/Editツール
@@ -49,7 +49,7 @@ issue #6でリポジトリ内の開発補助スクリプトを全てPowerShell�
 ## JSON操作
 
 - JSONの生成・パースは `jq` を使う（PowerShellの`ConvertFrom-Json`/`ConvertTo-Json`相当。新規の
-  外部依存としてインストールが必要。`dev-tools/docs/spec/shell-scripts.md`「前提」参照）。
+  外部依存としてインストールが必要。`.claude/scripts/docs/spec/shell-scripts.md`「前提」参照）。
 - 関数の戻り値はPSCustomObjectに代えてJSON文字列をstdoutへ出力する設計にする。呼び出し側は
   `jq`でフィールドを取り出す（例: `get_issue 6 | jq -r '.title'`）。JSONのキー名はPascalCaseでは
   なくcamelCase（`number`/`title`/...）に統一する。
@@ -124,7 +124,7 @@ issue #6でリポジトリ内の開発補助スクリプトを全てPowerShell�
   終了コードやASCII文字列（イメージ名等）での判定に留める。
 - Windows版のnative `jq`バイナリ（`C:\Program Files\jq\jq.exe`のような、MSYS版ではなくWindows
   ネイティブ実行ファイルとして配布されるもの）は、標準出力をファイルへリダイレクトする際に行末へ
-  CRを付与することがある（実機確認: `dev-tools/src/extract-frontmatter.sh`実装時。git bashの
+  CRを付与することがある（実機確認: `.claude/scripts/src/extract-frontmatter.sh`実装時。git bashの
   `core.autocrlf=input`設定下ではコミット時に自動でLFへ変換されるため実害は限定的だが、コミット前の
   ワーキングツリー上ではCRLFが混入する）。jqの出力を直接ファイルへ書き出す箇所は`tr -d '\r'`を
   挟んでLF改行に統一する。
@@ -148,7 +148,7 @@ issue #6でリポジトリ内の開発補助スクリプトを全てPowerShell�
 `Git\bin`（例: `C:\Program Files\Git\bin`）を`C:\Windows\System32`より前に来る位置で追加する**
 ことで解決する（ユーザー環境変数に追加するだけでは効果が無い。Windowsの有効PATHはシステム環境変数
 側が先に連結されるため）。具体的な手順は
-[dev-tools/docs/spec/shell-scripts.md](../../dev-tools/docs/spec/shell-scripts.md)
+[.claude/scripts/docs/spec/shell-scripts.md](../../.claude/scripts/docs/spec/shell-scripts.md)
 「Claude Code hookの起動コマンド」参照）。`${CLAUDE_PROJECT_DIR}`（Windows形式パス）はこの
 `bash.exe`へargvで渡しても正しく解決される。
 

@@ -2,7 +2,7 @@
 #
 # Claude Code PreToolUse hook（`git commit`の直接実行をブロック、issue #39）。
 # 設計: plans/tranquil-strolling-shannon.md、
-#       dev-tools/docs/ddr/0012-コミットはcommitスキル経由を機構的に強制する.md
+#       .claude/scripts/docs/ddr/0012-コミットはcommitスキル経由を機構的に強制する.md
 #
 # 目的: すべてのコミットを `.claude/skills/commit/SKILL.md`（`commit`スキル）経由で行わせる
 # （issue #39の受け入れ条件）。ドキュメント上のルールだけではエージェントの遵守に依存するため、
@@ -13,7 +13,7 @@
 # `permissions.deny` の prefix マッチだけでは `cd src && git commit -m "fix"` のような
 # 複合コマンドをすり抜けてしまうため、hook側でも実文字列を検査する）。
 #
-# commitスキル自身は `dev-tools/src/create-commit.sh` というラッパー経由でコミットするため、
+# commitスキル自身は `.claude/scripts/src/create-commit.sh` というラッパー経由でコミットするため、
 # 呼び出し文字列に "git commit" という部分文字列を含まず、本hookには引っかからない
 # （ラッパー内部で `git commit` を実行すること自体は問題ない。本hookが検査するのは
 # Bash/PowerShellツールへの「呼び出し文字列」のみで、その呼び出しが実行するスクリプトの
@@ -48,7 +48,7 @@ main() {
   [ -n "$command" ] || exit 0
 
   if printf '%s' "$command" | grep -qiE 'git[[:space:]]+commit'; then
-    echo "git commit の直接実行はブロックされています。commit スキル（.claude/skills/commit/SKILL.md）経由で、dev-tools/src/create-commit.sh を使ってコミットしてください。" >&2
+    echo "git commit の直接実行はブロックされています。commit スキル（.claude/skills/commit/SKILL.md）経由で、.claude/scripts/src/create-commit.sh を使ってコミットしてください。" >&2
     exit 2
   fi
 
